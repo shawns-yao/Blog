@@ -1,0 +1,32 @@
+.DS_Store
+Thumbs.db
+
+# IDE / editor config
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env files
+.workbuddy-ai
+.codegraph
+
+docs
+.env
+.env.*
+!admin/.env.example
+!deploy/.env.example
+
+# Logs
+logs/
+*.log
+
+# Local export artifacts
+exports/
+
+# Prevent committing built server binaries
+/server/api
+/telemetry-server/telemetry-server
+
+.claude/
+.codex
