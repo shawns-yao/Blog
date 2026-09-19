@@ -1,0 +1,113 @@
+import type { TOCNode } from '$lib/shared/types/toc';
+import type { ContentExtInfo } from '$lib/shared/markdown/image-ext-info';
+
+export type { TOCNode };
+
+export type MomentSummary = {
+	id: number;
+	title: string;
+	shortUrl: string;
+	authorName?: string;
+	summary: string;
+	avatar?: string;
+	cover?: string;
+	views: number;
+	columnName?: string;
+	columnShortUrl?: string;
+	commentAreaId?: number | null;
+	topics: string[];
+	likes: number;
+	comments: number;
+	isTop: boolean;
+	isHot: boolean;
+	isOriginal: boolean;
+	contentUpdatedAt: string;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type MomentRelatedMoment = {
+	id: number;
+	title: string;
+	shortUrl: string;
+	summary: string;
+	cover?: string;
+	createdAt: string;
+};
+
+export type MomentWeather = 'sunny' | 'cloudy' | 'overcast' | 'rainy' | 'snowy' | 'windy' | 'foggy';
+
+export type MomentMood = 'joyful' | 'calm' | 'excited' | 'tired' | 'sad';
+
+export type MomentAtmosphere = {
+	weather?: MomentWeather;
+	mood?: MomentMood;
+	[key: string]: unknown;
+};
+
+export type MomentExtInfo = ContentExtInfo & {
+	moment?: MomentAtmosphere;
+};
+
+export type MomentDetail = {
+	id: number;
+	title: string;
+	summary: string;
+	aiSummary?: string | null;
+	content: string;
+	contentHash: string;
+	toc?: TOCNode[];
+	authorId: number;
+	shortUrl: string;
+	cover?: string;
+	fediverseObjectUrl?: string | null;
+	extInfo?: MomentExtInfo | null;
+	columnId?: number | null;
+	columnName?: string;
+	columnShortUrl?: string;
+	commentAreaId?: number | null;
+	activityPubObjectId?: string | null;
+	isPublished: boolean;
+	topics?: TopicTag[];
+	metrics?: {
+		views: number;
+		likes: number;
+		comments: number;
+	};
+	isTop: boolean;
+	isHot: boolean;
+	isOriginal: boolean;
+	relatedMoments?: MomentRelatedMoment[];
+	contentUpdatedAt: string;
+	createdAt: string;
+	updatedAt: string;
+};
+
+export type TopicTag = {
+	id: number;
+	name: string;
+};
+
+export type MomentLatestCheckResponse = {
+	latest: boolean;
+	contentHash: string;
+	title?: string;
+	summary?: string;
+	toc?: TOCNode[];
+	content?: string;
+};
+
+export type MomentContentPayload = {
+	contentHash: string;
+	title?: string;
+	summary?: string;
+	toc?: TOCNode[];
+	content?: string;
+};
+
+export type MomentListResponse = {
+	items: MomentSummary[];
+	total: number;
+	page: number;
+	size: number;
+};
