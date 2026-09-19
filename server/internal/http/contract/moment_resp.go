@@ -1,0 +1,91 @@
+package contract
+
+import "time"
+
+// MomentResp 手记响应。
+type MomentResp struct {
+	ID                         int64        `json:"id"`
+	Title                      string       `json:"title"`
+	Summary                    string       `json:"summary"`
+	AISummary                  *string      `json:"aiSummary,omitempty"`
+	TOC                        []TOCNode    `json:"toc,omitempty"`
+	Content                    string       `json:"content"`
+	ContentHash                string       `json:"contentHash"`
+	AuthorID                   int64        `json:"authorId"`
+	Cover                      *string      `json:"cover,omitempty"`
+	ActivityPubObjectID        *string      `json:"activityPubObjectId,omitempty"`
+	ActivityPubLastPublishedAt *time.Time   `json:"activityPubLastPublishedAt,omitempty"`
+	ColumnID                   *int64       `json:"columnId,omitempty"`
+	ColumnName                 string       `json:"columnName,omitempty"`
+	ColumnShortURL             string       `json:"columnShortUrl,omitempty"`
+	CommentID                  *int64       `json:"commentAreaId,omitempty"`
+	ShortURL                   string       `json:"shortUrl"`
+	FediverseObjectURL         *string      `json:"fediverseObjectUrl,omitempty"`
+	IsPublished                bool         `json:"isPublished"`
+	IsTop                      bool         `json:"isTop"`
+	IsHot                      bool         `json:"isHot"`
+	AllowComment               bool         `json:"allowComment"`
+	IsOriginal                 bool         `json:"isOriginal"`
+	ExtInfo                    *JSONRaw     `json:"extInfo,omitempty" swaggertype:"object"`
+	Topics                     []TagResp    `json:"topics,omitempty"`
+	Metrics                    *MetricsResp `json:"metrics,omitempty"`
+	ContentUpdatedAt           time.Time    `json:"contentUpdatedAt"`
+	CreatedAt                  time.Time    `json:"createdAt"`
+	UpdatedAt                  time.Time    `json:"updatedAt"`
+}
+
+// MomentListItemResp 手记列表项响应。
+type MomentListItemResp struct {
+	ID               int64     `json:"id"`
+	Title            string    `json:"title"`
+	ShortURL         string    `json:"shortUrl"`
+	AuthorName       string    `json:"authorName,omitempty"`
+	Summary          string    `json:"summary"`
+	Avatar           string    `json:"avatar,omitempty"`
+	Cover            *string   `json:"cover,omitempty"`
+	Views            int64     `json:"views"`
+	ColumnName       string    `json:"columnName,omitempty"`
+	ColumnShortURL   string    `json:"columnShortUrl,omitempty"`
+	CommentID        *int64    `json:"commentAreaId,omitempty"`
+	Topics           []string  `json:"topics"`
+	Likes            int       `json:"likes"`
+	Comments         int       `json:"comments"`
+	IsTop            bool      `json:"isTop"`
+	IsHot            bool      `json:"isHot"`
+	AllowComment     bool      `json:"allowComment"`
+	IsOriginal       bool      `json:"isOriginal"`
+	IsPublished      bool      `json:"isPublished"`
+	ContentUpdatedAt time.Time `json:"contentUpdatedAt"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+// MomentListResp 手记列表响应。
+type MomentListResp struct {
+	Items []MomentListItemResp `json:"items"`
+	Total int64                `json:"total"`
+	Page  int                  `json:"page"`
+	Size  int                  `json:"size"`
+}
+
+// MomentContentPayload 手记内容推送数据。
+type MomentContentPayload struct {
+	ContentHash string    `json:"contentHash"`
+	Title       string    `json:"title,omitempty"`
+	Summary     string    `json:"summary,omitempty"`
+	TOC         []TOCNode `json:"toc"`
+	Content     string    `json:"content,omitempty"`
+}
+
+// CheckMomentLatestResp 手记版本校验响应。
+type CheckMomentLatestResp struct {
+	Latest bool `json:"latest"`
+	MomentContentPayload
+}
+
+// ResetMomentFederationSignalsResp 重置手记联合条目状态响应。
+type ResetMomentFederationSignalsResp struct {
+	MomentID    int64    `json:"momentId"`
+	Retriggered bool     `json:"retriggered"`
+	ExtInfo     *JSONRaw `json:"extInfo,omitempty" swaggertype:"object"`
+}

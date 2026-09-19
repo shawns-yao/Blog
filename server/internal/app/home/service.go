@@ -1,0 +1,553 @@
+package home
+
+import (
+	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
+
+	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+)
+
+const (
+	defaultRangeDays    = 365
+	maxRangeDays        = 730
+	githubBaseURL       = "https://api.github.com"
+	githubStatsCacheTTL = time.Hour
+)
+
+var (
+	markdownImagePattern = regexp.MustCompile(`!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)`)
+	htmlImagePattern     = regexp.MustCompile(`(?i)<img[^>]+src=["']([^"']+)["']`)
+)
+
+type Service struct {
+	db          *gorm.DB
+	now         func() time.Time
+	httpClient  *http.Client
+	redis       *redis.Client
+	redisPrefix string
+	sysCfg      *sysconfig.Service
+}
+
+type ActivityPulsePoint struct {
+	Date    string `json:"date"`
+	Moments int64  `json:"moments"`
+}
+
+type ActivityPulse struct {
+	Days         int                  `json:"days"`
+	StartDate    string               `json:"startDate"`
+	EndDate      string               `json:"endDate"`
+	TotalMoments int64                `json:"totalMoments"`
+	StatusLabel  string               `json:"statusLabel"`
+	Points       []ActivityPulsePoint `json:"points"`
+}
+
+type WordCountStats struct {
+	Total   int64 `json:"total"`
+	Moments int64 `json:"moments"`
+}
+
+type GitHubStats struct {
+	Username          string `json:"username"`
+	ProfileURL        string `json:"profileUrl"`
+	AvatarURL         string `json:"avatarUrl"`
+	Followers         int64  `json:"followers"`
+	PublicRepos       int64  `json:"publicRepos"`
+	RecentPushCommits int64  `json:"recentPushCommits"`
+	FetchedAt         string `json:"fetchedAt"`
+}
+
+type InspirationStats struct {
+	Words       WordCountStats `json:"words"`
+	GitHub      *GitHubStats   `json:"github,omitempty"`
+	GitHubError string         `json:"githubError,omitempty"`
+}
+
+type TimelineMomentItem struct {
+	Title       string `json:"title"`
+	ShortURL    string `json:"shortUrl"`
+	URL         string `json:"url"`
+	Image       string `json:"image,omitempty"`
+	PublishedAt string `json:"publishedAt"`
+}
+
+type TimelineYearBucket struct {
+	YearSummary *TimelineMomentItem  `json:"yearSummary,omitempty"`
+	Moments     []TimelineMomentItem `json:"moments"`
+}
+
+func NewService(db *gorm.DB, redisClient *redis.Client, redisPrefix string, sysCfg *sysconfig.Service) *Service {
+	return &Service{
+		db:          db,
+		now:         time.Now,
+		redis:       redisClient,
+		redisPrefix: redisPrefix,
+		sysCfg:      sysCfg,
+		httpClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+	}
+}
+
+func (s *Service) GetActivityPulse(ctx context.Context, days int) (*ActivityPulse, error) {
+	today := s.now().UTC().Truncate(24 * time.Hour)
+	endExclusive := today.Add(24 * time.Hour)
+	start := today
+
+	switch {
+	case days == -1:
+		earliest, found, err := s.findEarliestPublishedCreatedDate(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			start = earliest
+		}
+		days = int(today.Sub(start).Hours()/24) + 1
+		if days <= 0 {
+			days = 1
+			start = today
+		}
+	default:
+		if days <= 0 {
+			days = defaultRangeDays
+		}
+		if days > maxRangeDays {
+			days = maxRangeDays
+		}
+		start = today.AddDate(0, 0, -(days - 1))
+	}
+
+	points := make([]ActivityPulsePoint, 0, days)
+	byDate := make(map[string]int, days)
+	for i := 0; i < days; i++ {
+		date := start.AddDate(0, 0, i).Format("2006-01-02")
+		byDate[date] = len(points)
+		points = append(points, ActivityPulsePoint{
+			Date: date,
+		})
+	}
+
+	type countRow struct {
+		Date  string `gorm:"column:date"`
+		Count int64  `gorm:"column:count"`
+	}
+
+	var momentRows []countRow
+	if err := s.db.WithContext(ctx).
+		Model(&model.Moment{}).
+		Select("DATE(created_at) AS date, COUNT(*) AS count").
+		Where("is_published = ?", true).
+		Where("created_at >= ? AND created_at < ?", start, endExclusive).
+		Group("DATE(created_at)").
+		Scan(&momentRows).Error; err != nil {
+		return nil, err
+	}
+
+	var totalMoments int64
+	for _, row := range momentRows {
+		idx, ok := byDate[normalizeDateKey(row.Date)]
+		if !ok {
+			continue
+		}
+		points[idx].Moments = row.Count
+		totalMoments += row.Count
+	}
+
+	return &ActivityPulse{
+		Days:         days,
+		StartDate:    start.Format("2006-01-02"),
+		EndDate:      today.Format("2006-01-02"),
+		TotalMoments: totalMoments,
+		StatusLabel:  buildStatusLabel(totalMoments, days),
+		Points:       points,
+	}, nil
+}
+
+func (s *Service) findEarliestPublishedCreatedDate(ctx context.Context) (time.Time, bool, error) {
+	type minRow struct {
+		MinAt sql.NullTime `gorm:"column:min_at"`
+	}
+
+	var momentRow minRow
+	if err := s.db.WithContext(ctx).
+		Model(&model.Moment{}).
+		Select("MIN(created_at) AS min_at").
+		Where("is_published = ?", true).
+		Scan(&momentRow).Error; err != nil {
+		return time.Time{}, false, err
+	}
+
+	var earliest time.Time
+	found := false
+	if momentRow.MinAt.Valid {
+		candidate := momentRow.MinAt.Time.UTC().Truncate(24 * time.Hour)
+		if !found || candidate.Before(earliest) {
+			earliest = candidate
+			found = true
+		}
+	}
+	return earliest, found, nil
+}
+
+func buildStatusLabel(totalMoments int64, days int) string {
+	if days <= 0 {
+		return "Quiet"
+	}
+	avg := float64(totalMoments) / float64(days)
+	switch {
+	case avg >= 2:
+		return "Prolific"
+	case avg >= 0.9:
+		return "Steady"
+	case avg >= 0.2:
+		return "Active"
+	default:
+		return "Quiet"
+	}
+}
+
+func (s *Service) GetInspirationStats(ctx context.Context, githubUsername string) (*InspirationStats, error) {
+	words, err := s.queryWordStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &InspirationStats{Words: words}
+	username := strings.TrimSpace(githubUsername)
+	if username == "" {
+		return stats, nil
+	}
+
+	// 尝试从 Redis 读取缓存
+	if cached, err := s.getGitHubStatsCache(ctx, username); err == nil && cached != nil {
+		stats.GitHub = cached
+		return stats, nil
+	}
+
+	githubStats, err := s.fetchGitHubStats(ctx, username)
+	if err != nil {
+		// GitHub 是增强信息，不应该阻断首页渲染。
+		stats.GitHubError = err.Error()
+		log.Printf("[home] github stats fetch failed username=%s err=%v", username, err)
+		return stats, nil
+	}
+	stats.GitHub = githubStats
+
+	// 写入 Redis 缓存
+	if err := s.setGitHubStatsCache(ctx, username, githubStats); err != nil {
+		log.Printf("[home] github stats cache write failed username=%s err=%v", username, err)
+	}
+
+	return stats, nil
+}
+
+func (s *Service) GetTimelineByYear(ctx context.Context) (map[string]TimelineYearBucket, error) {
+	timeline := make(map[string]TimelineYearBucket)
+	siteTZ := s.sysCfg.Timezone(ctx)
+
+	type momentRow struct {
+		Title     string    `gorm:"column:title"`
+		ShortURL  string    `gorm:"column:short_url"`
+		Cover     *string   `gorm:"column:cover"`
+		Content   string    `gorm:"column:content"`
+		ExtInfo   []byte    `gorm:"column:ext_info"`
+		CreatedAt time.Time `gorm:"column:created_at"`
+	}
+	var moments []momentRow
+	if err := s.db.WithContext(ctx).
+		Model(&model.Moment{}).
+		Select("title, short_url, cover, content, ext_info, created_at").
+		Where("is_published = ?", true).
+		Order("created_at DESC").
+		Scan(&moments).Error; err != nil {
+		return nil, err
+	}
+
+	for _, item := range moments {
+		yearKey, publishedAt := toYearKeyAndPublishedAt(item.CreatedAt, siteTZ)
+		bucket := ensureTimelineBucket(timeline, yearKey)
+		image := firstCommaSeparatedImageURL(optionalString(item.Cover))
+		if image == "" {
+			image = extractFirstImageURL(item.Content)
+		}
+		momentItem := TimelineMomentItem{
+			Title:       strings.TrimSpace(item.Title),
+			ShortURL:    strings.TrimSpace(item.ShortURL),
+			URL:         buildMomentURL(item.ShortURL, item.CreatedAt, siteTZ),
+			Image:       image,
+			PublishedAt: publishedAt,
+		}
+
+		yearSummaryMark, marked := parseYearSummaryYear(item.ExtInfo)
+		if marked && yearSummaryMark == item.CreatedAt.In(siteTZ).Year() && bucket.YearSummary == nil {
+			bucket.YearSummary = &momentItem
+		} else {
+			bucket.Moments = append(bucket.Moments, momentItem)
+		}
+		timeline[yearKey] = bucket
+	}
+
+	return timeline, nil
+}
+
+func (s *Service) queryWordStats(ctx context.Context) (WordCountStats, error) {
+	var out WordCountStats
+	var err error
+	if out.Moments, err = s.sumContentLength(ctx, "moment", "content"); err != nil {
+		return out, err
+	}
+	out.Total = out.Moments
+	return out, nil
+}
+
+func (s *Service) sumContentLength(ctx context.Context, tableName, columnName string) (int64, error) {
+	type row struct {
+		Val int64 `gorm:"column:val"`
+	}
+	var out row
+	query := fmt.Sprintf("COALESCE(SUM(CHAR_LENGTH(%s)), 0) AS val", columnName)
+	err := s.db.WithContext(ctx).Table(tableName).Select(query).Scan(&out).Error
+	return out.Val, err
+}
+
+func (s *Service) fetchGitHubStats(ctx context.Context, username string) (*GitHubStats, error) {
+	type githubUser struct {
+		Login       string `json:"login"`
+		HTMLURL     string `json:"html_url"`
+		AvatarURL   string `json:"avatar_url"`
+		Followers   int64  `json:"followers"`
+		PublicRepos int64  `json:"public_repos"`
+	}
+	type githubCommitSearch struct {
+		TotalCount int64 `json:"total_count"`
+	}
+
+	escaped := url.PathEscape(username)
+	var user githubUser
+	if err := s.fetchGitHubJSON(ctx, githubBaseURL+"/users/"+escaped, &user); err != nil {
+		return nil, err
+	}
+
+	now := s.now().UTC()
+	startDate := now.AddDate(-1, 0, 0).Format("2006-01-02")
+	endDate := now.Format("2006-01-02")
+	searchURL := fmt.Sprintf(
+		"%s/search/commits?q=author:%s+author-date:%s..%s&per_page=1",
+		githubBaseURL,
+		url.QueryEscape(username),
+		startDate,
+		endDate,
+	)
+	var commitSearch githubCommitSearch
+	if err := s.fetchGitHubJSON(ctx, searchURL, &commitSearch); err != nil {
+		return nil, err
+	}
+
+	resolvedUsername := strings.TrimSpace(user.Login)
+	if resolvedUsername == "" {
+		resolvedUsername = username
+	}
+
+	return &GitHubStats{
+		Username:          resolvedUsername,
+		ProfileURL:        strings.TrimSpace(user.HTMLURL),
+		AvatarURL:         strings.TrimSpace(user.AvatarURL),
+		Followers:         user.Followers,
+		PublicRepos:       user.PublicRepos,
+		RecentPushCommits: commitSearch.TotalCount,
+		FetchedAt:         s.now().UTC().Format(time.RFC3339),
+	}, nil
+}
+
+func (s *Service) fetchGitHubJSON(ctx context.Context, endpoint string, target any) error {
+	client := s.httpClient
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	req.Header.Set("User-Agent", "grtblog-v2-home")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		if resp.StatusCode == http.StatusNotFound {
+			return errors.New("github 用户不存在")
+		}
+		if resp.StatusCode == http.StatusForbidden {
+			return errors.New("github API 速率限制，请稍后再试")
+		}
+		return fmt.Errorf("github API error: status=%d", resp.StatusCode)
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) githubStatsCacheKey(username string) string {
+	return fmt.Sprintf("%shome:github_stats:%s", s.redisPrefix, strings.ToLower(username))
+}
+
+func (s *Service) getGitHubStatsCache(ctx context.Context, username string) (*GitHubStats, error) {
+	if s.redis == nil {
+		return nil, nil
+	}
+	val, err := s.redis.Get(ctx, s.githubStatsCacheKey(username)).Result()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var stats GitHubStats
+	if err := json.Unmarshal([]byte(val), &stats); err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
+func (s *Service) setGitHubStatsCache(ctx context.Context, username string, stats *GitHubStats) error {
+	if s.redis == nil || stats == nil {
+		return nil
+	}
+	payload, err := json.Marshal(stats)
+	if err != nil {
+		return err
+	}
+	return s.redis.Set(ctx, s.githubStatsCacheKey(username), payload, githubStatsCacheTTL).Err()
+}
+
+func normalizeDateKey(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if len(trimmed) >= 10 && trimmed[4] == '-' && trimmed[7] == '-' {
+		return trimmed[:10]
+	}
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02 15:04:05 -0700 MST",
+		"2006-01-02 15:04:05 -0700",
+		"2006-01-02 15:04:05",
+	}
+	for _, layout := range layouts {
+		t, err := time.Parse(layout, trimmed)
+		if err == nil {
+			return t.Format("2006-01-02")
+		}
+	}
+	return trimmed
+}
+
+func ensureTimelineBucket(m map[string]TimelineYearBucket, yearKey string) TimelineYearBucket {
+	bucket, ok := m[yearKey]
+	if !ok {
+		return TimelineYearBucket{
+			Moments: make([]TimelineMomentItem, 0),
+		}
+	}
+	if bucket.Moments == nil {
+		bucket.Moments = make([]TimelineMomentItem, 0)
+	}
+	return bucket
+}
+
+func toYearKeyAndPublishedAt(t time.Time, loc *time.Location) (string, string) {
+	local := t.In(loc)
+	return strconv.Itoa(local.Year()), local.Format(time.RFC3339)
+}
+
+func optionalString(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
+}
+
+func buildMomentURL(shortURL string, createdAt time.Time, loc *time.Location) string {
+	local := createdAt.In(loc)
+	return fmt.Sprintf(
+		"/moments/%04d/%02d/%02d/%s",
+		local.Year(),
+		local.Month(),
+		local.Day(),
+		url.PathEscape(strings.TrimSpace(shortURL)),
+	)
+}
+
+func parseYearSummaryYear(extInfo []byte) (int, bool) {
+	if len(extInfo) == 0 {
+		return 0, false
+	}
+	obj := make(map[string]any)
+	if err := json.Unmarshal(extInfo, &obj); err != nil {
+		return 0, false
+	}
+	raw, ok := obj["is_year_summary"]
+	if !ok {
+		return 0, false
+	}
+	switch v := raw.(type) {
+	case float64:
+		year := int(v)
+		if year > 0 {
+			return year, true
+		}
+	case string:
+		year, err := strconv.Atoi(strings.TrimSpace(v))
+		if err == nil && year > 0 {
+			return year, true
+		}
+	}
+	return 0, false
+}
+
+func extractFirstImageURL(content string) string {
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		return ""
+	}
+	if matched := markdownImagePattern.FindStringSubmatch(trimmed); len(matched) >= 2 {
+		return sanitizeImageURL(matched[1])
+	}
+	if matched := htmlImagePattern.FindStringSubmatch(trimmed); len(matched) >= 2 {
+		return sanitizeImageURL(matched[1])
+	}
+	return ""
+}
+
+func firstCommaSeparatedImageURL(raw string) string {
+	first, _, _ := strings.Cut(raw, ",")
+	return sanitizeImageURL(first)
+}
+
+func sanitizeImageURL(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	trimmed = strings.TrimPrefix(trimmed, "<")
+	trimmed = strings.TrimSuffix(trimmed, ">")
+	return trimmed
+}

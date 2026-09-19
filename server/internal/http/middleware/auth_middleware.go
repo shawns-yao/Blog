@@ -1,0 +1,143 @@
+package middleware
+
+import (
+	"context"
+	"errors"
+	"strings"
+
+	"github.com/gofiber/fiber/v2"
+
+	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
+	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/grtsinry43/grtblog-v2/server/internal/security/jwt"
+)
+
+const authContextKey = "authUser"
+
+type AdminTokenResolver interface {
+	FindByToken(ctx context.Context, token string) (*identity.AdminToken, error)
+}
+
+// RequireAuth 校验 Authorization header 并解析 JWT。
+func RequireAuth(manager *jwt.Manager, userRepo identity.Repository, adminTokenResolver ...AdminTokenResolver) fiber.Handler {
+	var tokenResolver AdminTokenResolver
+	if len(adminTokenResolver) > 0 {
+		tokenResolver = adminTokenResolver[0]
+	}
+	return func(c *fiber.Ctx) error {
+		token := extractToken(c.Get("Authorization"))
+		if token == "" {
+			return response.ErrorWithMsg[any](c, response.NotLogin, "用户未登录，请提供有效的 token")
+		}
+
+		if strings.HasPrefix(token, "gt_") {
+			if tokenResolver == nil {
+				return response.ErrorWithMsg[any](c, response.NotLogin, "token 无效")
+			}
+			adminToken, err := tokenResolver.FindByToken(c.Context(), token)
+			if err != nil {
+				if errors.Is(err, identity.ErrAdminTokenExpired) {
+					return response.ErrorWithMsg[any](c, response.NotLogin, "登录已过期，请重新获取 token")
+				}
+				return response.ErrorWithMsg[any](c, response.NotLogin, "token 无效")
+			}
+			user, err := userRepo.FindByID(c.Context(), adminToken.UserID)
+			if err != nil {
+				if errors.Is(err, identity.ErrUserNotFound) {
+					return response.ErrorWithMsg[any](c, response.NotLogin, "token 无效")
+				}
+				return err
+			}
+			if !user.IsActive {
+				return response.ErrorWithMsg[any](c, response.NotLogin, "账号已被禁用")
+			}
+			c.Locals(authContextKey, &jwt.Claims{
+				Subject:   "admin_token",
+				UserID:    adminToken.UserID,
+				IsAdmin:   user.IsAdmin,
+				Issuer:    "admin_token",
+				IssuedAt:  adminToken.CreatedAt.Unix(),
+				ExpiresAt: adminToken.ExpireAt.Unix(),
+			})
+			return c.Next()
+		}
+
+		claims, err := manager.Parse(token)
+		if err != nil {
+			if errors.Is(err, jwt.ErrExpiredToken) {
+				return response.ErrorWithMsg[any](c, response.NotLogin, "登录已过期，请重新获取 token")
+			}
+			return response.ErrorWithMsg[any](c, response.NotLogin, "token 无效")
+		}
+		user, err := userRepo.FindByID(c.Context(), claims.UserID)
+		if err != nil {
+			if errors.Is(err, identity.ErrUserNotFound) {
+				return response.ErrorWithMsg[any](c, response.NotLogin, "token 无效")
+			}
+			return err
+		}
+		if !user.IsActive {
+			return response.ErrorWithMsg[any](c, response.NotLogin, "账号已被禁用")
+		}
+		claims.IsAdmin = user.IsAdmin
+
+		c.Locals(authContextKey, claims)
+		return c.Next()
+	}
+}
+
+// RequireAdmin 要求当前用户是管理员（基于数据库二次校验）。
+func RequireAdmin(repo identity.Repository) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		claims, ok := getClaims(c)
+		if !ok {
+			return response.ErrorFromBiz[any](c, response.NotLogin)
+		}
+		if !claims.IsAdmin {
+			return response.ErrorWithMsg[any](c, response.Unauthorized, "需要管理员权限")
+		}
+		user, err := repo.FindByID(c.Context(), claims.UserID)
+		if err != nil {
+			if errors.Is(err, identity.ErrUserNotFound) {
+				return response.ErrorWithMsg[any](c, response.Unauthorized, "需要管理员权限")
+			}
+			return err
+		}
+		if !user.IsAdmin {
+			return response.ErrorWithMsg[any](c, response.Unauthorized, "需要管理员权限")
+		}
+		return c.Next()
+	}
+}
+
+// GetClaims 从上下文中获取 JWT claims。
+func GetClaims(c *fiber.Ctx) (*jwt.Claims, bool) {
+	return getClaims(c)
+}
+
+func getClaims(c *fiber.Ctx) (*jwt.Claims, bool) {
+	val := c.Locals(authContextKey)
+	if val == nil {
+		return nil, false
+	}
+	claims, ok := val.(*jwt.Claims)
+	return claims, ok
+}
+
+func extractToken(header string) string {
+	if header == "" {
+		return ""
+	}
+	header = strings.TrimSpace(header)
+	if strings.HasPrefix(header, "gt_") {
+		return header
+	}
+	parts := strings.SplitN(header, " ", 2)
+	if len(parts) != 2 {
+		return ""
+	}
+	if !strings.EqualFold(parts[0], "Bearer") {
+		return ""
+	}
+	return strings.TrimSpace(parts[1])
+}

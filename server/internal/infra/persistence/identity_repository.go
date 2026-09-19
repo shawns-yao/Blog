@@ -1,0 +1,354 @@
+package persistence
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"time"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
+	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+)
+
+type IdentityRepository struct {
+	db *gorm.DB
+}
+
+func NewIdentityRepository(db *gorm.DB) *IdentityRepository {
+	return &IdentityRepository{db: db}
+}
+
+func (r *IdentityRepository) FindByID(ctx context.Context, id int64) (*identity.User, error) {
+	var rec model.User
+	if err := r.db.WithContext(ctx).Where("id = ?", id).First(&rec).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, identity.ErrUserNotFound
+		}
+		return nil, err
+	}
+	user := mapUserToDomain(rec)
+	return &user, nil
+}
+
+func (r *IdentityRepository) Create(ctx context.Context, user *identity.User) error {
+	rec := model.User{
+		Username: user.Username,
+		Nickname: user.Nickname,
+		Email:    user.Email,
+		Password: user.Password,
+		Avatar:   user.Avatar,
+		IsActive: user.IsActive,
+		IsAdmin:  user.IsAdmin,
+	}
+	if err := r.db.WithContext(ctx).Create(&rec).Error; err != nil {
+		if isUniqueConstraint(err) {
+			return identity.ErrUserExists
+		}
+		return err
+	}
+	user.ID = rec.ID
+	user.CreatedAt = rec.CreatedAt
+	user.UpdatedAt = rec.UpdatedAt
+	return nil
+}
+
+func (r *IdentityRepository) FindByUsername(ctx context.Context, username string) (*identity.User, error) {
+	var rec model.User
+	if err := r.db.WithContext(ctx).Where("username = ?", username).First(&rec).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, identity.ErrUserNotFound
+		}
+		return nil, err
+	}
+	user := mapUserToDomain(rec)
+	return &user, nil
+}
+
+func (r *IdentityRepository) FindByEmail(ctx context.Context, email string) (*identity.User, error) {
+	var rec model.User
+	if err := r.db.WithContext(ctx).Where("email = ?", email).First(&rec).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, identity.ErrUserNotFound
+		}
+		return nil, err
+	}
+	user := mapUserToDomain(rec)
+	return &user, nil
+}
+
+func (r *IdentityRepository) FindByCredential(ctx context.Context, credential string) (*identity.User, error) {
+	var rec model.User
+	// 优先精确匹配 username（唯一），避免 email 不唯一时命中错误账号
+	err := r.db.WithContext(ctx).Where("username = ?", credential).First(&rec).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 回退到 email 匹配，只匹配设置了密码的用户（排除纯 OAuth 账号）
+		err = r.db.WithContext(ctx).
+			Where("email = ? AND password IS NOT NULL AND password <> ''", credential).
+			First(&rec).Error
+	}
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, identity.ErrInvalidCredentials
+		}
+		return nil, err
+	}
+	user := mapUserToDomain(rec)
+	return &user, nil
+}
+
+func (r *IdentityRepository) FindByOAuth(ctx context.Context, providerKey, oauthID string) (*identity.User, error) {
+	var rec model.User
+	err := r.db.WithContext(ctx).
+		Model(&model.User{}).
+		Select("app_user.*").
+		Joins("JOIN user_oauth ON app_user.id = user_oauth.user_id").
+		Where("user_oauth.provider_key = ? AND user_oauth.oauth_id = ?", providerKey, oauthID).
+		First(&rec).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, identity.ErrUserNotFound
+		}
+		return nil, err
+	}
+	user := mapUserToDomain(rec)
+	return &user, nil
+}
+
+func (r *IdentityRepository) BindOAuth(ctx context.Context, link identity.UserOAuth) error {
+	rec := model.UserOAuth{
+		UserID:       link.UserID,
+		ProviderKey:  link.ProviderKey,
+		OAuthID:      link.OAuthID,
+		AccessToken:  link.AccessToken,
+		RefreshToken: link.RefreshToken,
+		ExpiresAt:    link.ExpiresAt,
+	}
+	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "provider_key"}, {Name: "oauth_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"user_id", "access_token", "refresh_token", "expires_at", "updated_at"}),
+	}).Create(&rec).Error
+}
+
+func (r *IdentityRepository) BindOAuthByProvider(ctx context.Context, link identity.UserOAuth) error {
+	rec := model.UserOAuth{
+		UserID:       link.UserID,
+		ProviderKey:  link.ProviderKey,
+		OAuthID:      link.OAuthID,
+		AccessToken:  link.AccessToken,
+		RefreshToken: link.RefreshToken,
+		ExpiresAt:    link.ExpiresAt,
+	}
+	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}, {Name: "provider_key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"oauth_id", "access_token", "refresh_token", "expires_at", "updated_at"}),
+	}).Create(&rec).Error
+}
+
+func (r *IdentityRepository) UnbindOAuth(ctx context.Context, userID int64, providerKey string) error {
+	res := r.db.WithContext(ctx).Where("user_id = ? AND provider_key = ?", userID, providerKey).Delete(&model.UserOAuth{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return identity.ErrOAuthBindingNotFound
+	}
+	return nil
+}
+
+func (r *IdentityRepository) UpdateProfile(ctx context.Context, userID int64, nickname, avatar, email string) (*identity.User, error) {
+	updates := map[string]any{
+		"updated_at": time.Now(),
+	}
+	if nickname != "" {
+		updates["nickname"] = nickname
+	}
+	if avatar != "" {
+		updates["avatar"] = avatar
+	}
+	if email != "" {
+		updates["email"] = email
+	}
+	if len(updates) == 1 { // only updated_at
+		return r.FindByID(ctx, userID)
+	}
+	if err := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+		if isUniqueConstraint(err) {
+			return nil, identity.ErrUserExists
+		}
+		return nil, err
+	}
+	return r.FindByID(ctx, userID)
+}
+
+func (r *IdentityRepository) UpdatePassword(ctx context.Context, userID int64, hashed string) error {
+	return r.db.WithContext(ctx).Model(&model.User{}).
+		Where("id = ?", userID).
+		Updates(map[string]any{
+			"password":   hashed,
+			"updated_at": time.Now(),
+		}).Error
+}
+
+func (r *IdentityRepository) ListOAuthBindings(ctx context.Context, userID int64) ([]identity.UserOAuthBinding, error) {
+	type bindingRow struct {
+		ProviderKey string
+		DisplayName string
+		OAuthID     string
+		Scopes      string
+		CreatedAt   time.Time
+		ExpiresAt   *time.Time
+	}
+	var rows []bindingRow
+	err := r.db.WithContext(ctx).
+		Table("user_oauth").
+		Select("user_oauth.provider_key, user_oauth.oauth_id, user_oauth.created_at, user_oauth.expires_at, oauth_provider.display_name, oauth_provider.scopes").
+		Joins("JOIN oauth_provider ON oauth_provider.provider_key = user_oauth.provider_key").
+		Where("user_oauth.user_id = ?", userID).
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]identity.UserOAuthBinding, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, identity.UserOAuthBinding{
+			ProviderKey:   row.ProviderKey,
+			ProviderName:  row.DisplayName,
+			OAuthID:       row.OAuthID,
+			BoundAt:       row.CreatedAt,
+			ExpiresAt:     row.ExpiresAt,
+			ProviderScope: row.Scopes,
+		})
+	}
+	return result, nil
+}
+
+func mapUserToDomain(rec model.User) identity.User {
+	var deleted *time.Time
+	if rec.DeletedAt.Valid {
+		deleted = &rec.DeletedAt.Time
+	}
+	return identity.User{
+		ID:        rec.ID,
+		Username:  rec.Username,
+		Nickname:  rec.Nickname,
+		Email:     rec.Email,
+		Password:  rec.Password,
+		Avatar:    rec.Avatar,
+		IsActive:  rec.IsActive,
+		IsAdmin:   rec.IsAdmin,
+		CreatedAt: rec.CreatedAt,
+		UpdatedAt: rec.UpdatedAt,
+		DeletedAt: deleted,
+	}
+}
+
+func (r *IdentityRepository) CountUsers(ctx context.Context) (int64, error) {
+	var total int64
+	if err := r.db.WithContext(ctx).Model(&model.User{}).Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func (r *IdentityRepository) ListAdmins(ctx context.Context) ([]identity.User, error) {
+	var records []model.User
+	if err := r.db.WithContext(ctx).Where("is_admin = ?", true).Find(&records).Error; err != nil {
+		return nil, err
+	}
+	users := make([]identity.User, len(records))
+	for i := range records {
+		users[i] = mapUserToDomain(records[i])
+	}
+	return users, nil
+}
+
+func (r *IdentityRepository) CountActiveAdmins(ctx context.Context) (int64, error) {
+	var total int64
+	if err := r.db.WithContext(ctx).
+		Model(&model.User{}).
+		Where("is_admin = ? AND is_active = ?", true, true).
+		Count(&total).Error; err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+func (r *IdentityRepository) ListUsers(ctx context.Context, options identity.UserListOptions) ([]identity.User, int64, error) {
+	query := r.db.WithContext(ctx).Model(&model.User{})
+	keyword := strings.TrimSpace(options.Keyword)
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where(
+			"username LIKE ? OR nickname LIKE ? OR email LIKE ?",
+			like, like, like,
+		)
+	}
+	if options.OnlyAdmin != nil {
+		query = query.Where("is_admin = ?", *options.OnlyAdmin)
+	}
+	if options.OnlyActive != nil {
+		query = query.Where("is_active = ?", *options.OnlyActive)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []identity.User{}, 0, nil
+	}
+
+	page := options.Page
+	if page < 1 {
+		page = 1
+	}
+	pageSize := options.PageSize
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+	offset := (page - 1) * pageSize
+
+	var records []model.User
+	if err := query.Order("created_at DESC").
+		Offset(offset).
+		Limit(pageSize).
+		Find(&records).Error; err != nil {
+		return nil, 0, err
+	}
+
+	users := make([]identity.User, len(records))
+	for i := range records {
+		users[i] = mapUserToDomain(records[i])
+	}
+	return users, total, nil
+}
+
+func (r *IdentityRepository) UpdateAdminUser(ctx context.Context, userID int64, nickname, email string, isActive, isAdmin bool) (*identity.User, error) {
+	updates := map[string]any{
+		"nickname":   strings.TrimSpace(nickname),
+		"email":      strings.TrimSpace(email),
+		"is_active":  isActive,
+		"is_admin":   isAdmin,
+		"updated_at": time.Now(),
+	}
+	if err := r.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", userID).Updates(updates).Error; err != nil {
+		if isUniqueConstraint(err) {
+			return nil, identity.ErrUserExists
+		}
+		return nil, err
+	}
+	return r.FindByID(ctx, userID)
+}
+
+func isUniqueConstraint(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "uq_app_user_username") || strings.Contains(err.Error(), "uq_app_user_email")
+}

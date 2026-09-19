@@ -1,0 +1,263 @@
+package email
+
+import (
+	"context"
+	"encoding/json"
+	"math"
+	"strings"
+	"time"
+
+	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
+	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
+	domainemail "github.com/grtsinry43/grtblog-v2/server/internal/domain/email"
+)
+
+type Dispatcher struct {
+	repo       domainemail.Repository
+	sender     *Sender
+	sysCfg     *sysconfig.Service
+	queue      chan *domainemail.Outbox
+	maxRetries int
+}
+
+func NewDispatcher(repo domainemail.Repository, sender *Sender, sysCfg *sysconfig.Service, workers int, queueSize int, maxRetries int, pollInterval time.Duration) *Dispatcher {
+	if workers <= 0 {
+		workers = 1
+	}
+	if queueSize <= 0 {
+		queueSize = 1
+	}
+	if maxRetries <= 0 {
+		maxRetries = 1
+	}
+	if pollInterval <= 0 {
+		pollInterval = 2 * time.Second
+	}
+	d := &Dispatcher{
+		repo:       repo,
+		sender:     sender,
+		sysCfg:     sysCfg,
+		queue:      make(chan *domainemail.Outbox, queueSize),
+		maxRetries: maxRetries,
+	}
+	for i := 0; i < workers; i++ {
+		go d.worker()
+	}
+	go d.pollLoop(pollInterval, workers*2)
+	return d
+}
+
+func (d *Dispatcher) Handle(ctx context.Context, event appEvent.Event) error {
+	if event == nil {
+		return nil
+	}
+	templates, err := d.repo.ListEnabledTemplatesByEvent(ctx, event.Name())
+	if err != nil {
+		return err
+	}
+	if len(templates) == 0 {
+		return nil
+	}
+	variables := appEvent.BuildGlobalTemplateVariables(ctx, d.sysCfg)
+	for key, value := range mapFromEvent(event) {
+		variables[key] = value
+	}
+	normalizeViewURL(variables)
+	subscribers, err := d.repo.ListActiveSubscriberEmailsByEvent(ctx, event.Name())
+	if err != nil {
+		return err
+	}
+	isSubscriptionEvent := IsPublicSubscribableEventName(event.Name())
+	dynamicRecipients := recipientsFromVariables(variables)
+	now := time.Now()
+	for _, tpl := range templates {
+		rendered, renderErr := RenderTemplate(tpl, variables)
+		recipients := []string{}
+		if isSubscriptionEvent {
+			// Subscription events are driven solely by email_subscription recipients.
+			recipients = normalizeRecipients(subscribers)
+		} else {
+			recipients = normalizeRecipients(append(append(append([]string{}, tpl.ToEmails...), subscribers...), dynamicRecipients...))
+		}
+		if isSubscriptionEvent && len(recipients) == 0 {
+			continue
+		}
+		item := &domainemail.Outbox{
+			TemplateID:   &tpl.ID,
+			TemplateCode: tpl.Code,
+			EventName:    event.Name(),
+			ToEmails:     recipients,
+			NextRetryAt:  now,
+		}
+		if renderErr != nil {
+			item.Status = domainemail.OutboxStatusFailed
+			item.RetryCount = d.maxRetries
+			item.LastError = renderErr.Error()
+		} else {
+			item.Status = domainemail.OutboxStatusPending
+			item.Subject = rendered.Subject
+			item.HTMLBody = rendered.HTMLBody
+			item.TextBody = rendered.TextBody
+		}
+		_ = d.repo.CreateOutbox(context.Background(), item)
+	}
+	return nil
+}
+
+func (d *Dispatcher) pollLoop(interval time.Duration, batchSize int) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for range ticker.C {
+		items, err := d.repo.ClaimDueOutbox(context.Background(), batchSize, time.Now(), d.maxRetries)
+		if err != nil || len(items) == 0 {
+			continue
+		}
+		for _, item := range items {
+			d.queue <- item
+		}
+	}
+}
+
+func (d *Dispatcher) worker() {
+	for item := range d.queue {
+		err := d.sender.Send(context.Background(), Message{
+			To:       item.ToEmails,
+			Subject:  item.Subject,
+			HTMLBody: item.HTMLBody,
+			TextBody: item.TextBody,
+		})
+		if err == nil {
+			_ = d.repo.MarkOutboxSent(context.Background(), item.ID, time.Now())
+			continue
+		}
+		nextRetryCount := item.RetryCount + 1
+		backoffMinutes := 1 << min(nextRetryCount, 6)
+		delayMinutes := int(math.Min(float64(backoffMinutes), 60))
+		nextRetryAt := time.Now().Add(time.Duration(delayMinutes) * time.Minute)
+		_ = d.repo.MarkOutboxFailed(context.Background(), item.ID, nextRetryCount, nextRetryAt, err.Error())
+	}
+}
+
+func RegisterSubscribers(bus appEvent.Bus, handler appEvent.Handler) {
+	if bus == nil || handler == nil {
+		return
+	}
+	for _, name := range AvailableEventNames {
+		bus.Subscribe(name, handler)
+	}
+}
+
+func mapFromEvent(event appEvent.Event) map[string]any {
+	result := map[string]any{
+		"eventName":  event.Name(),
+		"occurredAt": event.OccurredAt().Format(time.RFC3339),
+	}
+	switch typed := event.(type) {
+	case appEvent.Generic:
+		for key, value := range typed.Payload {
+			result[key] = value
+		}
+		return result
+	case *appEvent.Generic:
+		if typed != nil {
+			for key, value := range typed.Payload {
+				result[key] = value
+			}
+		}
+		return result
+	}
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return result
+	}
+	var object map[string]any
+	if err := json.Unmarshal(payload, &object); err != nil {
+		return result
+	}
+	if rawPayload, ok := object["Payload"]; ok {
+		if payloadMap, ok := rawPayload.(map[string]any); ok {
+			for key, value := range payloadMap {
+				result[key] = value
+			}
+		}
+	}
+	for key, value := range object {
+		if key == "Payload" {
+			continue
+		}
+		result[key] = value
+	}
+	return result
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func recipientsFromVariables(variables map[string]any) []string {
+	if len(variables) == 0 {
+		return []string{}
+	}
+	result := make([]string, 0, 4)
+	if raw, ok := variables["recipientEmail"]; ok {
+		if email, ok := raw.(string); ok {
+			result = append(result, email)
+		}
+	}
+	if raw, ok := variables["toEmails"]; ok {
+		switch v := raw.(type) {
+		case []string:
+			result = append(result, v...)
+		case []any:
+			for _, item := range v {
+				if text, ok := item.(string); ok {
+					result = append(result, text)
+				}
+			}
+		case string:
+			result = append(result, strings.Split(v, ",")...)
+		}
+	}
+	return normalizeRecipients(result)
+}
+
+func normalizeViewURL(variables map[string]any) {
+	if len(variables) == 0 {
+		return
+	}
+	rawViewURL, ok := variables["viewUrl"]
+	if !ok {
+		return
+	}
+	viewURL, ok := rawViewURL.(string)
+	if !ok {
+		return
+	}
+	viewURL = strings.TrimSpace(viewURL)
+	if viewURL == "" {
+		return
+	}
+	lower := strings.ToLower(viewURL)
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		return
+	}
+	rawPublicURL, ok := variables["public_url"]
+	if !ok {
+		return
+	}
+	publicURL, ok := rawPublicURL.(string)
+	if !ok {
+		return
+	}
+	publicURL = strings.TrimSpace(publicURL)
+	if publicURL == "" {
+		return
+	}
+	if !strings.HasPrefix(viewURL, "/") {
+		viewURL = "/" + viewURL
+	}
+	variables["viewUrl"] = strings.TrimRight(publicURL, "/") + viewURL
+}

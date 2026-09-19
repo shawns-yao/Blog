@@ -1,0 +1,157 @@
+package webhook
+
+import (
+	"time"
+
+	appalbum "github.com/grtsinry43/grtblog-v2/server/internal/app/album"
+	"github.com/grtsinry43/grtblog-v2/server/internal/app/comment"
+	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
+	"github.com/grtsinry43/grtblog-v2/server/internal/app/globalnotification"
+	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
+)
+
+var AvailableEventNames = appEvent.NamesByChannel(appEvent.ChannelWebhook)
+
+func IsValidEventName(name string) bool {
+	for _, item := range AvailableEventNames {
+		if item == name {
+			return true
+		}
+	}
+	return false
+}
+
+func SampleEvent(name string) (appEvent.Event, error) {
+	now := time.Now()
+	switch name {
+	case moment.MomentCreated{}.Name():
+		return moment.MomentCreated{ID: 1, AuthorID: 1, Title: "Sample Moment", ShortURL: "sample-moment", Published: true, At: now}, nil
+	case moment.MomentUpdated{}.Name():
+		return moment.MomentUpdated{ID: 1, AuthorID: 1, Title: "Sample Moment", ShortURL: "sample-moment", Published: true, ContentHash: "hash", Summary: "Sample", TOC: nil, Content: "Sample", At: now}, nil
+	case moment.MomentPublished{}.Name():
+		return moment.MomentPublished{ID: 1, AuthorID: 1, Title: "Sample Moment", ShortURL: "sample-moment", At: now}, nil
+	case moment.MomentUnpublished{}.Name():
+		return moment.MomentUnpublished{ID: 1, AuthorID: 1, Title: "Sample Moment", ShortURL: "sample-moment", At: now}, nil
+	case moment.MomentDeleted{}.Name():
+		return moment.MomentDeleted{ID: 1, AuthorID: 1, Title: "Sample Moment", ShortURL: "sample-moment", At: now}, nil
+	case appalbum.AlbumCreated{}.Name():
+		return appalbum.AlbumCreated{ID: 1, AuthorID: 1, Title: "Sample Album", ShortURL: "sample-album", Published: true, At: now}, nil
+	case appalbum.AlbumUpdated{}.Name():
+		return appalbum.AlbumUpdated{ID: 1, AuthorID: 1, Title: "Sample Album", ShortURL: "sample-album", Published: true, At: now}, nil
+	case appalbum.AlbumPublished{}.Name():
+		return appalbum.AlbumPublished{ID: 1, AuthorID: 1, Title: "Sample Album", ShortURL: "sample-album", At: now}, nil
+	case appalbum.AlbumUnpublished{}.Name():
+		return appalbum.AlbumUnpublished{ID: 1, AuthorID: 1, Title: "Sample Album", ShortURL: "sample-album", At: now}, nil
+	case appalbum.AlbumDeleted{}.Name():
+		return appalbum.AlbumDeleted{ID: 1, AuthorID: 1, Title: "Sample Album", ShortURL: "sample-album", At: now}, nil
+	case globalnotification.Created{}.Name():
+		return globalnotification.Created{ID: 1, Content: "Sample Global Notification", PublishAt: now.Add(-time.Hour), ExpireAt: now.Add(24 * time.Hour), AllowClose: true, At: now}, nil
+	case globalnotification.Updated{}.Name():
+		return globalnotification.Updated{ID: 1, Content: "Sample Global Notification Updated", PublishAt: now.Add(-time.Hour), ExpireAt: now.Add(24 * time.Hour), AllowClose: false, At: now}, nil
+	case globalnotification.Deleted{}.Name():
+		return globalnotification.Deleted{ID: 1, At: now}, nil
+
+	// --- Comment events ---
+	case comment.CommentCreated{}.Name():
+		return comment.CommentCreated{ID: 1, AreaID: 42, NickName: "示例访客", Email: "visitor@example.com", Content: "这是一条示例评论", Status: "pending", At: now}, nil
+	case "comment.reply":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(2), "ParentID": int64(1), "AreaID": int64(42),
+			"ContentType": "moment", "ContentTitle": "示例手记标题",
+			"viewUrl": "https://example.com/moments/2026/09/19/sample-moment",
+			"ParentContent": "这是被回复的评论内容", "ReplyContent": "这是回复内容",
+			"ParentNickName": "示例访客", "ReplyNickName": "博主",
+			"recipientEmail": "visitor@example.com", "Status": "approved",
+		}}, nil
+	case "comment.updated":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "Status": "approved",
+		}}, nil
+	case "comment.deleted":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "AreaID": int64(42),
+		}}, nil
+	case "comment.blocked":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "Status": "blocked",
+		}}, nil
+
+	// --- Media events ---
+	case "media.uploaded":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "Name": "photo.jpg", "Path": "/uploads/2026/03/photo.jpg", "Type": "image/jpeg",
+		}}, nil
+	case "media.deleted":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "Name": "photo.jpg", "Path": "/uploads/2026/03/photo.jpg",
+		}}, nil
+
+	// --- System events ---
+	case "sysconfig.updated":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"Keys": []string{"site.name", "site.description"}, "Count": 2,
+		}}, nil
+	case "system.monitor.alert":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"DatabaseStatus": "healthy", "RedisStatus": "healthy",
+		}}, nil
+	case "system.health.changed":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"Prev": uint8(0), "Next": uint8(1), "Mode": "normal", "Maintenance": false,
+		}}, nil
+
+	// --- Friend link events ---
+	case "friendlink.application.created":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "URL": "https://friend-blog.example.com", "Name": "示例博客", "Status": "pending",
+		}}, nil
+	case "friendlink.application.approved":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "URL": "https://friend-blog.example.com", "Name": "示例博客", "Status": "approved", "recipientEmail": "friend@example.com",
+		}}, nil
+	case "friendlink.application.rejected":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "URL": "https://friend-blog.example.com", "Name": "示例博客", "Status": "rejected", "recipientEmail": "friend@example.com",
+		}}, nil
+	case "friendlink.application.blocked":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"ID": int64(1), "URL": "https://friend-blog.example.com",
+		}}, nil
+
+	// --- Federation events ---
+	case "federation.friendlink.requested":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"TargetURL": "https://remote-blog.example.com", "StatusCode": 200,
+		}}, nil
+	case "federation.friendlink.received":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"RequesterURL": "https://remote-blog.example.com", "ApplicationID": int64(1),
+		}}, nil
+	case "federation.citation.requested":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"TargetInstanceURL": "https://remote-blog.example.com", "TargetPostID": "post-123",
+		}}, nil
+	case "federation.citation.received":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"CitationID": int64(1), "SourceInstanceURL": "https://remote-blog.example.com", "Status": "pending",
+		}}, nil
+	case "federation.mention.requested":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"TargetInstanceURL": "https://remote-blog.example.com", "MentionedUser": "admin",
+		}}, nil
+	case "federation.mention.received":
+		return appEvent.Generic{EventName: name, At: now, Payload: map[string]any{
+			"MentionID": int64(1), "SourceInstanceURL": "https://remote-blog.example.com", "MentionedUser": "admin",
+		}}, nil
+
+	default:
+		return appEvent.Generic{
+			EventName: name,
+			At:        now,
+			Payload: map[string]any{
+				"eventName": name,
+				"sample":    true,
+			},
+		}, nil
+	}
+}

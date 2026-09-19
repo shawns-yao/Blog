@@ -1,0 +1,63 @@
+package router
+
+import (
+	"github.com/gofiber/fiber/v2"
+
+	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
+	"github.com/grtsinry43/grtblog-v2/server/internal/http/handler"
+	"github.com/grtsinry43/grtblog-v2/server/internal/http/middleware"
+	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
+)
+
+func registerMomentPublicRoutes(v2 fiber.Router, deps Dependencies) {
+	momentHandler := newMomentHandler(deps)
+
+	publicGroup := v2.Group("/moments")
+	publicGroup.Get("/", momentHandler.ListMoments)  // GET /api/v2/moments
+	publicGroup.Get("/:id", momentHandler.GetMoment) // GET /api/v2/moments/123
+	publicGroup.Get("/:id/same-period-moments", momentHandler.ListSamePeriodMoments)
+	publicGroup.Get("/short/:shortUrl", momentHandler.GetMomentByShortURL) // GET /api/v2/moments/short/abc123
+	publicGroup.Post("/:id/latest", momentHandler.CheckMomentLatest)       // POST /api/v2/moments/123/latest
+	publicGroup.Get("/:id/metrics", momentHandler.GetMomentMetrics)        // GET /api/v2/moments/123/metrics
+
+	v2.Get("/columns/short/:shortUrl/moments", momentHandler.ListMomentsByColumnShortURL)
+}
+
+func registerMomentAuthRoutes(v2 fiber.Router, deps Dependencies) {
+	momentHandler := newMomentHandler(deps)
+	identityRepo := persistence.NewIdentityRepository(deps.DB)
+	adminTokenRepo := persistence.NewAdminTokenRepository(deps.DB)
+
+	authGroup := v2.Group("/moments", middleware.RequireAuth(deps.JWTManager, identityRepo, adminTokenRepo), middleware.RequireAdmin(identityRepo))
+	authGroup.Post("/", momentHandler.CreateMoment)      // POST /api/v2/moments
+	authGroup.Put("/:id", momentHandler.UpdateMoment)    // PUT /api/v2/moments/123
+	authGroup.Delete("/:id", momentHandler.DeleteMoment) // DELETE /api/v2/moments/123
+	federationInteractionHandler := handler.NewFederationInteractionHandler(
+		persistence.NewContentRepository(deps.DB),
+		persistence.NewFederatedCitationRepository(deps.DB),
+		persistence.NewOutboundDeliveryRepository(deps.DB),
+	)
+	authGroup.Get("/:id/federation/interactions", federationInteractionHandler.GetMomentInteractions)
+
+	adminGroup := v2.Group("/admin", middleware.RequireAuth(deps.JWTManager, identityRepo, adminTokenRepo), middleware.RequireAdmin(identityRepo))
+	adminGroup.Get("/moments/:id", momentHandler.GetMomentAdmin)
+	adminGroup.Get("/moments", momentHandler.ListMomentsAdmin)                  // GET /api/v2/admin/moments
+	adminGroup.Put("/moments/published", momentHandler.BatchSetMomentPublished) // PUT /api/v2/admin/moments/published
+	adminGroup.Put("/moments/top", momentHandler.BatchSetMomentTop)             // PUT /api/v2/admin/moments/top
+	adminGroup.Post("/moments/batch-delete", momentHandler.BatchDeleteMoments)  // POST /api/v2/admin/moments/batch-delete
+	adminGroup.Post("/moments/:id/federation/signals/reset", momentHandler.ResetMomentFederationSignals)
+}
+
+func newMomentHandler(deps Dependencies) *handler.MomentHandler {
+	contentRepo := persistence.NewContentRepository(deps.DB)
+	commentRepo := persistence.NewCommentRepository(deps.DB)
+	identityRepo := persistence.NewIdentityRepository(deps.DB)
+	momentSvc := moment.NewService(contentRepo, commentRepo, deps.EventBus)
+	return handler.NewMomentHandler(momentSvc, contentRepo, commentRepo, identityRepo, deps.SysConfig,
+		handler.WithMomentFederationRepos(
+			persistence.NewOutboundDeliveryRepository(deps.DB),
+			persistence.NewFederatedPostCacheRepository(deps.DB),
+			persistence.NewFederationInstanceRepository(deps.DB),
+		),
+	)
+}

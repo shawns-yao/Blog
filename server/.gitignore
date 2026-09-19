@@ -1,0 +1,32 @@
+# Build and binary artifacts
+/bin
+/build
+/dist
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+.gocache/
+
+# Coverage output
+coverage/
+*.cover
+
+# Dependency vendor directory
+/vendor
+
+# Local database / storage
+/storage/*.db
+storage/
+
+# Tooling files
+.air.toml
+.task
+
+.env
+
+# old ver
+java/
