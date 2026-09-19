@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/grtsinry43/grtblog/cli/v2/internal/client"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
 )
 
 // taxonomyIndex 缓存专栏/标签，用于名称 ↔ ID 解析。

@@ -9,10 +9,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/health"
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/health"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 // HealthHandler exposes lightweight probe endpoints for uptime monitoring.

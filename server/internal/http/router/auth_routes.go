@@ -6,12 +6,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/auth"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/setupstate"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/handler"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/auth"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/setupstate"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
 )
 
 const (

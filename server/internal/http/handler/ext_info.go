@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
 )
 
 var momentWeatherValues = map[string]struct{}{

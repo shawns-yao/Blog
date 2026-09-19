@@ -405,7 +405,7 @@ VALUES ('subscription.notify',
             </div>
             <div class="footer">
                 <p>Powered by <a href="https://grtblog.js.org/">grtblog-v2</a></p>
-                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 grtsinry43</p>
+                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 shawn</p>
                 <p>这是一封系统自动发出的邮件，无需回复。<br>愿你在文字的世界里觅得宁静。</p>
             </div>
         </div>
@@ -619,7 +619,7 @@ $subscription_text$,
 
             <div class="footer">
                 <p>Powered by <a href="https://grtblog.js.org/">grtblog-v2</a></p>
-                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 grtsinry43</p>
+                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 shawn</p>
                 <p>这是一封系统自动发出的邮件，无需回复。<br>愿你在文字的世界里觅得宁静。</p>
             </div>
         </div>
@@ -821,7 +821,7 @@ $comment_reply_text$,
             </div>
             <div class="footer">
                 <p>Powered by <a href="https://grtblog.js.org/">grtblog-v2</a></p>
-                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 grtsinry43</p>
+                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 shawn</p>
                 <p>这是一封系统自动发出的邮件，无需回复。<br>愿你在文字的世界里觅得宁静。</p>
             </div>
         </div>
@@ -1019,7 +1019,7 @@ $friend_approved_text$,
             </div>
             <div class="footer">
                 <p>Powered by <a href="https://grtblog.js.org/">grtblog-v2</a></p>
-                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 grtsinry43</p>
+                <p style="font-family: monospace; letter-spacing: 0.05em;">© 2022-2026 shawn</p>
                 <p>这是一封系统自动发出的邮件，无需回复。<br>愿你在文字的世界里觅得宁静。</p>
             </div>
         </div>

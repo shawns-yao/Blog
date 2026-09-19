@@ -5,8 +5,8 @@ import (
 	"errors"
 	"log"
 
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	domainfed "github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
 )
 
 type handlerFunc func(ctx context.Context, event appEvent.Event) error

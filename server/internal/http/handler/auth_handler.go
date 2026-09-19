@@ -7,14 +7,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jinzhu/copier"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/auth"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/setupstate"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/middleware"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
-	"github.com/grtsinry43/grtblog-v2/server/internal/security/turnstile"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/auth"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/setupstate"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/security/turnstile"
 )
 
 type AuthHandler struct {

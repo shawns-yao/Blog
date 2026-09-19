@@ -5,9 +5,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/htmlsnapshot"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/isr"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/htmlsnapshot"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/isr"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type HTMLSnapshotHandler struct {

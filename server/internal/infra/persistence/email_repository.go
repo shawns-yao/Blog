@@ -11,8 +11,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	domainemail "github.com/grtsinry43/grtblog-v2/server/internal/domain/email"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	domainemail "github.com/shawns-yao/grtblog-v2/server/internal/domain/email"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 )
 
 type EmailRepository struct {

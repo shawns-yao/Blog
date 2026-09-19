@@ -26,13 +26,13 @@ import (
 	"code.superseriousbusiness.org/httpsig"
 	"github.com/google/uuid"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/adminnotification"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	domainap "github.com/grtsinry43/grtblog-v2/server/internal/domain/activitypub"
-	domaincomment "github.com/grtsinry43/grtblog-v2/server/internal/domain/comment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
-	fedinfra "github.com/grtsinry43/grtblog-v2/server/internal/infra/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/adminnotification"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	domainap "github.com/shawns-yao/grtblog-v2/server/internal/domain/activitypub"
+	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
 )
 
 const (

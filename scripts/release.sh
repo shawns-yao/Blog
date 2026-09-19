@@ -505,7 +505,7 @@ section "Create Tag"
 git tag -a "$VERSION" -m "release(${CHANNEL}): ${VERSION}"
 info "created annotated tag: ${VERSION}"
 
-# CLI 是独立 Go 子模块（module github.com/grtsinry43/grtblog/cli/v2），
+# CLI 是独立 Go 子模块（module github.com/shawns-yao/grtblog-v2/cli/v2），
 # 需要一个 cli/ 前缀的 tag，`go install .../cli/v2/cmd/grtblog@${VERSION}` 才能解析到精确版本。
 CLI_TAG="cli/${VERSION}"
 if git rev-parse -q --verify "refs/tags/$CLI_TAG" >/dev/null 2>&1; then

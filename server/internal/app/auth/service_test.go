@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
 )
 
 type fakeIdentityRepo struct {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/discovery"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/discovery"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 	"gorm.io/gorm"
 )
 

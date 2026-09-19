@@ -20,7 +20,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
 )
 
 const (

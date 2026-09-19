@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	backupdomain "github.com/grtsinry43/grtblog-v2/server/internal/domain/backup"
+	backupdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/backup"
 )
 
 type scheduleTestRepository struct {

@@ -6,12 +6,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 
-	appap "github.com/grtsinry43/grtblog-v2/server/internal/app/activitypub"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/adminnotification"
-	appfed "github.com/grtsinry43/grtblog-v2/server/internal/app/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/handler"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
+	appap "github.com/shawns-yao/grtblog-v2/server/internal/app/activitypub"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/adminnotification"
+	appfed "github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
 )
 
 func registerFederationRoutes(app *fiber.App, deps Dependencies) {

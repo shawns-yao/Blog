@@ -235,7 +235,7 @@ const hasSearched = computed(() => props.query.trim().length > 0)
               <NInputGroup>
                 <NInput
                   v-model:value="manualUser"
-                  placeholder="用户名，如 grtsinry43"
+                  placeholder="用户名，如 shawn"
                   size="small"
                 >
                   <template #prefix>

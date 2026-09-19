@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	domainsearch "github.com/grtsinry43/grtblog-v2/server/internal/domain/search"
+	domainsearch "github.com/shawns-yao/grtblog-v2/server/internal/domain/search"
 	"github.com/redis/go-redis/v9"
 )
 

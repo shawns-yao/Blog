@@ -8,12 +8,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	appcomment "github.com/grtsinry43/grtblog-v2/server/internal/app/comment"
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
-	domainalbum "github.com/grtsinry43/grtblog-v2/server/internal/domain/album"
-	domaincomment "github.com/grtsinry43/grtblog-v2/server/internal/domain/comment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
+	appcomment "github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
+	domainalbum "github.com/shawns-yao/grtblog-v2/server/internal/domain/album"
+	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
 )
 
 const siteActivityType = "site.activity"

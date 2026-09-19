@@ -1,4 +1,4 @@
-module github.com/grtsinry43/grtblog-v2/server
+module github.com/shawns-yao/grtblog-v2/server
 
 go 1.25.0
 

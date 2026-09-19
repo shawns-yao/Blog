@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
 )
 
 var (

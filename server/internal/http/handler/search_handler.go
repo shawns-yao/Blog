@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strconv"
 
-	appsearch "github.com/grtsinry43/grtblog-v2/server/internal/app/search"
-	domainsearch "github.com/grtsinry43/grtblog-v2/server/internal/domain/search"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	appsearch "github.com/shawns-yao/grtblog-v2/server/internal/app/search"
+	domainsearch "github.com/shawns-yao/grtblog-v2/server/internal/domain/search"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 
 	"github.com/gofiber/fiber/v2"
 )

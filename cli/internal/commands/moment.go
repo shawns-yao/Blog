@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/grtsinry43/grtblog/cli/v2/internal/client"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/editor"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/frontmatter"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/output"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/editor"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/frontmatter"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
 )
 
 // momentFrontMatter 是手记编辑模板的 YAML 头部。

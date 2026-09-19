@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	appcomment "github.com/grtsinry43/grtblog-v2/server/internal/app/comment"
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
+	appcomment "github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
 )
 
 // CommentStatusUpdater is a minimal interface for updating comment moderation status.

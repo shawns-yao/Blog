@@ -7,9 +7,9 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/contentutil"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/album"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/contentutil"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/album"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 )
 
 type AlbumRepository struct {

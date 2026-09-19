@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	domainfed "github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
+	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
 	"github.com/redis/go-redis/v9"
 )
 

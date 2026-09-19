@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
 )
 
 type handlerFunc func(ctx context.Context, event appEvent.Event) error

@@ -9,11 +9,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
-	domainfed "github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/middleware"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type FederationInteractionHandler struct {

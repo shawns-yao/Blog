@@ -8,10 +8,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	fedinfra "github.com/grtsinry43/grtblog-v2/server/internal/infra/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
 )
 
 type FederationWellKnownHandler struct {

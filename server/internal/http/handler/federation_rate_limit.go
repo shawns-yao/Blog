@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
-	fedinfra "github.com/grtsinry43/grtblog-v2/server/internal/infra/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
 )
 
 func enforceFederationInboundRateLimit(ctx context.Context, limiter fedinfra.RateLimiter, sourceBaseURL, action string, raw json.RawMessage) error {

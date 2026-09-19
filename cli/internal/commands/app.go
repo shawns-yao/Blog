@@ -4,9 +4,9 @@ package commands
 import (
 	"errors"
 
-	"github.com/grtsinry43/grtblog/cli/v2/internal/client"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/config"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/output"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/config"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
 )
 
 // BuildInfo 构建信息，通过 -ldflags 注入。

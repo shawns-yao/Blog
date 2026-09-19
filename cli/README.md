@@ -18,10 +18,10 @@ grtblog 博客系统的命令行管理工具。使用**管理员令牌（admin t
 
 ```bash
 # 从源码安装（版本随项目 tag，例如 v2.2.0）
-go install github.com/grtsinry43/grtblog/cli/v2/cmd/grtblog@v2.2.0
+go install github.com/shawns-yao/grtblog-v2/cli/v2/cmd/grtblog@v2.2.0
 
 # 或安装最新版本
-go install github.com/grtsinry43/grtblog/cli/v2/cmd/grtblog@latest
+go install github.com/shawns-yao/grtblog-v2/cli/v2/cmd/grtblog@latest
 
 # 或在 cli/ 目录本地构建
 make build          # 生成 ./grtblog，版本取项目最新 tag

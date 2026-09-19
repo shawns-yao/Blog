@@ -7,9 +7,9 @@ import (
 
 	"github.com/gofiber/websocket/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/analytics"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/ownerstatus"
-	"github.com/grtsinry43/grtblog-v2/server/internal/ws"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/analytics"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/ownerstatus"
+	"github.com/shawns-yao/grtblog-v2/server/internal/ws"
 )
 
 type WSHandler struct {

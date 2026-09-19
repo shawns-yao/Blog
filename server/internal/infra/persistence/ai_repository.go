@@ -7,8 +7,8 @@ import (
 
 	"gorm.io/gorm"
 
-	domainai "github.com/grtsinry43/grtblog-v2/server/internal/domain/ai"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	domainai "github.com/shawns-yao/grtblog-v2/server/internal/domain/ai"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 )
 
 type AIRepository struct {

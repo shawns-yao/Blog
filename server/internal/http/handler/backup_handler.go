@@ -8,9 +8,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	backupapp "github.com/grtsinry43/grtblog-v2/server/internal/app/backup"
-	backupdomain "github.com/grtsinry43/grtblog-v2/server/internal/domain/backup"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	backupapp "github.com/shawns-yao/grtblog-v2/server/internal/app/backup"
+	backupdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/backup"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type BackupHandler struct{ svc *backupapp.Service }

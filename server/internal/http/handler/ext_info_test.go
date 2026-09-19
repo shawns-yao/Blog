@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
 )
 
 func TestParseMomentExtInfo(t *testing.T) {

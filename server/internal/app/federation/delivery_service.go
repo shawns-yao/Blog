@@ -13,10 +13,10 @@ import (
 
 	"github.com/google/uuid"
 
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	domainfed "github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/social"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
 )
 
 type CallbackResultCmd struct {

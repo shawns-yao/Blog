@@ -19,7 +19,7 @@ VALUES (
             "type": "br"
           },
           {
-            "text": "I'm grtsinry43",
+            "text": "I'm shawn",
             "type": "h1",
             "variant": "hero_h1_primary"
           }
@@ -27,22 +27,17 @@ VALUES (
       },
       "socials": [
         {
-          "href": "https://github.com/grtinry43",
+          "href": "https://github.com/shawns-yao",
           "icon": "github",
           "name": "GitHub"
         },
         {
-          "href": "mailto:grtsinry43@outlook.com",
+          "href": "mailto:shwan.jade.yao@gmail.com",
           "icon": "mail",
           "name": "Email"
-        },
-        {
-          "href": "/feed",
-          "icon": "rss",
-          "name": "RSS"
         }
       ],
-      "avatarUrl": "https://dogeoss.grtsinry43.com/img/author.jpeg",
+      "avatarUrl": "/wechat-avatar.png",
       "mottoLines": [
         "热衷于在逻辑与感性的缝隙中构建数字花园。",
         "也许，代码是现代的诗歌，而文字是思想的快照。"
@@ -112,7 +107,7 @@ VALUES (
         "label": "High Energy"
       },
       "github": {
-        "username": "grtsinry43"
+        "username": "shawns-yao"
       },
       "techStack": {
         "icons": [

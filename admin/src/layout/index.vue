@@ -95,16 +95,16 @@ function buildUpgradeCommands(targetVersion: string) {
   const tag = `v${bare}`
 
   const script = [
-    `bash <(curl -fsSL https://raw.githubusercontent.com/grtsinry43/grtblog/main/deploy/install.sh)`,
+    `bash <(curl -fsSL https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main/deploy/install.sh)`,
     `# 国内：`,
-    `bash <(curl -fsSL https://cnb.cool/grtsinry43/grtblog/-/git/raw/main/deploy/install.sh)`,
+    `bash <(curl -fsSL https://cnb.cool/shawns-yao/grtblog-v2/-/git/raw/main/deploy/install.sh)`,
   ].join('\n')
 
   const prebuilt = [
     `# 1. deploy/.env 中更新版本号`,
     `APP_VERSION=${bare}`,
     `# 2. 同步部署配置（每次升级都要做，新版本可能修改了挂载或路由）`,
-    `BASE=https://raw.githubusercontent.com/grtsinry43/grtblog/main`,
+    `BASE=https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main`,
     `curl -fsSL "$BASE/deploy/docker-compose.yml"  -o docker-compose.yml`,
     `curl -fsSL "$BASE/deploy/nginx/nginx.conf"    -o nginx/nginx.conf`,
     `# 3. 拉取镜像并重启，重载 nginx 配置`,

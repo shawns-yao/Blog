@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	domainconfig "github.com/grtsinry43/grtblog-v2/server/internal/domain/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	domainconfig "github.com/shawns-yao/grtblog-v2/server/internal/domain/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
 )
 
 const setupMarkerFileName = ".setupdone"

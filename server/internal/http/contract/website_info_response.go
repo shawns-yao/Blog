@@ -3,7 +3,7 @@ package contract
 import (
 	"encoding/json"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type WebsiteInfoResp struct {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	domain "github.com/grtsinry43/grtblog-v2/server/internal/domain/discovery"
+	domain "github.com/shawns-yao/grtblog-v2/server/internal/domain/discovery"
 )
 
 const SitemapPageSize = 10000

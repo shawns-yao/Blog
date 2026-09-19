@@ -6,7 +6,7 @@ func TestLoadUsesCurrentUpdateRepositoryByDefault(t *testing.T) {
 	t.Setenv("APP_UPDATE_CHECK_REPO", "")
 
 	cfg := Load()
-	if cfg.App.UpdateCheckRepo != "grtsinry43/grtblog" {
+	if cfg.App.UpdateCheckRepo != "shawns-yao/grtblog-v2" {
 		t.Fatalf("unexpected default update repository: %q", cfg.App.UpdateCheckRepo)
 	}
 }

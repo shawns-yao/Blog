@@ -21,31 +21,29 @@ VALUES (
         "links": [
           { "name": "归档", "href": "/posts" },
           { "name": "友链", "href": "/friends" },
-          { "name": "RSS", "href": "/feed" },
-          { "name": "时间线", "href": "/timeline" },
-          { "name": "监控", "href": "https://status.grtsinry43.com" }
+          { "name": "时间线", "href": "/timeline" }
         ]
       },
       {
         "title": "联系我叭",
         "links": [
           { "name": "写留言", "href": "/message" },
-          { "name": "发邮件", "href": "mailto:grtsinry43@outlook.com" },
-          { "name": "GitHub", "href": "https://github.com/grtsinry43" }
+          { "name": "发邮件", "href": "mailto:shwan.jade.yao@gmail.com" },
+          { "name": "GitHub", "href": "https://github.com/shawns-yao" }
         ]
       }
     ],
     "brand": {
-      "name": "Grtsinry43's Blog.",
+      "name": "shawn's Blog.",
       "tagline": "总之岁月漫长，然而值得等待"
     },
     "copyright": {
       "startYear": 2022,
-      "owner": "grtsinry43",
+      "owner": "shawn",
       "beianText": "",
       "beianUrl": "https://beian.miit.gov.cn/",
       "beianGongAnText": "",
-      "designedWithText": "Designed by Grtsinry43 with ❤"
+      "designedWithText": "Designed by shawn with ❤"
     },
     "presence": {
       "connectedText": "正在有 {count} 位小伙伴看着我的网站呐",

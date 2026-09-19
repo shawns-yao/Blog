@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/social"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
 )
 
 type Service struct {

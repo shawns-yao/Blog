@@ -10,8 +10,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 )
 
 type AdminTokenRepository struct {

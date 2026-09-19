@@ -24,14 +24,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/database"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
-	"github.com/grtsinry43/grtblog-v2/server/internal/security/jwt"
-	appserver "github.com/grtsinry43/grtblog-v2/server/internal/server"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/database"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/grtblog-v2/server/internal/security/jwt"
+	appserver "github.com/shawns-yao/grtblog-v2/server/internal/server"
 )
 
 const (

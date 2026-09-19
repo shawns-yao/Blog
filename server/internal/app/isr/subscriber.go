@@ -6,10 +6,10 @@ import (
 	"log"
 	"strings"
 
-	appalbum "github.com/grtsinry43/grtblog-v2/server/internal/app/album"
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
+	appalbum "github.com/shawns-yao/grtblog-v2/server/internal/app/album"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
 	"github.com/redis/go-redis/v9"
 )
 

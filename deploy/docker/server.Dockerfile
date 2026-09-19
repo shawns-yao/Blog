@@ -43,8 +43,8 @@ ARG BUILD_COMMIT=unknown
 
 RUN CGO_ENABLED=0 GOOS=linux \
   go build -trimpath -ldflags="-s -w \
-  -X github.com/grtsinry43/grtblog-v2/server/internal/buildinfo.BuildVersion=${APP_VERSION} \
-  -X github.com/grtsinry43/grtblog-v2/server/internal/buildinfo.BuildCommit=${BUILD_COMMIT}" \
+  -X github.com/shawns-yao/grtblog-v2/server/internal/buildinfo.BuildVersion=${APP_VERSION} \
+  -X github.com/shawns-yao/grtblog-v2/server/internal/buildinfo.BuildCommit=${BUILD_COMMIT}" \
   -o /out/grtblog-server ./cmd/api
 
 RUN CGO_ENABLED=0 GOOS=linux \

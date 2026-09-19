@@ -11,8 +11,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/comment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 )
 
 type CommentRepository struct {

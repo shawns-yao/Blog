@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
 )
 
 func TestSlugFor(t *testing.T) {

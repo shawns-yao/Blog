@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
-	fedinfra "github.com/grtsinry43/grtblog-v2/server/internal/infra/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
 )
 
 func fetchFederationDocs(ctx context.Context, resolver *fedinfra.Resolver, baseURL string) (*fedinfra.Manifest, *fedinfra.EndpointsDoc, *fedinfra.PublicKeyDoc, error) {

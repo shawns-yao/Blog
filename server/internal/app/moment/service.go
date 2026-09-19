@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/contentutil"
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	domaincomment "github.com/grtsinry43/grtblog-v2/server/internal/domain/comment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/contentutil"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
 )
 
 type Service struct {

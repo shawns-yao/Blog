@@ -3,7 +3,7 @@ package contract
 import (
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type ColumnResp struct {

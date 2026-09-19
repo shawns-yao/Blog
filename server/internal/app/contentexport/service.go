@@ -19,9 +19,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	exportdomain "github.com/grtsinry43/grtblog-v2/server/internal/domain/contentexport"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	exportdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/contentexport"
 )
 
 type Service struct {

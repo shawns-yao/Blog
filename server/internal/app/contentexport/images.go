@@ -22,8 +22,8 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	fedinfra "github.com/grtsinry43/grtblog-v2/server/internal/infra/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
 )
 
 // externalBudgetBytes 是单次导出任务允许下载的外链图片总字节上限，

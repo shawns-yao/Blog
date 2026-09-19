@@ -10,9 +10,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/handler"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
-	"github.com/grtsinry43/grtblog-v2/server/internal/ws"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/grtblog-v2/server/internal/ws"
 )
 
 // wsIPLimiter tracks per-IP WebSocket connection counts.

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	domainemail "github.com/grtsinry43/grtblog-v2/server/internal/domain/email"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	domainemail "github.com/shawns-yao/grtblog-v2/server/internal/domain/email"
 )
 
 type Message struct {

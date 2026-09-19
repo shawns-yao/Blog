@@ -1,4 +1,4 @@
-module github.com/grtsinry43/grtblog/cli/v2
+module github.com/shawns-yao/grtblog-v2/cli/v2
 
 go 1.26.0
 

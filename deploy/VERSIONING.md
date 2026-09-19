@@ -54,8 +54,8 @@
 仓库中包含 `server`、`renderer(web)`、`admin` 三个组件，采用“**单仓统一发布号 + 镜像分组件标签**”策略：
 
 - Git Tag（统一）：`v2.1.0-beta.2`
-- Server 镜像：`ghcr.io/grtsinry43/grtblog-server:2.1.0-beta.2`
-- Renderer 镜像：`ghcr.io/grtsinry43/grtblog-renderer:2.1.0-beta.2`
+- Server 镜像：`ghcr.io/shawns-yao/grtblog-v2-server:2.1.0-beta.2`
+- Renderer 镜像：`ghcr.io/shawns-yao/grtblog-v2-renderer:2.1.0-beta.2`
 - Admin：随 `server` 镜像一起发布，不单独打包成生产部署单元
 
 ## 4. API 与协议兼容策略

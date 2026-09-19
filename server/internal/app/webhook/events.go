@@ -3,11 +3,11 @@ package webhook
 import (
 	"time"
 
-	appalbum "github.com/grtsinry43/grtblog-v2/server/internal/app/album"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/comment"
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/globalnotification"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
+	appalbum "github.com/shawns-yao/grtblog-v2/server/internal/app/album"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/globalnotification"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
 )
 
 var AvailableEventNames = appEvent.NamesByChannel(appEvent.ChannelWebhook)

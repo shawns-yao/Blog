@@ -6,7 +6,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
 )
 
 // New returns a configured *gorm.DB instance for the selected driver.

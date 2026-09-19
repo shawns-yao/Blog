@@ -8,9 +8,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	contentexportapp "github.com/grtsinry43/grtblog-v2/server/internal/app/contentexport"
-	exportdomain "github.com/grtsinry43/grtblog-v2/server/internal/domain/contentexport"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	contentexportapp "github.com/shawns-yao/grtblog-v2/server/internal/app/contentexport"
+	exportdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/contentexport"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type ContentExportHandler struct{ svc *contentexportapp.Service }

@@ -13,11 +13,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/health"
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/health"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type SystemHandler struct {

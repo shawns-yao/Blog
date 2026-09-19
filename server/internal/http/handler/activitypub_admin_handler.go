@@ -8,10 +8,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	appap "github.com/grtsinry43/grtblog-v2/server/internal/app/activitypub"
-	domainap "github.com/grtsinry43/grtblog-v2/server/internal/domain/activitypub"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	appap "github.com/shawns-yao/grtblog-v2/server/internal/app/activitypub"
+	domainap "github.com/shawns-yao/grtblog-v2/server/internal/domain/activitypub"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type ActivityPubAdminHandler struct {

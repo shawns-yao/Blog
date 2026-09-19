@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
 )
 
 var ErrLastAdminMutation = errors.New("至少保留一个可用管理员账号")

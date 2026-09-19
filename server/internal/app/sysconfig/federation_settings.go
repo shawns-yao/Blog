@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	domainconfig "github.com/grtsinry43/grtblog-v2/server/internal/domain/config"
+	domainconfig "github.com/shawns-yao/grtblog-v2/server/internal/domain/config"
 )
 
 // FederationSettings aggregates federation configuration values.

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	appEvent "github.com/grtsinry43/grtblog-v2/server/internal/app/event"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	domainconfig "github.com/grtsinry43/grtblog-v2/server/internal/domain/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/security/turnstile"
+	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	domainconfig "github.com/shawns-yao/grtblog-v2/server/internal/domain/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/security/turnstile"
 )
 
 // Service 负责从数据库读取系统配置并做类型转换。

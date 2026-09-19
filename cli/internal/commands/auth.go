@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/grtsinry43/grtblog/cli/v2/internal/client"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/config"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/config"
 )
 
 func newAuthCmd(app *App) *cobra.Command {

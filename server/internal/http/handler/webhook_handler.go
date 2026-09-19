@@ -5,10 +5,10 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/webhook"
-	domainwebhook "github.com/grtsinry43/grtblog-v2/server/internal/domain/webhook"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/webhook"
+	domainwebhook "github.com/shawns-yao/grtblog-v2/server/internal/domain/webhook"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type WebhookHandler struct {

@@ -3,8 +3,8 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/adminstats"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/adminstats"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type AdminStatsHandler struct {

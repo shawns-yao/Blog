@@ -7,10 +7,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	domainconfig "github.com/grtsinry43/grtblog-v2/server/internal/domain/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	domainconfig "github.com/shawns-yao/grtblog-v2/server/internal/domain/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type ActivityPubConfigHandler struct {

@@ -9,10 +9,10 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/database"
-	appserver "github.com/grtsinry43/grtblog-v2/server/internal/server"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/database"
+	appserver "github.com/shawns-yao/grtblog-v2/server/internal/server"
 )
 
 // @title grtblog API v2
@@ -80,7 +80,7 @@ func startupBanner(cfg config.Config) string {
 		"> " + cfg.App.Name + " " + version + "\n" +
 		"> " + "不仅是博客，也是全新的内容基础设施。\n" +
 		"\n" +
-		"by @grtsinry43 · github.com/grtsinry43\n" +
+		"by @shawn · github.com/shawns-yao\n" +
 		"“代码是写给人看的，顺便在机器上运行的。”\n" +
 		"\n" +
 		"- API 前缀: " + apiBasePath + "\n" +

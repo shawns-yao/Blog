@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
 )
 
 // ReportStatus describes the outcome of a single upload attempt.

@@ -6,8 +6,8 @@ import (
 	"html"
 	"strings"
 
-	appfed "github.com/grtsinry43/grtblog-v2/server/internal/app/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
+	appfed "github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
 )
 
 // ExpandFederationSignals replaces federation signal markers in moment content

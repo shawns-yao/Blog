@@ -9,8 +9,8 @@ import (
 
 	"github.com/aclr/feeds"
 	"github.com/gofiber/fiber/v2"
-	apprss "github.com/grtsinry43/grtblog-v2/server/internal/app/rss"
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
+	apprss "github.com/shawns-yao/grtblog-v2/server/internal/app/rss"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
 )
 
 type RSSHandler struct {

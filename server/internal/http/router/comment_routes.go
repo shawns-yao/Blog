@@ -9,13 +9,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/comment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/handler"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/middleware"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/clientinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/geoip"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/clientinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/geoip"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
 )
 
 const (

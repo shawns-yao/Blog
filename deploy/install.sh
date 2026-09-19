@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # GrtBlog v2 — One-Click Deployment Script
-# https://github.com/grtsinry43/grtblog
+# https://github.com/shawns-yao/grtblog-v2
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/grtsinry43/grtblog/main/deploy/install.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main/deploy/install.sh)
 #   # China:
-#   bash <(curl -fsSL https://cnb.cool/grtsinry43/grtblog/-/git/raw/main/deploy/install.sh)
+#   bash <(curl -fsSL https://cnb.cool/shawns-yao/grtblog-v2/-/git/raw/main/deploy/install.sh)
 #
 # Non-interactive:
 #   GRTBLOG_NONINTERACTIVE=1 APP_VERSION=2.0.2 \
-#     IMAGE_REPO_PREFIX=docker.cnb.cool/grtsinry43/grtblog/ \
+#     IMAGE_REPO_PREFIX=docker.cnb.cool/shawns-yao/grtblog-v2/ \
 #     bash <(curl -fsSL ...)
 set -euo pipefail
-trap 'printf "\n  \033[1;31m✗\033[0m Script failed at line %d (exit code %d).\n    Please report this issue: https://github.com/grtsinry43/grtblog/issues\n" "$LINENO" "$?" >&2' ERR
+trap 'printf "\n  \033[1;31m✗\033[0m Script failed at line %d (exit code %d).\n    Please report this issue: https://github.com/shawns-yao/grtblog-v2/issues\n" "$LINENO" "$?" >&2' ERR
 
 # ---------------------------------------------------------------------------
 # Output helpers (matches scripts/release.sh conventions)
@@ -597,15 +597,15 @@ DOCKER_MIRROR="${DOCKER_MIRROR:-}"
 NGINX_PORT="${NGINX_PORT:-80}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
 AUTH_SECRET="${AUTH_SECRET:-}"
-DEFAULT_UPDATE_CHECK_REPO="grtsinry43/grtblog"
+DEFAULT_UPDATE_CHECK_REPO="shawns-yao/grtblog-v2"
 
-GITHUB_RAW_BASE="https://raw.githubusercontent.com/grtsinry43/grtblog/main"
-CNB_RAW_BASE="https://cnb.cool/grtsinry43/grtblog/-/git/raw/main"
+GITHUB_RAW_BASE="https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main"
+CNB_RAW_BASE="https://cnb.cool/shawns-yao/grtblog-v2/-/git/raw/main"
 CONFIG_BASE_URL=""
 
-REPO_DOCKERHUB="grtsinry43/"
-REPO_GHCR="ghcr.io/grtsinry43/"
-REPO_CNB="docker.cnb.cool/grtsinry43/grtblog/"
+REPO_DOCKERHUB="shawns-yao/"
+REPO_GHCR="ghcr.io/shawns-yao/"
+REPO_CNB="docker.cnb.cool/shawns-yao/grtblog-v2/"
 
 # =========================================================================
 # Step 1: Environment Check
@@ -783,7 +783,7 @@ if [[ -z "$APP_VERSION" ]]; then
 
   if [[ "$APP_UPDATE_CHANNEL" == "stable" ]]; then
     info "$(__ FETCH_STABLE)"
-    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/grtsinry43/grtblog/releases/latest" || true)"
+    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/grtblog-v2/releases/latest" || true)"
     if [[ -n "$API_RESPONSE" ]]; then
       FETCHED_VERSION="$(printf '%s' "$API_RESPONSE" | grep '"tag_name"' | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' | head -n1)"
       # Strip leading 'v' if present
@@ -791,7 +791,7 @@ if [[ -z "$APP_VERSION" ]]; then
     fi
   else
     info "$(__ FETCH_PREVIEW)"
-    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/grtsinry43/grtblog/git/refs/tags" || true)"
+    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/grtblog-v2/git/refs/tags" || true)"
     if [[ -n "$API_RESPONSE" ]]; then
       # Find all tags with pre-release suffixes, pick the last one
       FETCHED_VERSION="$(printf '%s' "$API_RESPONSE" | grep '"ref"' | grep -E '(alpha|beta|rc)' | sed 's/.*refs\/tags\/v\{0,1\}\([^"]*\)".*/\1/' | tail -n1)"
@@ -800,7 +800,7 @@ if [[ -z "$APP_VERSION" ]]; then
     # If no preview found, fall back to latest stable
     if [[ -z "$FETCHED_VERSION" ]]; then
       warn "$(__ FETCH_FALLBACK)"
-      API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/grtsinry43/grtblog/releases/latest" || true)"
+      API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/grtblog-v2/releases/latest" || true)"
       if [[ -n "$API_RESPONSE" ]]; then
         FETCHED_VERSION="$(printf '%s' "$API_RESPONSE" | grep '"tag_name"' | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' | head -n1)"
         FETCHED_VERSION="${FETCHED_VERSION#v}"
@@ -949,7 +949,7 @@ if [[ "$INSTALL_MODE" == "upgrade" ]]; then
   # the retired official value and fill a missing key, while preserving an
   # explicitly configured custom release repository.
   if grep -q '^APP_UPDATE_CHECK_REPO=' .env; then
-    if grep -q '^APP_UPDATE_CHECK_REPO=grtsinry43/grtblog-v2[[:space:]]*$' .env; then
+    if grep -q '^APP_UPDATE_CHECK_REPO=shawns-yao/grtblog-v2-v2[[:space:]]*$' .env; then
       sed -i.bak "s|^APP_UPDATE_CHECK_REPO=.*|APP_UPDATE_CHECK_REPO=${DEFAULT_UPDATE_CHECK_REPO}|" .env
     fi
   else
@@ -1101,5 +1101,5 @@ printf '\n'
 info "$(__ UPGRADE_LATER)"
 info "  bash <(curl -fsSL ${CONFIG_BASE_URL}/deploy/install.sh)"
 printf '\n'
-info "$(__ DOCS): https://github.com/grtsinry43/grtblog"
+info "$(__ DOCS): https://github.com/shawns-yao/grtblog-v2"
 ok "$(__ DONE)"

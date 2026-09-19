@@ -21,11 +21,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	mediaapp "github.com/grtsinry43/grtblog-v2/server/internal/app/media"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/buildinfo"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	backupdomain "github.com/grtsinry43/grtblog-v2/server/internal/domain/backup"
+	mediaapp "github.com/shawns-yao/grtblog-v2/server/internal/app/media"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	backupdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/backup"
 )
 
 type Service struct {

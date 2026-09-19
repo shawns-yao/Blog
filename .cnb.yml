@@ -39,7 +39,7 @@ $:
             mirror_image() {
               image_name="$1"
               expected_digest="$2"
-              source_ref="docker://ghcr.io/grtsinry43/${image_name}@${expected_digest}"
+              source_ref="docker://ghcr.io/shawns-yao/${image_name}@${expected_digest}"
               target_ref="docker://${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}/${image_name}"
 
               echo "Mirroring ${image_name}@${expected_digest}"

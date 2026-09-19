@@ -9,16 +9,16 @@ import (
 	"github.com/jinzhu/copier"
 
 	"github.com/gofiber/fiber/v2"
-	domaincomment "github.com/grtsinry43/grtblog-v2/server/internal/domain/comment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
-	domainfed "github.com/grtsinry43/grtblog-v2/server/internal/domain/federation"
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
+	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/contract"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/middleware"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type MomentHandler struct {

@@ -1,8 +1,8 @@
 package contract
 
 import (
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/social"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 type FriendLinkApplicationResp struct {

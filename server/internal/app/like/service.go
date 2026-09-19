@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	domainlike "github.com/grtsinry43/grtblog-v2/server/internal/domain/like"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/clientinfo"
+	domainlike "github.com/shawns-yao/grtblog-v2/server/internal/domain/like"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/clientinfo"
 )
 
 type RequestMeta struct {

@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	app "github.com/grtsinry43/grtblog-v2/server/internal/app/discovery"
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/grtsinry43/grtblog-v2/server/internal/config"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence/model"
+	app "github.com/shawns-yao/grtblog-v2/server/internal/app/discovery"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )

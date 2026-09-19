@@ -5,8 +5,8 @@ import (
 
 	"github.com/jinzhu/copier"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/identity"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
 )
 
 // UserResp 描述对外暴露的用户字段（小驼峰）。

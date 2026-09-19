@@ -3,10 +3,10 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/app/moment"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/handler"
-	"github.com/grtsinry43/grtblog-v2/server/internal/http/middleware"
-	"github.com/grtsinry43/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
+	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
+	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
 )
 
 func registerMomentPublicRoutes(v2 fiber.Router, deps Dependencies) {

@@ -3,7 +3,7 @@ package moment
 import (
 	"time"
 
-	"github.com/grtsinry43/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
 )
 
 type MomentCreated struct {

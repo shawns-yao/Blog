@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/grtsinry43/grtblog/cli/v2/internal/client"
-	"github.com/grtsinry43/grtblog/cli/v2/internal/commands"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
+	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/commands"
 )
 
 var (
