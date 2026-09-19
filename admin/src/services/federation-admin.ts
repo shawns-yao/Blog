@@ -1,0 +1,168 @@
+import { request } from './http'
+
+import type {
+  FederationAdminCitationReq,
+  FederationAdminMentionReq,
+  FederationActivityPubFollowerListResp,
+  FederationActivityPubPublishReq,
+  FederationActivityPubPublishResp,
+  FederationAdminProxyResp,
+  FederationAdminRemoteCheckResp,
+  ActivityPubOutboxItemResp,
+  ActivityPubOutboxListReq,
+  ActivityPubOutboxListResp,
+  FederationAuthorListResp,
+  FederationCachedPostListResp,
+  FederationInstanceDetailResp,
+  FederationInstanceListReq,
+  FederationInstanceListResp,
+  FederationOutboundDeliveryListResp,
+  FederationOutboundDeliveryResp,
+  FederationOutboundListReq,
+  FederationRemotePostListResp,
+  FederationReviewDecisionReq,
+  FederationReviewListResp,
+} from '@/types/federation'
+
+export function checkFederationRemote(targetUrl: string) {
+  return request<FederationAdminRemoteCheckResp>('/admin/federation/remote/check', {
+    method: 'GET',
+    query: { target_url: targetUrl },
+  })
+}
+
+export function requestFederationCitation(payload: FederationAdminCitationReq) {
+  return request<FederationAdminProxyResp>('/admin/federation/citations/request', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export function notifyFederationMention(payload: FederationAdminMentionReq) {
+  return request<FederationAdminProxyResp>('/admin/federation/mentions/notify', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export function getFederationOutboundLog(query: FederationOutboundListReq) {
+  return request<FederationOutboundDeliveryListResp>('/admin/federation/outbound', {
+    method: 'GET',
+    query: query as any,
+  })
+}
+
+export function getFederationOutboundLogDetail(id: number | string) {
+  return request<FederationOutboundDeliveryResp>(`/admin/federation/outbound/${id}`, {
+    method: 'GET',
+  })
+}
+
+export function retryFederationOutboundLog(id: number | string) {
+  return request<void>(`/admin/federation/outbound/${id}/retry`, {
+    method: 'POST',
+  })
+}
+
+export function getFederationPendingReviews() {
+  return request<FederationReviewListResp>('/admin/federation/reviews/pending', {
+    method: 'GET',
+  })
+}
+
+export function reviewFederationCitation(
+  id: number | string,
+  decision: FederationReviewDecisionReq,
+) {
+  return request<void>(`/admin/federation/citations/${id}/review`, {
+    method: 'PUT',
+    body: decision,
+  })
+}
+
+export function reviewFederationMention(
+  id: number | string,
+  decision: FederationReviewDecisionReq,
+) {
+  return request<void>(`/admin/federation/mentions/${id}/review`, {
+    method: 'PUT',
+    body: decision,
+  })
+}
+
+export function getFederationInstances(query?: FederationInstanceListReq) {
+  return request<FederationInstanceListResp>('/admin/federation/instances', {
+    method: 'GET',
+    query: query as any,
+  })
+}
+
+export function getFederationInstanceDetail(id: number | string) {
+  return request<FederationInstanceDetailResp>(`/admin/federation/instances/${id}`, {
+    method: 'GET',
+  })
+}
+
+export function updateFederationInstanceStatus(id: number | string, status: string) {
+  return request<void>(`/admin/federation/instances/${id}/status`, {
+    method: 'PUT',
+    body: { status },
+  })
+}
+
+export function publishFederationActivityPub(payload: FederationActivityPubPublishReq) {
+  return request<FederationActivityPubPublishResp>('/admin/activitypub/publish', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export function listFederationActivityPubFollowers(page = 1, pageSize = 20) {
+  return request<FederationActivityPubFollowerListResp>('/admin/activitypub/followers', {
+    method: 'GET',
+    query: {
+      page,
+      pageSize,
+    },
+  })
+}
+
+export function searchFederationAuthors(query: string, limit = 20) {
+  return request<FederationAuthorListResp>('/admin/federation/authors/search', {
+    method: 'GET',
+    query: { q: query, limit },
+  })
+}
+
+export function listFederationInstancePosts(instanceId: number, query?: string, limit = 20) {
+  return request<FederationCachedPostListResp>(`/admin/federation/instances/${instanceId}/posts`, {
+    method: 'GET',
+    query: { q: query || '', limit },
+  })
+}
+
+export function fetchRemotePosts(url: string, query?: string, page = 1, pageSize = 20) {
+  return request<FederationRemotePostListResp>('/admin/federation/remote/posts', {
+    method: 'GET',
+    query: { url, query: query || '', page, pageSize },
+  })
+}
+
+export function listActivityPubOutbox(query: ActivityPubOutboxListReq) {
+  return request<ActivityPubOutboxListResp>('/admin/activitypub/outbox', {
+    method: 'GET',
+    query: query as any,
+  })
+}
+
+export function getActivityPubOutboxDetail(id: number | string) {
+  return request<ActivityPubOutboxItemResp>(`/admin/activitypub/outbox/${id}`, {
+    method: 'GET',
+  })
+}
+
+export function retryActivityPubOutbox(id: number | string) {
+  return request<ActivityPubOutboxItemResp>(`/admin/activitypub/outbox/${id}/retry`, {
+    method: 'POST',
+  })
+}

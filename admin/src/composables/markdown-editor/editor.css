@@ -1,0 +1,282 @@
+@keyframes cm-autocomplete-pop {
+  from {
+    transform: translateY(4px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.cm-tooltip-autocomplete {
+  border: 1px solid var(--cm-tooltip-border, #e5e7eb);
+  border-radius: 4px;
+  background-color: var(--cm-tooltip-bg, #ffffff);
+  box-shadow: var(--cm-tooltip-shadow, 0 6px 16px rgba(15, 23, 42, 0.12));
+  padding: 4px;
+  animation: cm-autocomplete-pop 120ms ease-out;
+}
+
+.cm-tooltip-autocomplete ul {
+  padding: 0;
+  margin: 0;
+  max-height: 480px !important;
+  font-family:
+    'Google Sans Flex',
+    'Noto Sans SC Variable',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif !important;
+}
+
+.cm-editor {
+  font-size: 16px;
+  line-height: 1.7;
+  letter-spacing: 0.2px;
+  color: var(--cm-fg, #1f2328);
+  background-color: var(--cm-bg, #ffffff);
+}
+
+.cm-scroller,
+.cm-content,
+.cm-line {
+  font-family:
+    'Google Sans Flex',
+    'Noto Sans SC Variable',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif !important;
+}
+
+.cm-content {
+  padding: 20px 16px 40px 26px;
+  --cm-content-padding-right: 16px;
+}
+
+.cm-editor .cm-content {
+  padding-right: 16px;
+}
+
+.cm-line {
+  padding: 2px 0;
+}
+
+.cm-inline-code,
+.cm-codeblock {
+  font-family: 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.95em;
+}
+
+.cm-gutters {
+  border-right: none;
+  background-color: transparent !important;
+  padding-right: 6px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.cm-gutter {
+  background-color: transparent !important;
+}
+
+.cm-gutterElement {
+  color: var(--cm-gutter-fg, #94a3b8);
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 2px 0;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.cm-gutters:hover {
+  opacity: 1;
+}
+
+.cm-gutters:hover .cm-gutterElement {
+  opacity: 0.45;
+}
+
+/* 滚动条美化 (Webkit) */
+.cm-tooltip-autocomplete ul::-webkit-scrollbar {
+  width: 4px;
+}
+.cm-tooltip-autocomplete ul::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.3);
+  border-radius: 4px;
+}
+
+.cm-tooltip-autocomplete li {
+  display: flex;
+  align-items: center;
+  /*gap: 16px;*/
+  padding: 10px 12px !important;
+  border-radius: 4px;
+  justify-content: space-between;
+}
+
+.cm-tooltip-autocomplete li[aria-selected],
+.cm-tooltip-autocomplete .cm-completionItem-selected {
+  background-color: var(--cm-tooltip-selected, #dbdbdf) !important;
+  background-image: none !important;
+}
+
+.cm-tooltip-autocomplete li:hover {
+  background-color: var(--cm-tooltip-hover, #f6f7f8);
+}
+
+.cm-completionLabel {
+  font-size: 14px;
+  color: var(--cm-fg, #0f172a);
+}
+
+.cm-completionDetail {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--cm-fg-muted, #64748b);
+  font-style: normal !important;
+}
+
+.cm-line.cm-slash-hint-line {
+  position: relative;
+}
+
+.cm-line.cm-slash-hint-line::after {
+  content: "按'/'唤出快捷菜单";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--cm-fg-muted, #a8b1bf);
+  letter-spacing: 0.2px;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.cm-line.cm-slash-hint-line-last::after {
+  top: 100%;
+  transform: translateY(4px);
+  opacity: 0.45;
+}
+
+.cm-line.cm-custom-block {
+  position: relative;
+  z-index: 0;
+}
+
+.cm-line.cm-custom-block::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: var(--cm-block-highlight, rgba(59, 130, 246, 0.06));
+  border-radius: 0;
+  z-index: -1;
+}
+
+.cm-line.cm-custom-block-start {
+  padding-top: 0;
+}
+
+.cm-line.cm-custom-block-end {
+  padding-bottom: 0;
+}
+
+.cm-line.cm-custom-block-start::before {
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+.cm-line.cm-custom-block-end::before {
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.cm-custom-block-label {
+  color: var(--cm-accent, #3b82f6);
+  font-weight: 600;
+}
+
+/* Federation mention badge */
+.fed-mention {
+  display: inline;
+  padding: 0.1em 0.5em;
+  border-radius: 9999px;
+  font-size: 0.85em;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--cm-accent, #3b82f6) 15%, transparent);
+  color: var(--cm-accent, #3b82f6);
+}
+
+.fed-mention-host {
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+/* Federation citation preview card */
+.fed-citation-preview {
+  display: block;
+  margin: 8px 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--cm-tooltip-border, #e5e7eb);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--cm-tooltip-bg, #ffffff) 60%, transparent);
+  font-size: 13px;
+  color: var(--cm-fg-muted, #64748b);
+}
+
+/* CodeMirror federation highlights */
+.cm-federation-mention {
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cm-accent, #3b82f6) 12%, transparent);
+  color: var(--cm-accent, #3b82f6);
+}
+
+.cm-federation-citation {
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cm-syntax-string, #22c55e) 12%, transparent);
+  color: var(--cm-syntax-string, #22c55e);
+}
+
+@keyframes cm-upload-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.cm-uploading-widget {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--cm-tooltip-bg, #ffffff) 70%, transparent);
+  border: 1px solid var(--cm-tooltip-border, #e5e7eb);
+}
+
+.cm-upload-shimmer {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--cm-fg-muted, #64748b);
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.2) 0%,
+    rgba(148, 163, 184, 0.5) 50%,
+    rgba(148, 163, 184, 0.2) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: cm-upload-shimmer 1.4s infinite;
+}
