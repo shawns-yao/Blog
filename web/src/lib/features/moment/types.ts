@@ -4,6 +4,7 @@ import type { ContentExtInfo } from '$lib/shared/markdown/image-ext-info';
 export type { TOCNode };
 
 export type MomentSummary = {
+	contentKind?: 'note' | 'article' | 'unclassified';
 	id: number;
 	title: string;
 	shortUrl: string;
@@ -50,6 +51,7 @@ export type MomentExtInfo = ContentExtInfo & {
 };
 
 export type MomentDetail = {
+	contentKind?: 'note' | 'article' | 'unclassified';
 	id: number;
 	title: string;
 	summary: string;

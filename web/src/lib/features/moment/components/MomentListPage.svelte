@@ -6,7 +6,7 @@
 	import StaggerList from '$lib/ui/animation/StaggerList.svelte';
 	import PageHeader from '$lib/ui/common/PageHeader.svelte';
 	import Pagination from '$lib/ui/primitives/pagination/Pagination.svelte';
-	import MomentItem from './MomentItem.svelte';
+	import HomeMomentItem from './HomeMomentItem.svelte';
 
 	interface Props {
 		moments: MomentListResponse;
@@ -45,15 +45,9 @@
 	/>
 
 	{#if $list.length > 0}
-		<StaggerList
-			class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 justify-center"
-			staggerDelay={80}
-			duration={500}
-			y={16}
-			key={staggerKey}
-		>
+		<StaggerList class="flex flex-col" staggerDelay={80} duration={500} y={16} key={staggerKey}>
 			{#each $list as moment (moment.id)}
-				<MomentItem {moment} />
+				<HomeMomentItem {moment} />
 			{/each}
 		</StaggerList>
 

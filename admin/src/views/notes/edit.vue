@@ -26,6 +26,7 @@ import {
 import { computed, onMounted, onUnmounted, ref, watch, toRef } from 'vue'
 
 import ImageInput from '@/components/image-picker/ImageInput.vue'
+import ImagePickerModal from '@/components/image-picker/ImagePickerModal.vue'
 import MarkdownEditor from '@/components/markdown-editor/MarkdownEditor.vue'
 import MarkdownPreview from '@/components/markdown-editor/MarkdownPreview.vue'
 import { parseFederationSignals } from '@/composables/markdown-editor/utils/federation-signals'
@@ -67,6 +68,12 @@ const message = useMessage()
 
 const { form, saving, imageProcessing, extInfo, baseExtInfo, isCreating, fetch, save } =
   useMomentForm()
+const isArticle = computed(() => form.contentKind === 'article')
+const showImagePicker = ref(false)
+function appendImage(url: string) {
+  const safeUrl = encodeURI(url).replace(/\(/g, '%28').replace(/\)/g, '%29')
+  form.content += `${form.content ? '\n\n' : ''}![](${safeUrl})`
+}
 
 const {
   columnOptions,
@@ -449,6 +456,7 @@ function buildPreviewPayload() {
   const selectedColumn = columnOptions.value.find((option) => option.value === form.columnId)
   return {
     id: loadedMoment.value?.id ?? 0,
+    contentKind: form.contentKind ?? 'unclassified',
     title: form.title,
     summary: form.summary,
     aiSummary: form.aiSummary ?? null,
@@ -489,6 +497,7 @@ onUnmounted(() => {
 
 watch(
   () => [
+    form.contentKind,
     form.title,
     form.summary,
     form.aiSummary,
@@ -527,7 +536,7 @@ watch(previewUrl, () => {
       <div class="flex w-full items-center gap-4 sm:flex-1">
         <NInput
           v-model:value="form.title"
-          placeholder="在这里开始你的记录..."
+          :placeholder="isArticle ? '文章标题' : '标题（可选）'"
           :bordered="false"
           class="flex-1 text-xl! leading-tight font-bold sm:text-2xl!"
           style="--n-caret-color: var(--primary-color); background-color: transparent"
@@ -535,6 +544,14 @@ watch(previewUrl, () => {
       </div>
 
       <div class="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:flex-nowrap sm:gap-4">
+        <NButton
+          v-if="!isArticle"
+          quaternary
+          @click="showImagePicker = true"
+        >
+          <template #icon><div class="iconify ph--image" /></template>
+          添加图片
+        </NButton>
         <div class="flex items-baseline gap-1">
           <div class="iconify self-center ph--link-simple" />
           <span class="text-xs leading-none">/moments/</span>
@@ -546,6 +563,7 @@ watch(previewUrl, () => {
         </div>
 
         <NButton
+          v-if="isArticle"
           quaternary
           size="small"
           :loading="aiGenerating"
@@ -631,6 +649,7 @@ watch(previewUrl, () => {
           />
 
           <EditorStatsOverlay
+            v-if="isArticle"
             :idle="statsIdle"
             :cursor-line="cursorPos.line"
             :cursor-column="cursorPos.column"
@@ -714,23 +733,41 @@ watch(previewUrl, () => {
       </div>
     </main>
 
+    <ImagePickerModal
+      v-model:show="showImagePicker"
+      @select="appendImage"
+    />
+
     <NDrawer
       v-model:show="showMeta"
       placement="right"
       width="400"
     >
       <NDrawerContent
-        title="手记设置"
+        :title="isArticle ? '文章设置' : '手记设置'"
         :native-scrollbar="false"
         closable
         header-style="padding: 24px;"
         body-style="padding: 24px;"
       >
         <div class="flex flex-col gap-6">
+          <NFormItem
+            label="内容归属"
+            :show-feedback="false"
+          >
+            <NSelect
+              v-model:value="form.contentKind"
+              placeholder="待归类，请选择内容归属"
+              :options="[
+                { label: '手记', value: 'note' },
+                { label: '图书馆文章', value: 'article' },
+              ]"
+            />
+          </NFormItem>
           <div class="space-y-4">
             <div class="flex items-center gap-2 text-sm font-medium">
               <div class="iconify ph--tag" />
-              <span>分区与话题</span>
+              <span>{{ isArticle ? '主题与标签' : '标签' }}</span>
             </div>
             <NForm
               label-placement="top"
@@ -738,14 +775,15 @@ watch(previewUrl, () => {
               class="space-y-4"
             >
               <NFormItem
-                label="分区"
+                v-if="isArticle"
+                label="主题分类"
                 :show-feedback="false"
               >
                 <div class="flex w-full items-center gap-2">
                   <NSelect
                     v-model:value="form.columnId"
                     :options="columnOptions"
-                    placeholder="选择分区"
+                    placeholder="选择主题"
                     clearable
                     filterable
                     class="flex-1"
@@ -759,7 +797,7 @@ watch(previewUrl, () => {
                 </div>
               </NFormItem>
               <NFormItem
-                label="话题"
+                label="标签"
                 :show-feedback="false"
               >
                 <ContentTagSelect
@@ -767,7 +805,7 @@ watch(previewUrl, () => {
                   :options="topicOptions"
                   :loading="topicsLoading"
                   :creating="topicCreating"
-                  noun="话题"
+                  noun="标签"
                   class="w-full"
                   @create="createAndSelectTopic"
                 />
@@ -777,7 +815,10 @@ watch(previewUrl, () => {
 
           <NDivider style="margin: 0" />
 
-          <div class="space-y-4">
+          <div
+            v-if="!isArticle"
+            class="space-y-4"
+          >
             <div class="flex items-center gap-2 text-sm font-medium">
               <div class="iconify ph--cloud-sun" />
               <span>此刻</span>
@@ -813,6 +854,7 @@ watch(previewUrl, () => {
                 />
               </NFormItem>
               <AiSummaryAssist
+                v-if="isArticle"
                 :model-value="form.aiSummary"
                 :loading="aiSummaryLoading"
                 :result="aiSummaryResult"

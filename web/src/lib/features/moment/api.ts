@@ -9,17 +9,21 @@ import type {
 type MomentListOptions = {
 	page?: number;
 	pageSize?: number;
+	contentKind?: 'note' | 'article';
+	columnId?: number;
 };
 
 export const getMomentList = async (
 	fetcher?: typeof fetch,
-	{ page = 1, pageSize = 10 }: MomentListOptions = {}
+	{ page = 1, pageSize = 10, contentKind = 'note', columnId }: MomentListOptions = {}
 ): Promise<MomentListResponse> => {
 	const api = getApi(fetcher);
 	const query = new URLSearchParams({
 		page: String(page),
-		pageSize: String(pageSize)
+		pageSize: String(pageSize),
+		contentKind
 	});
+	if (columnId) query.set('columnId', String(columnId));
 	const result = await api<MomentListResponse>(`/moments?${query.toString()}`);
 	return result ?? { items: [], total: 0, page, size: pageSize };
 };
@@ -64,7 +68,30 @@ export const checkMomentLatest = async (
 export const getRecentMoments = async (fetcher?: typeof fetch): Promise<MomentListResponse> => {
 	const api = getApi(fetcher);
 	const result = await api<MomentListResponse>('/public/moments/recent');
-	return result ?? { items: [], total: 0, page: 1, size: 5 };
+	if (!result || !Array.isArray(result.items)) throw new Error('手记列表返回数据不完整');
+	const recent = [...result.items]
+		.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id - a.id)
+		.slice(0, 3);
+	const items = await Promise.all(
+		recent.map(async (moment) => {
+			if (moment.cover && moment.summary) return moment;
+			try {
+				const detail = await getMomentDetail(fetcher, moment.shortUrl);
+				if (!detail) return moment;
+				const [{ parseMarkdown }, { extractPlainTextFromNodes, extractImageUrlsFromNodes }] =
+					await Promise.all([import('svmarkdown'), import('$lib/shared/markdown/component-body')]);
+				const { children } = parseMarkdown(detail.content);
+				return {
+					...moment,
+					summary: moment.summary || extractPlainTextFromNodes(children).slice(0, 360),
+					cover: moment.cover || extractImageUrlsFromNodes(children)[0]
+				};
+			} catch {
+				return moment;
+			}
+		})
+	);
+	return { ...result, items };
 };
 
 type MomentSamePeriodResponse = {

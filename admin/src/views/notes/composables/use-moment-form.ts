@@ -1,5 +1,5 @@
 import { useMessage } from 'naive-ui'
-import { reactive, ref, computed, onMounted, toRef } from 'vue'
+import { reactive, ref, computed, toRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useLeaveConfirm } from '@/composables'
@@ -19,6 +19,8 @@ export function useMomentForm() {
   const route = useRoute()
   const router = useRouter()
   const message = useMessage()
+  const isArticle = computed(() => route.path.includes('/library/'))
+  const listRoute = computed(() => (isArticle.value ? 'libraryList' : 'noteList'))
 
   const momentId = computed(() => {
     const param = route.params.id
@@ -33,6 +35,7 @@ export function useMomentForm() {
   const initialSnapshot = ref('')
 
   const form = reactive({
+    contentKind: (isArticle.value ? 'article' : 'note') as 'note' | 'article' | null,
     title: '',
     summary: '',
     aiSummary: null as string | null,
@@ -59,6 +62,8 @@ export function useMomentForm() {
   const extInfo = computed(() => {
     const merged = mergeMomentAtmosphere(imageExtInfo.value, form.weather, form.mood)
     const next: ContentExtInfo = { ...(merged ?? {}) }
+    if (form.contentKind) next.contentKind = form.contentKind
+    else delete next.contentKind
     if (form.yearSummary !== null) next.is_year_summary = form.yearSummary
     else delete next.is_year_summary
     return Object.keys(next).length ? next : null
@@ -80,6 +85,8 @@ export function useMomentForm() {
       const data = await getMoment(momentId.value!)
 
       form.title = data.title
+      form.contentKind =
+        data.contentKind === 'article' ? 'article' : data.contentKind === 'note' ? 'note' : null
       form.summary = data.summary || ''
       form.aiSummary = data.aiSummary ?? null
       form.content = data.content
@@ -101,7 +108,7 @@ export function useMomentForm() {
     } catch (e) {
       console.error(e)
       message.error('无法加载手记数据')
-      router.replace({ name: 'noteList' })
+      router.replace({ name: listRoute.value })
       return null
     } finally {
       loading.value = false
@@ -109,7 +116,8 @@ export function useMomentForm() {
   }
 
   async function save() {
-    if (!form.title.trim()) return message.error('请输入标题')
+    if (!form.contentKind) return message.error('请先在内容设置中选择手记或图书馆文章')
+    if (form.contentKind === 'article' && !form.title.trim()) return message.error('请输入文章标题')
     if (!form.content.trim()) return message.error('请输入正文内容')
     if (!isCreating.value && !form.shortUrl.trim()) return message.error('短链接不能为空')
 
@@ -145,7 +153,7 @@ export function useMomentForm() {
       }
 
       initialSnapshot.value = takeSnapshot()
-      router.push({ name: 'noteList' })
+      router.push({ name: form.contentKind === 'article' ? 'libraryList' : 'noteList' })
     } catch (e: any) {
       message.error(e.message || '保存失败')
     } finally {
@@ -161,8 +169,6 @@ export function useMomentForm() {
     negativeText: '继续编辑',
   })
 
-  onMounted(fetch)
-
   return {
     form,
     loading,
@@ -171,6 +177,7 @@ export function useMomentForm() {
     extInfo,
     baseExtInfo,
     isCreating,
+    isArticle,
     isDirty,
     fetch,
     save,

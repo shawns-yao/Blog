@@ -28,6 +28,22 @@ var momentMoodValues = map[string]struct{}{
 	"sad":     {},
 }
 
+func firstExtInfoImage(raw []byte) *string {
+	var info struct {
+		Images []struct {
+			ID string `json:"id"`
+		} `json:"images"`
+	}
+	if json.Unmarshal(raw, &info) != nil || len(info.Images) == 0 {
+		return nil
+	}
+	url := strings.TrimSpace(info.Images[0].ID)
+	if url == "" {
+		return nil
+	}
+	return &url
+}
+
 func parseExtInfo(raw *contract.JSONRaw) ([]byte, error) {
 	if raw == nil {
 		return nil, nil
@@ -77,6 +93,12 @@ func parseMomentExtInfo(raw *contract.JSONRaw) ([]byte, error) {
 		return nil, err
 	}
 	momentRaw, ok := payload["moment"]
+	if kindRaw, exists := payload["contentKind"]; exists {
+		var kind string
+		if json.Unmarshal(kindRaw, &kind) != nil || (kind != "note" && kind != "article") {
+			return nil, errors.New("contentKind must be note or article")
+		}
+	}
 	if !ok || bytes.Equal(bytes.TrimSpace(momentRaw), []byte("null")) {
 		return data, nil
 	}

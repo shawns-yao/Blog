@@ -110,6 +110,9 @@ func (h *MomentHandler) CreateMoment(c *fiber.Ctx) error {
 
 	createdMoment, err := h.svc.CreateMoment(c.Context(), claims.UserID, cmd)
 	if err != nil {
+		if errors.Is(err, moment.ErrArticleTitleRequired) || errors.Is(err, moment.ErrContentRequired) {
+			return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
+		}
 		if errors.Is(err, content.ErrMomentShortURLExists) {
 			return response.NewBizErrorWithMsg(response.ParamsError, "短链接已存在")
 		}
@@ -186,6 +189,9 @@ func (h *MomentHandler) UpdateMoment(c *fiber.Ctx) error {
 
 	updatedMoment, err := h.svc.UpdateMoment(c.Context(), cmd)
 	if err != nil {
+		if errors.Is(err, moment.ErrArticleTitleRequired) || errors.Is(err, moment.ErrContentRequired) {
+			return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
+		}
 		if errors.Is(err, content.ErrMomentShortURLExists) {
 			return response.NewBizErrorWithMsg(response.ParamsError, "短链接已存在")
 		}
@@ -502,6 +508,9 @@ func (h *MomentHandler) ListMomentsAdmin(c *fiber.Ctx) error {
 }
 
 func (h *MomentHandler) listMomentsWithQuery(c *fiber.Ctx, query contract.ListMomentsReq) error {
+	if !content.ValidContentKindFilter(query.ContentKind) {
+		return response.NewBizErrorWithMsg(response.ParamsError, "内容类型无效")
+	}
 	moments, total, err := h.svc.ListMoments(c.Context(), content.MomentListOptionsInternal(query))
 	if err != nil {
 		return err
@@ -527,13 +536,17 @@ func (h *MomentHandler) listMomentsWithQuery(c *fiber.Ctx, query contract.ListMo
 }
 
 func (h *MomentHandler) listPublicMomentsWithQuery(c *fiber.Ctx, query contract.ListMomentsReq) error {
+	if !content.ValidContentKindFilter(query.ContentKind) {
+		return response.NewBizErrorWithMsg(response.ParamsError, "内容类型无效")
+	}
 	moments, total, err := h.svc.ListPublicMoments(c.Context(), content.MomentListOptions{
-		Page:     query.Page,
-		PageSize: query.PageSize,
-		ColumnID: query.ColumnID,
-		TopicID:  query.TopicID,
-		AuthorID: query.AuthorID,
-		Search:   query.Search,
+		Page:        query.Page,
+		PageSize:    query.PageSize,
+		ColumnID:    query.ColumnID,
+		TopicID:     query.TopicID,
+		AuthorID:    query.AuthorID,
+		Search:      query.Search,
+		ContentKind: query.ContentKind,
 	})
 	if err != nil {
 		return err
@@ -560,8 +573,9 @@ func (h *MomentHandler) listPublicMomentsWithQuery(c *fiber.Ctx, query contract.
 
 func buildMomentListQuery(c *fiber.Ctx) contract.ListMomentsReq {
 	query := contract.ListMomentsReq{
-		Page:     1,
-		PageSize: 10,
+		Page:        1,
+		PageSize:    10,
+		ContentKind: c.Query("contentKind"),
 	}
 
 	if page, err := strconv.Atoi(c.Query("page", "1")); err == nil && page > 0 {
@@ -599,11 +613,13 @@ func buildMomentListQuery(c *fiber.Ctx) contract.ListMomentsReq {
 // @Router /public/moments/recent [get]
 func (h *MomentHandler) ListRecentPublicMoments(c *fiber.Ctx) error {
 	const page = 1
-	const size = 5
+	const size = 3
 
 	moments, total, err := h.svc.ListPublicMoments(c.Context(), content.MomentListOptions{
-		Page:     page,
-		PageSize: size,
+		Page:        page,
+		PageSize:    size,
+		NewestFirst: true,
+		ContentKind: content.KindNote,
 	})
 	if err != nil {
 		return err
@@ -870,6 +886,7 @@ func (h *MomentHandler) toMomentResp(ctx context.Context, momentItem *content.Mo
 
 	siteTZ := h.sysCfg.Timezone(ctx)
 	resp := contract.MomentResp{
+		ContentKind:                content.ContentKind(momentItem.ExtInfo),
 		ID:                         momentItem.ID,
 		Title:                      momentItem.Title,
 		Summary:                    momentItem.Summary,
@@ -939,6 +956,7 @@ func (h *MomentHandler) toMomentListItemResp(ctx context.Context, momentItem *co
 
 	siteTZ := h.sysCfg.Timezone(ctx)
 	resp := contract.MomentListItemResp{
+		ContentKind:      content.ContentKind(momentItem.ExtInfo),
 		ID:               momentItem.ID,
 		Title:            momentItem.Title,
 		ShortURL:         momentItem.ShortURL,
@@ -953,6 +971,9 @@ func (h *MomentHandler) toMomentListItemResp(ctx context.Context, momentItem *co
 		UpdatedAt:        momentItem.UpdatedAt,
 		Topics:           []string{},
 		Cover:            momentItem.Cover,
+	}
+	if resp.ContentKind == content.KindNote && (resp.Cover == nil || *resp.Cover == "") {
+		resp.Cover = firstExtInfoImage(momentItem.ExtInfo)
 	}
 	resp.CommentID = momentItem.CommentID
 

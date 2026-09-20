@@ -4,6 +4,7 @@ import "time"
 
 // MomentResp 手记响应。
 type MomentResp struct {
+	ContentKind                string       `json:"contentKind"`
 	ID                         int64        `json:"id"`
 	Title                      string       `json:"title"`
 	Summary                    string       `json:"summary"`
@@ -36,6 +37,7 @@ type MomentResp struct {
 
 // MomentListItemResp 手记列表项响应。
 type MomentListItemResp struct {
+	ContentKind      string    `json:"contentKind"`
 	ID               int64     `json:"id"`
 	Title            string    `json:"title"`
 	ShortURL         string    `json:"shortUrl"`

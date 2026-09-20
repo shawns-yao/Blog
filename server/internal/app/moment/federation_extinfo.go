@@ -25,6 +25,11 @@ func mergeExtInfoKeepingFederation(base []byte, incoming []byte) []byte {
 	}
 
 	incomingObj := parseExtInfoObject(incoming)
+	if _, ok := incomingObj["contentKind"]; !ok {
+		if kind, exists := baseObj["contentKind"]; exists {
+			incomingObj["contentKind"] = kind
+		}
+	}
 	// Preserve existing image metadata when client sends partial ext_info.
 	if _, ok := incomingObj["images"]; !ok {
 		if images, exists := baseObj["images"]; exists {

@@ -4,6 +4,7 @@ import type { ContentExtInfo } from '@/types/ext-info'
 import type { FederationMomentInteractionsResp } from '@/types/federation'
 
 export interface MomentListItem {
+  contentKind: 'note' | 'article' | 'unclassified'
   id: number
   title: string
   shortUrl: string
@@ -38,6 +39,7 @@ export interface MomentTopic {
 }
 
 export interface MomentDetail {
+  contentKind: 'note' | 'article' | 'unclassified'
   id: number
   title: string
   summary: string
@@ -61,6 +63,7 @@ export interface MomentDetail {
 }
 
 export interface ListMomentsParams {
+  contentKind?: 'note' | 'article' | 'unclassified'
   page?: number
   pageSize?: number
   columnId?: number

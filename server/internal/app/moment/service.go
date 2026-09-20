@@ -19,6 +19,19 @@ type Service struct {
 	events      appEvent.Bus
 }
 
+var ErrArticleTitleRequired = errors.New("图书馆文章需要标题")
+var ErrContentRequired = errors.New("请输入文字或添加图片")
+
+func validateContent(kind, title, body string) error {
+	if kind == content.KindArticle && strings.TrimSpace(title) == "" {
+		return ErrArticleTitleRequired
+	}
+	if strings.TrimSpace(body) == "" {
+		return ErrContentRequired
+	}
+	return nil
+}
+
 func NewService(repo content.Repository, commentRepo domaincomment.CommentRepository, events appEvent.Bus) *Service {
 	if events == nil {
 		events = appEvent.NopBus{}
@@ -28,6 +41,9 @@ func NewService(repo content.Repository, commentRepo domaincomment.CommentReposi
 
 // CreateMoment 创建手记
 func (s *Service) CreateMoment(ctx context.Context, authorID int64, cmd CreateMomentCmd) (*content.Moment, error) {
+	if err := validateContent(content.ContentKind(cmd.ExtInfo), cmd.Title, cmd.Content); err != nil {
+		return nil, err
+	}
 	shortURL := ""
 	if cmd.ShortURL != nil {
 		shortURL = strings.TrimSpace(*cmd.ShortURL)
@@ -129,6 +145,10 @@ func (s *Service) UpdateMoment(ctx context.Context, cmd UpdateMomentCmd) (*conte
 		return nil, err
 	}
 	prevPublished := existing.IsPublished
+	mergedExtInfo := mergeExtInfoKeepingFederation(existing.ExtInfo, cmd.ExtInfo)
+	if err := validateContent(content.ContentKind(mergedExtInfo), cmd.Title, cmd.Content); err != nil {
+		return nil, err
+	}
 	prevContentHash := existing.ContentHash
 
 	if cmd.ColumnID != nil {
@@ -168,7 +188,7 @@ func (s *Service) UpdateMoment(ctx context.Context, cmd UpdateMomentCmd) (*conte
 	existing.IsPublished = cmd.IsPublished
 	existing.IsTop = cmd.IsTop
 	existing.IsOriginal = cmd.IsOriginal
-	existing.ExtInfo = mergeExtInfoKeepingFederation(existing.ExtInfo, cmd.ExtInfo)
+	existing.ExtInfo = mergedExtInfo
 
 	if err := s.repo.UpdateMoment(ctx, existing); err != nil {
 		return nil, err

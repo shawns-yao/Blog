@@ -8,8 +8,8 @@ import {
   NPopconfirm,
   NDropdown,
 } from 'naive-ui'
-import { defineComponent, onMounted, ref, Transition } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, defineComponent, onMounted, ref, Transition, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { ScrollContainer } from '@/components'
 import { useTable } from '@/composables/table/use-table'
@@ -31,10 +31,28 @@ export default defineComponent({
   name: 'NoteList',
   setup() {
     const router = useRouter()
+    const route = useRoute()
+    const kind = computed<'note' | 'article' | 'unclassified'>(() =>
+      route.path.includes('/unclassified')
+        ? 'unclassified'
+        : route.path.includes('/library/')
+          ? 'article'
+          : 'note',
+    )
+    const noun = computed(() =>
+      kind.value === 'article' ? '文章' : kind.value === 'unclassified' ? '待归类内容' : '手记',
+    )
     const { message } = useDiscreteApi()
-    const { data, loading, pagination, refresh } = useTable<MomentListItem>(listMoments)
+    const { data, loading, pagination, refresh } = useTable<MomentListItem>((params) =>
+      listMoments({ ...params, contentKind: kind.value }),
+    )
     const checkedRowKeys = ref<DataTableRowKey[]>([])
     const publicUrl = ref('')
+    watch(kind, () => {
+      checkedRowKeys.value = []
+      pagination.page = 1
+      refresh()
+    })
 
     function normalizePublicUrl(value: string) {
       return value.trim().replace(/\/+$/, '')
@@ -62,11 +80,11 @@ export default defineComponent({
     })
 
     const handleEdit = (id: number) => {
-      router.push({ name: 'noteEdit', params: { id } })
+      router.push({ name: kind.value === 'article' ? 'libraryEdit' : 'noteEdit', params: { id } })
     }
 
     const handleCreate = () => {
-      router.push({ name: 'noteCreate' })
+      router.push({ name: kind.value === 'article' ? 'libraryCreate' : 'noteCreate' })
     }
 
     const handleDelete = async (id: number) => {
@@ -150,7 +168,7 @@ export default defineComponent({
         minWidth: 280,
         render: (row) => (
           <div class='font-medium text-gray-700 dark:text-gray-200'>
-            <span>{row.title}</span>
+            <span>{row.title || row.summary || '图片手记'}</span>
             <ContentQuickPreview
               contentType='moment'
               contentId={row.id}
@@ -171,13 +189,13 @@ export default defineComponent({
         sorter: 'default',
       },
       {
-        title: '分区',
+        title: '主题分类',
         key: 'columnName',
         width: 140,
         render: (row) => row.columnName || <span class='text-gray-400'>-</span>,
       },
       {
-        title: '话题',
+        title: '标签',
         key: 'topics',
         minWidth: 160,
         render: (row) => {
@@ -343,7 +361,10 @@ export default defineComponent({
       <ScrollContainer wrapperClass='flex flex-col gap-y-4'>
         <NCard bordered={false}>
           <div class='flex items-center justify-between'>
-            <div class='text-lg font-medium'>手记列表</div>
+            <div class='text-lg font-medium'>
+              {noun.value}
+              {kind.value === 'unclassified' ? '' : '列表'}
+            </div>
             <NSpace
               align='center'
               size={12}
@@ -382,7 +403,7 @@ export default defineComponent({
                             批量删除
                           </NButton>
                         ),
-                        default: () => `确定删除选中的 ${checkedRowKeys.value.length} 条手记吗？`,
+                        default: () => `确定删除选中的 ${checkedRowKeys.value.length} 条内容吗？`,
                       }}
                     </NPopconfirm>
                   </NSpace>
@@ -392,7 +413,7 @@ export default defineComponent({
                 type='primary'
                 onClick={handleCreate}
               >
-                新建手记
+                新建{kind.value === 'article' ? '文章' : '手记'}
               </NButton>
             </NSpace>
           </div>

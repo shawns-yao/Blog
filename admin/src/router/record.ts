@@ -17,7 +17,7 @@ export const routeRecordRaw: MenuMixedOptions[] = [
     path: 'notes',
     name: 'noteManagement',
     icon: 'iconify ph--aperture-thin',
-    label: '手记管理',
+    label: '手记',
     redirect: 'notes/list',
     children: [
       {
@@ -66,9 +66,10 @@ export const routeRecordRaw: MenuMixedOptions[] = [
   },
   {
     path: 'albums',
+    show: false,
     name: 'albumManagement',
     icon: 'iconify ph--image',
-    label: '相册管理',
+    label: '历史相册',
     redirect: 'albums/list',
     children: [
       {
@@ -80,7 +81,7 @@ export const routeRecordRaw: MenuMixedOptions[] = [
           componentName: 'AlbumList',
           showTab: true,
         },
-        component: 'albums/index',
+        component: 'albums/archive',
       },
       {
         path: 'edit/new',
@@ -95,7 +96,7 @@ export const routeRecordRaw: MenuMixedOptions[] = [
             return '新建相册'
           },
         },
-        component: 'albums/edit',
+        component: 'albums/archive',
       },
       {
         path: 'edit/:id',
@@ -110,7 +111,7 @@ export const routeRecordRaw: MenuMixedOptions[] = [
             return `编辑相册${id ? `-${id}` : ''}`
           },
         },
-        component: 'albums/edit',
+        component: 'albums/archive',
       },
     ],
   },
@@ -126,7 +127,53 @@ export const routeRecordRaw: MenuMixedOptions[] = [
     component: 'comments/index',
   },
   {
+    path: 'library',
+    name: 'libraryManagement',
+    icon: 'iconify ph--books',
+    label: '图书馆',
+    redirect: 'library/list',
+    children: [
+      {
+        path: 'list',
+        name: 'libraryList',
+        label: '文章列表',
+        component: 'notes/index',
+        meta: { componentName: 'NoteList', showTab: true },
+      },
+      {
+        path: 'edit/new',
+        name: 'libraryCreate',
+        label: '新建文章',
+        component: 'notes/edit',
+        meta: { componentName: 'NoteEdit', showTab: true, enableMultiTab: true },
+      },
+      {
+        path: 'edit/:id',
+        name: 'libraryEdit',
+        label: '编辑文章',
+        show: false,
+        component: 'notes/edit',
+        meta: { componentName: 'NoteEdit', showTab: true, enableMultiTab: true },
+      },
+      {
+        path: 'columns',
+        name: 'libraryColumns',
+        label: '主题分类',
+        component: 'taxonomy/columns/index',
+        meta: { componentName: 'MomentColumnManagement', showTab: true },
+      },
+      {
+        path: 'tags',
+        name: 'libraryTags',
+        label: '标签',
+        component: 'taxonomy/tags/index',
+        meta: { componentName: 'TagManagement', showTab: true },
+      },
+    ],
+  },
+  {
     path: 'taxonomy',
+    show: false,
     name: 'taxonomyManagement',
     icon: 'iconify ph--tree-structure',
     label: '内容分类',
@@ -333,19 +380,33 @@ export const routeRecordRaw: MenuMixedOptions[] = [
     path: 'files',
     name: 'fileManagement',
     icon: 'icon-[fluent--cloud-arrow-up-24-regular]',
-    label: '文件管理',
+    label: '资源库',
     redirect: 'files/list',
     children: [
       {
         path: 'list',
         name: 'fileList',
-        label: '文件列表',
+        label: '图片与附件',
         icon: 'icon-[fluent--cloud-arrow-up-24-regular]',
         meta: {
           componentName: 'FileList',
           showTab: true,
         },
         component: 'uploads/index',
+      },
+      {
+        path: 'albums',
+        name: 'albumArchive',
+        label: '历史相册',
+        component: 'albums/archive',
+        meta: { componentName: 'AlbumArchive', showTab: true },
+      },
+      {
+        path: 'unclassified',
+        name: 'unclassifiedContent',
+        label: '待归类内容',
+        component: 'notes/index',
+        meta: { componentName: 'NoteList', showTab: true },
       },
     ],
   },

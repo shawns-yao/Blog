@@ -16,6 +16,7 @@ export interface MomentExtInfo {
 }
 
 export interface ContentExtInfo {
+  contentKind?: 'note' | 'article'
   images?: ImageExtInfoItem[]
   moment?: MomentExtInfo
   is_year_summary?: number

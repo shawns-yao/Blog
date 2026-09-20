@@ -6,11 +6,11 @@ import (
 	"log"
 	"strings"
 
+	"github.com/redis/go-redis/v9"
 	appalbum "github.com/shawns-yao/grtblog-v2/server/internal/app/album"
 	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
 	"github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
 	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
-	"github.com/redis/go-redis/v9"
 )
 
 type handlerFunc func(ctx context.Context, event appEvent.Event) error
@@ -38,12 +38,14 @@ func RegisterMomentSubscribers(bus appEvent.Bus, service *Service) {
 				"column:list",
 				"timeline:by-year",
 				"moment:list:page:*",
+				"gallery:list",
 				fmt.Sprintf("moment:detail:%d", momentID),
 			}
 			urls := []string{
 				"/",
 				"/timeline",
 				"/moments",
+				"/gallery",
 			}
 			// Brand-new moments are not tracked under any dep key yet, so the
 			// date-segmented detail URL must be enqueued directly. Deleted

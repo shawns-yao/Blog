@@ -20,6 +20,7 @@
 		shortUrl?: string;
 		cover?: string | null;
 		extInfo?: MomentDetailModel['extInfo'];
+		contentKind?: MomentDetailModel['contentKind'];
 		columnId?: number | null;
 		columnName?: string;
 		columnShortUrl?: string;
@@ -47,6 +48,7 @@
 		updateModelData(() => ({
 			id: payload.id ?? 0,
 			title: payload.title ?? '未命名',
+			contentKind: payload.contentKind,
 			summary: payload.summary ?? '',
 			aiSummary: payload.aiSummary ?? null,
 			content: payload.content ?? '',

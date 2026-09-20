@@ -167,7 +167,15 @@ onMounted(() => {
       </KeepAlive>
     </Transition>
   </RouterView>
-  <RouterView v-else />
+  <RouterView
+    v-else
+    v-slot="{ Component, route }"
+  >
+    <component
+      :is="Component"
+      :key="route.path + JSON.stringify(route.query)"
+    />
+  </RouterView>
 </template>
 <style scoped>
 .slider-left-enter-active,

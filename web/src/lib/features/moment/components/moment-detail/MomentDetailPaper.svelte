@@ -42,7 +42,9 @@
 				>
 					<span>NO. {dateNo}</span>
 					<span>—</span>
-					<span class="font-serif text-cinnabar-500">手记</span>
+					<span class="font-serif text-cinnabar-500"
+						>{moment.contentKind === 'article' ? '图书馆' : '手记'}</span
+					>
 					<span>—</span>
 					<span>{dateStr}</span>
 					{#if showUpdated}<span class="text-ink-400/70"
@@ -52,11 +54,13 @@
 				<MomentAtmosphere atmosphere={moment.extInfo?.moment} />
 			</div>
 
-			<h1
-				class="text-xl md:text-3xl font-serif font-bold text-ink-900 dark:text-ink-50 leading-[1.2]"
-			>
-				{moment.title}
-			</h1>
+			{#if moment.title}
+				<h1
+					class="text-xl md:text-3xl font-serif font-bold text-ink-900 dark:text-ink-50 leading-[1.2]"
+				>
+					{moment.title}
+				</h1>
+			{/if}
 			<div
 				class="flex flex-wrap items-center gap-3 text-[11px] font-mono tracking-[0.16em] text-ink-800/45 dark:text-ink-200/45 uppercase"
 			>
@@ -107,8 +111,12 @@
 				class="w-24 h-24 border-2 border-dashed border-ink-800 dark:border-ink-200 rounded-full flex items-center justify-center rotate-12"
 			>
 				<div class="text-center text-ink-800 dark:text-ink-200">
-					<div class="text-[9px] uppercase tracking-widest mb-1">手记</div>
-					<div class="font-serif font-bold text-lg">记</div>
+					<div class="text-[9px] uppercase tracking-widest mb-1">
+						{moment.contentKind === 'article' ? '图书馆' : '手记'}
+					</div>
+					<div class="font-serif font-bold text-lg">
+						{moment.contentKind === 'article' ? '文' : '记'}
+					</div>
 					<div class="text-[9px] mt-1">{dateStr}</div>
 				</div>
 			</div>

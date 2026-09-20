@@ -8,7 +8,7 @@ import (
 
 // CreateMomentReq 创建手记请求。
 type CreateMomentReq struct {
-	Title        string     `json:"title" validate:"required,max=255"`
+	Title        string     `json:"title" validate:"max=255"`
 	Summary      string     `json:"summary"`
 	AISummary    *string    `json:"aiSummary,omitempty"`
 	Content      string     `json:"content" validate:"required"`
@@ -82,7 +82,7 @@ func (r *CreateMomentReq) UnmarshalJSON(data []byte) error {
 
 // UpdateMomentReq 更新手记请求。
 type UpdateMomentReq struct {
-	Title        string   `json:"title" validate:"required,max=255"`
+	Title        string   `json:"title" validate:"max=255"`
 	Summary      string   `json:"summary"`
 	AISummary    *string  `json:"aiSummary,omitempty"`
 	Content      string   `json:"content" validate:"required"`
@@ -99,13 +99,14 @@ type UpdateMomentReq struct {
 
 // ListMomentsReq 手记列表查询请求。
 type ListMomentsReq struct {
-	Page      int     `json:"page" validate:"min=1"`
-	PageSize  int     `json:"pageSize" validate:"min=1,max=100"`
-	ColumnID  *int64  `json:"columnId,omitempty"`
-	TopicID   *int64  `json:"topicId,omitempty"`
-	AuthorID  *int64  `json:"authorId,omitempty"`
-	Published *bool   `json:"published,omitempty"`
-	Search    *string `json:"search,omitempty"`
+	ContentKind string  `json:"contentKind,omitempty"`
+	Page        int     `json:"page" validate:"min=1"`
+	PageSize    int     `json:"pageSize" validate:"min=1,max=100"`
+	ColumnID    *int64  `json:"columnId,omitempty"`
+	TopicID     *int64  `json:"topicId,omitempty"`
+	AuthorID    *int64  `json:"authorId,omitempty"`
+	Published   *bool   `json:"published,omitempty"`
+	Search      *string `json:"search,omitempty"`
 }
 
 // CheckMomentLatestReq 手记版本校验请求。

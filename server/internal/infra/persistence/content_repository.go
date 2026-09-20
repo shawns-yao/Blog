@@ -537,6 +537,7 @@ func (r *ContentRepository) SyncHotMoments(ctx context.Context, vT, lT, cT int64
 // ListMoments 获取手记列表（内部使用，包含未发布）
 func (r *ContentRepository) ListMoments(ctx context.Context, options content.MomentListOptionsInternal) ([]*content.Moment, int64, error) {
 	query := r.db.WithContext(ctx).Model(&model.Moment{})
+	query = filterContentKind(query, options.ContentKind)
 
 	if options.ColumnID != nil {
 		query = query.Where("column_id = ?", *options.ColumnID)
@@ -584,6 +585,7 @@ func (r *ContentRepository) ListMoments(ctx context.Context, options content.Mom
 // ListPublicMoments 获取公开手记列表
 func (r *ContentRepository) ListPublicMoments(ctx context.Context, options content.MomentListOptions) ([]*content.Moment, int64, error) {
 	query := r.db.WithContext(ctx).Model(&model.Moment{}).Where("is_published = ?", true)
+	query = filterContentKind(query, options.ContentKind)
 
 	if options.ColumnID != nil {
 		query = query.Where("column_id = ?", *options.ColumnID)
@@ -610,7 +612,11 @@ func (r *ContentRepository) ListPublicMoments(ctx context.Context, options conte
 
 	offset := (options.Page - 1) * options.PageSize
 	var momentModels []*model.Moment
-	if err := query.Order("is_top DESC, created_at DESC").
+	order := "is_top DESC, created_at DESC"
+	if options.NewestFirst {
+		order = "created_at DESC, id DESC"
+	}
+	if err := query.Order(order).
 		Offset(offset).
 		Limit(options.PageSize).
 		Find(&momentModels).Error; err != nil {
@@ -623,6 +629,17 @@ func (r *ContentRepository) ListPublicMoments(ctx context.Context, options conte
 	}
 
 	return moments, total, nil
+}
+
+func filterContentKind(query *gorm.DB, kind string) *gorm.DB {
+	switch kind {
+	case content.KindNote, content.KindArticle:
+		return query.Where("ext_info ->> 'contentKind' = ?", kind)
+	case content.KindUnclassified:
+		return query.Where("COALESCE(ext_info ->> 'contentKind', '') NOT IN ?", []string{content.KindNote, content.KindArticle})
+	default:
+		return query
+	}
 }
 
 func (r *ContentRepository) ListPublishedMomentsByCreatedAtRange(ctx context.Context, start time.Time, end time.Time, limit int) ([]*content.Moment, error) {
