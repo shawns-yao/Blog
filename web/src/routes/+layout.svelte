@@ -343,11 +343,16 @@
 		// Inline script to prevent theme flash (fallback before Svelte hydrates)
 		(function () {
 			try {
+			const hour = new Date().getHours();
+			let isDark = hour < 6 || hour >= 18;
 				const theme = localStorage.getItem('theme');
-				const isDark = theme === 'dark';
-				document.documentElement.classList.toggle('dark', isDark);
+				const until = Number(localStorage.getItem('theme-override-until'));
+				if (Number.isFinite(until) && until > Date.now() && (theme === 'light' || theme === 'dark')) {
+					isDark = theme === 'dark';
+				}
 			} catch (e) {}
 		})();
+			document.documentElement.classList.toggle('dark', isDark);
 	</script>
 </svelte:head>
 
