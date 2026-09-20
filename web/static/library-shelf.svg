@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#392d26"/><stop offset=".24" stop-color="#655042"/><stop offset=".8" stop-color="#79614b"/><stop offset="1" stop-color="#463329"/>
+    </linearGradient>
+    <linearGradient id="edge">
+      <stop stop-color="#38261c"/><stop offset=".22" stop-color="#ad8458"/><stop offset=".45" stop-color="#785333"/><stop offset=".8" stop-color="#513723"/><stop offset="1" stop-color="#2b211b"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ba9567"/><stop offset=".14" stop-color="#92683f"/><stop offset=".55" stop-color="#6a452b"/><stop offset=".88" stop-color="#795335"/><stop offset="1" stop-color="#34241b"/>
+    </linearGradient>
+    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#5c422c"/><stop offset="1" stop-color="#bc9364"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#000" stop-opacity=".6"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grain" width="300" height="110" patternUnits="userSpaceOnUse">
+      <g fill="none" stroke="#2c1c12" stroke-opacity=".18">
+        <path d="M0 12Q80 0 150 14T300 12M0 21Q90 9 180 24T300 21M0 48Q70 37 140 50T300 48M0 73Q95 58 185 75T300 73M0 95Q80 82 160 95T300 95"/>
+        <path d="M0 16Q80 4 150 18T300 16M0 53Q70 42 140 55T300 53" stroke="#e3c291" stroke-opacity=".13"/>
+        <ellipse cx="210" cy="42" rx="36" ry="5"/><ellipse cx="210" cy="42" rx="18" ry="2"/>
+      </g>
+    </pattern>
+  </defs>
+  <path fill="url(#back)" d="M0 0h1200v420H0z"/>
+  <path fill="url(#grain)" d="M18 0h1164v385H18z"/>
+  <path fill="url(#shade)" d="M18 0h1164v58H18z"/>
+  <path fill="none" stroke="#261d17" stroke-opacity=".22" d="M300 0v380M600 0v380M900 0v380"/>
+  <path fill="url(#edge)" d="M0 0h20v420H0zM1180 0h20v420h-20z"/>
+  <path fill="#22170f" opacity=".3" d="M20 0h9v381h-9zM1171 0h9v381h-9z"/>
+  <path fill="url(#top)" d="M20 372h1160l20 17H0z"/>
+  <path fill="#e0bd8b" opacity=".55" d="M0 389h1200v2H0z"/>
+  <path fill="url(#front)" d="M0 391h1200v29H0z"/>
+  <path fill="url(#grain)" d="M0 392h1200v28H0z"/>
+  <path fill="none" stroke="#d6ac77" opacity=".25" d="M2 398h1196M2 413h1196"/>
+  <path fill="#211911" opacity=".65" d="M0 418h1200v2H0z"/>
+</svg>

@@ -4,6 +4,7 @@
 	import MobileNavBar from '$lib/ui/layout/sidebar/MobileNavBar.svelte';
 	import RouteContent from '$lib/ui/layout/RouteContent.svelte';
 	import ShelfNav from '$lib/ui/layout/shelf/ShelfNav.svelte';
+	import LibraryNav from '$lib/features/library/LibraryNav.svelte';
 	import { SHELF_BOOKS, type NavItem } from '$lib/shared/nav/nav-items';
 	import { initTheme, startThemeSync, themeManager } from '$lib/shared/theme/theme.svelte.js';
 	import { onMount } from 'svelte';
@@ -342,26 +343,30 @@
 	<script>
 		// Inline script to prevent theme flash (fallback before Svelte hydrates)
 		(function () {
-			try {
 			const hour = new Date().getHours();
 			let isDark = hour < 6 || hour >= 18;
+			try {
 				const theme = localStorage.getItem('theme');
 				const until = Number(localStorage.getItem('theme-override-until'));
 				if (Number.isFinite(until) && until > Date.now() && (theme === 'light' || theme === 'dark')) {
 					isDark = theme === 'dark';
 				}
 			} catch (e) {}
-		})();
 			document.documentElement.classList.toggle('dark', isDark);
+		})();
 	</script>
 </svelte:head>
 
-<header
-	class="desktop-shelf-header hidden md:flex"
-	class:home-shelf-header={page.url.pathname === '/'}
->
-	<ShelfNav books={SHELF_BOOKS} />
-</header>
+{#if page.url.pathname.replace(/\/$/, '') === '/gallery' || page.url.pathname.startsWith('/moments/')}
+	<LibraryNav activePath={page.url.pathname.startsWith('/moments/') ? '/moments' : '/gallery'} />
+{:else}
+	<header
+		class="desktop-shelf-header hidden md:flex"
+		class:home-shelf-header={page.url.pathname === '/'}
+	>
+		<ShelfNav books={SHELF_BOOKS} />
+	</header>
+{/if}
 <MobileNavBar menuTree={mobileNavItems} />
 <!-- noise background -->
 <div class="bg-noise" aria-hidden="true"></div>
@@ -379,18 +384,22 @@
 					? 'max-w-none px-0 py-0'
 					: 'max-w-300 px-4 sm:px-6 lg:px-8 py-10 md:py-16'} {page.url.pathname === '/'
 				? ''
-				: 'md:pt-52'}"
+					: page.url.pathname.replace(/\/$/, '') === '/gallery' || page.url.pathname.startsWith('/moments/')
+					? 'md:pt-32'
+					: 'md:pt-52'}"
 		>
 			<RouteContent>
 				{@render children()}
 			</RouteContent>
 		</main>
-		<Footer
-			imageBackground={page.url.pathname === '/'}
-			onlineCount={presenceStore.online}
-			presenceConnected={presenceStore.isConnected}
-			onOpenPresence={openPresenceWindow}
-		/>
+		{#if page.url.pathname === '/'}
+			<Footer
+				imageBackground={page.url.pathname === '/'}
+				onlineCount={presenceStore.online}
+				presenceConnected={presenceStore.isConnected}
+				onOpenPresence={openPresenceWindow}
+			/>
+		{/if}
 	</div>
 </div>
 

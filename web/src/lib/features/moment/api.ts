@@ -11,11 +11,12 @@ type MomentListOptions = {
 	pageSize?: number;
 	contentKind?: 'note' | 'article';
 	columnId?: number;
+	search?: string;
 };
 
 export const getMomentList = async (
 	fetcher?: typeof fetch,
-	{ page = 1, pageSize = 10, contentKind = 'note', columnId }: MomentListOptions = {}
+	{ page = 1, pageSize = 10, contentKind = 'note', columnId, search }: MomentListOptions = {}
 ): Promise<MomentListResponse> => {
 	const api = getApi(fetcher);
 	const query = new URLSearchParams({
@@ -24,6 +25,7 @@ export const getMomentList = async (
 		contentKind
 	});
 	if (columnId) query.set('columnId', String(columnId));
+	if (search) query.set('search', search);
 	const result = await api<MomentListResponse>(`/moments?${query.toString()}`);
 	return result ?? { items: [], total: 0, page, size: pageSize };
 };
