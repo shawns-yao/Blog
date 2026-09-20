@@ -38,14 +38,7 @@ export type HomeActivityPulseThemeConfig = {
 };
 
 export type HomeInspirationIconName =
-	| 'quote'
-	| 'code2'
-	| 'gamepad2'
-	| 'coffee'
-	| 'library'
-	| 'zap'
-	| 'sparkles'
-	| 'github';
+	'quote' | 'code2' | 'gamepad2' | 'coffee' | 'library' | 'zap' | 'sparkles' | 'github';
 
 export type HomeInspirationNowItem = {
 	id: string;
@@ -79,10 +72,18 @@ export type HomeInspirationThemeConfig = {
 	quote?: {
 		text?: string;
 		author?: string;
+		href?: string;
 	};
 	now?: {
 		title?: string;
 		items?: HomeInspirationNowItem[];
+		updatedAt?: string;
+	};
+	work?: {
+		title: string;
+		description: string;
+		image: string;
+		href: string;
 	};
 	energy?: {
 		label?: string;

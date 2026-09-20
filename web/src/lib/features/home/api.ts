@@ -26,19 +26,10 @@ export const getHomeActivityPulse = async (
 	const result = await api<HomeActivityPulseData>(
 		`/public/home/activity-pulse?${query.toString()}`
 	);
-	const fallbackDays =
-		options.days === 'all' ? 0 : options.days && options.days > 0 ? Math.floor(options.days) : 365;
-	return (
-		result ?? {
-			days: fallbackDays,
-			startDate: '',
-			endDate: '',
-			totalPosts: 0,
-			totalMoments: 0,
-			statusLabel: 'Quiet',
-			points: []
-		}
-	);
+	if (!result || !Array.isArray(result.points) || result.points.length === 0) {
+		throw new Error('创作记录返回数据不完整');
+	}
+	return result;
 };
 
 export const getHomeInspirationStats = async (

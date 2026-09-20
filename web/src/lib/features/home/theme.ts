@@ -69,22 +69,9 @@ const defaultThemeConfig: HomeThemeConfig = {
 	},
 	inspiration: {
 		sectionTitle: '灵感与实验场',
-		quote: {
-			text: '“The best way to predict the future is to invent it.”',
-			author: 'Alan Kay'
-		},
 		now: {
-			title: 'Now / 正在',
-			items: [
-				{ id: 'coding', label: 'Coding', value: 'grtblog-v2', icon: 'code2' },
-				{
-					id: 'reading',
-					label: 'Reading',
-					value: 'The Design of Everyday Things',
-					icon: 'library'
-				},
-				{ id: 'learning', label: 'Learning', value: 'Svelte 5 & Runes', icon: 'zap' }
-			]
+			title: '最近在做',
+			items: []
 		},
 		energy: {
 			label: 'High Energy',
@@ -134,6 +121,12 @@ const toStringValue = (value: unknown): string | undefined => {
 	}
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const toContentUrl = (value: unknown): string | undefined => {
+	const url = toStringValue(value);
+	if (!url || /[\s\\]/.test(url)) return undefined;
+	return /^(https?:\/\/|\/(?!\/))/.test(url) ? url : undefined;
 };
 
 const parseHeroAlignMode = (value: unknown): HomeHeroAlignMode | undefined => {
@@ -320,13 +313,15 @@ const parseInspiration = (value: unknown): HomeInspirationThemeConfig | undefine
 	const quote = isRecord(value.quote)
 		? {
 				text: toStringValue(value.quote.text),
-				author: toStringValue(value.quote.author)
+				author: toStringValue(value.quote.author),
+				href: toContentUrl(value.quote.href)
 			}
 		: undefined;
 	const now = isRecord(value.now)
 		? {
 				title: toStringValue(value.now.title),
-				items: parseInspirationNowItems(value.now.items)
+				items: parseInspirationNowItems(value.now.items),
+				updatedAt: toStringValue(value.now.updatedAt)
 			}
 		: undefined;
 	const energy = isRecord(value.energy)
@@ -352,8 +347,18 @@ const parseInspiration = (value: unknown): HomeInspirationThemeConfig | undefine
 			}
 		: undefined;
 
+	const workRaw = isRecord(value.work) ? value.work : {};
+	const workTitle = toStringValue(workRaw.title);
+	const workDescription = toStringValue(workRaw.description);
+	const workImage = toContentUrl(workRaw.image);
+	const workHref = toContentUrl(workRaw.href);
+
 	return {
 		sectionTitle: toStringValue(value.sectionTitle),
+		work:
+			workTitle && workDescription && workImage && workHref
+				? { title: workTitle, description: workDescription, image: workImage, href: workHref }
+				: undefined,
 		quote,
 		now,
 		energy,

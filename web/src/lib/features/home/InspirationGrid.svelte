@@ -1,300 +1,128 @@
 <script lang="ts">
-	import { SlideIn, StaggerList } from '$lib/ui/animation';
-	import { Quote, Code2, Gamepad2, Coffee, Library, Zap, Sparkles, GitBranch } from 'lucide-svelte';
-	import type {
-		HomeGitHubStats,
-		HomeInspirationIconName,
-		HomeInspirationStatItem,
-		HomeInspirationStatsData,
-		HomeInspirationThemeConfig,
-		HomeWordCountStats
-	} from './types';
+	import { ArrowUpRight } from 'lucide-svelte';
+	import { resolvePath } from '$lib/shared/utils/resolve-path';
+	import type { HomeInspirationThemeConfig } from './types';
 
-	let { config, stats }: { config?: HomeInspirationThemeConfig; stats?: HomeInspirationStatsData } =
-		$props();
-
-	const iconMap: Record<HomeInspirationIconName, typeof Quote> = {
-		quote: Quote,
-		code2: Code2,
-		gamepad2: Gamepad2,
-		coffee: Coffee,
-		library: Library,
-		zap: Zap,
-		sparkles: Sparkles,
-		github: GitBranch
-	};
-
-	const defaultNowItems = [
-		{ id: 'coding', label: 'Coding', value: 'grtblog-v2', icon: 'code2' as const },
-		{
-			id: 'reading',
-			label: 'Reading',
-			value: 'The Design of Everyday Things',
-			icon: 'library' as const
-		},
-		{ id: 'learning', label: 'Learning', value: 'Svelte 5 & Runes', icon: 'zap' as const }
-	];
-	const defaultStats: HomeInspirationStatItem[] = [
-		{
-			id: 'words',
-			label: 'Words',
-			icon: 'library',
-			colorClass: 'text-jade-500',
-			source: { type: 'words_total' }
-		},
-		{
-			id: 'commits',
-			label: 'Commits',
-			icon: 'github',
-			colorClass: 'text-ink-900 dark:text-ink-100',
-			source: { type: 'github_recent_push_commits' }
-		},
-		{
-			id: 'coffee',
-			label: 'Coffee',
-			value: '∞',
-			icon: 'coffee',
-			colorClass: 'text-amber-500',
-			source: { type: 'static' }
-		}
-	];
-
-	const sectionTitle = $derived(config?.sectionTitle || '灵感与实验场');
-	const quoteText = $derived(
-		config?.quote?.text || '“The best way to predict the future is to invent it.”'
+	let { config }: { config?: HomeInspirationThemeConfig } = $props();
+	const items = $derived((config?.now?.items ?? []).slice(0, 3));
+	const quote = $derived(config?.quote);
+	const work = $derived(config?.work);
+	const updatedAt = $derived(
+		config?.now?.updatedAt && Number.isFinite(Date.parse(config.now.updatedAt))
+			? new Date(config.now.updatedAt).toISOString().slice(0, 10)
+			: ''
 	);
-	const quoteAuthor = $derived(config?.quote?.author || 'Alan Kay');
-	const nowTitle = $derived(config?.now?.title || 'Now / 正在');
-	const nowItems = $derived.by(
-		() =>
-			(config?.now?.items && config.now.items.length > 0
-				? config.now.items
-				: defaultNowItems) as Array<{
-				id: string;
-				label: string;
-				value: string;
-				icon?: HomeInspirationIconName;
-			}>
-	);
-	const energyLabel = $derived(config?.energy?.label || 'High Energy');
-	const energyIcon = $derived(resolveIcon(config?.energy?.icon, Sparkles));
-	const techTitle = $derived(config?.techStack?.title || 'Tech Stack');
-	const techItems = $derived(
-		config?.techStack?.items && config.techStack.items.length > 0
-			? config.techStack.items
-			: ['Java', 'TypeScript', 'Svelte', 'Rust']
-	);
-	const techIcons = $derived(
-		config?.techStack?.icons && config.techStack.icons.length > 0
-			? config.techStack.icons.map((item) => resolveIcon(item, Code2))
-			: [Code2, Gamepad2]
-	);
-	const statItems = $derived(
-		config?.stats && config.stats.length > 0 ? config.stats : defaultStats
-	);
-	const wordStats = $derived(stats?.words);
-	const githubStats = $derived(stats?.github);
-
-	function resolveIcon(
-		name: HomeInspirationIconName | undefined,
-		fallback: typeof Quote
-	): typeof Quote {
-		if (!name) {
-			return fallback;
-		}
-		return iconMap[name] ?? fallback;
-	}
-
-	function formatCompact(value: number): string {
-		if (!Number.isFinite(value)) {
-			return '-';
-		}
-		return new Intl.NumberFormat('en', {
-			notation: 'compact',
-			maximumFractionDigits: 1
-		}).format(value);
-	}
-
-	function resolveDynamicStatValue(
-		item: HomeInspirationStatItem,
-		words: HomeWordCountStats | undefined,
-		github: HomeGitHubStats | undefined
-	): string {
-		const source = item.source?.type;
-		switch (source) {
-			case 'words_total':
-				return words ? formatCompact(words.total) : '-';
-			case 'github_recent_push_commits':
-				return github ? formatCompact(github.recentPushCommits) : '-';
-			case 'github_followers':
-				return github ? formatCompact(github.followers) : '-';
-			case 'github_public_repos':
-				return github ? formatCompact(github.publicRepos) : '-';
-			default:
-				return item.value || '-';
-		}
-	}
-
-	function isStatMissing(
-		item: HomeInspirationStatItem,
-		words: HomeWordCountStats | undefined,
-		github: HomeGitHubStats | undefined
-	): boolean {
-		const source = item.source?.type;
-		switch (source) {
-			case 'words_total':
-				return !words;
-			case 'github_recent_push_commits':
-			case 'github_followers':
-			case 'github_public_repos':
-				return !github;
-			default:
-				return !item.value;
-		}
-	}
+	const href = (url: string) => (url.startsWith('/') ? resolvePath(url) : url);
 </script>
 
-<section class="mt-20 md:mt-32">
-	<SlideIn direction="up">
-		<div class="flex items-center gap-3 mb-10 border-b border-ink-100 dark:border-ink-800 pb-4">
-			<span class="h-px w-8 bg-jade-500/40"></span>
-			<h2 class="text-xl font-serif font-medium text-ink-900 dark:text-ink-100">{sectionTitle}</h2>
-		</div>
-	</SlideIn>
-
-	<StaggerList
-		staggerDelay={80}
-		y={20}
-		class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-4 auto-rows-[120px]"
-	>
-		<div
-			class="col-span-1 md:col-span-3 lg:col-span-3 row-span-2 bento-card p-8 flex flex-col justify-center relative overflow-hidden group"
-		>
-			<Quote
-				class="absolute -top-4 -left-4 w-24 h-24 text-ink-100 dark:text-ink-800/50 -rotate-12 transition-transform group-hover:rotate-0 duration-700"
-			/>
-			<div class="relative z-10">
-				<p
-					class="text-2xl md:text-3xl font-serif italic text-ink-800 dark:text-ink-100 leading-relaxed"
-				>
-					{quoteText}
-				</p>
-				<p class="mt-4 font-mono text-sm text-ink-400">— {quoteAuthor}</p>
-			</div>
-			<div class="absolute bottom-0 right-0 w-32 h-32 bg-jade-500/5 blur-[80px] rounded-full"></div>
-		</div>
-
-		<div
-			class="col-span-1 md:col-span-1 lg:col-span-2 row-span-2 bento-card p-6 flex flex-col gap-6"
-		>
-			<div
-				class="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-jade-600 dark:text-jade-400"
-			>
-				<span class="relative flex h-2 w-2">
-					<span
-						class="animate-ping absolute inline-flex h-full w-full rounded-full bg-jade-400 opacity-75"
-					></span>
-					<span class="relative inline-flex rounded-full h-2 w-2 bg-jade-500"></span>
-				</span>
-				{nowTitle}
-			</div>
-
-			<div class="space-y-4">
-				{#each nowItems as item (item.id)}
-					{@const ItemIcon = resolveIcon(item.icon, Code2)}
-					<div class="flex items-start gap-3">
-						<ItemIcon size={16} class="mt-0.5 text-ink-400" />
+<section class="mt-16 md:mt-24" aria-labelledby="inspiration-title">
+	<h2 id="inspiration-title" class="section-heading">
+		{config?.sectionTitle || '灵感与实验场'}
+	</h2>
+	{#if quote?.text || items.length || work}
+		<div class="inspiration-layout" class:has-work={!!work && (!!quote?.text || items.length > 0)}>
+			{#if quote?.text || items.length}
+				<div class="space-y-10 min-w-0">
+					{#if quote?.text}
 						<div>
-							<div class="text-[10px] font-mono text-ink-400 uppercase">{item.label}</div>
-							<div class="text-sm font-medium">{item.value}</div>
+							<h3 class="text-sm font-medium text-jade-700 dark:text-jade-300 mb-4">灵感一则</h3>
+							<blockquote class="m-0">
+								<p
+									class="font-serif text-xl leading-loose text-ink-900 dark:text-ink-100 break-words"
+								>
+									{quote.text}
+								</p>
+								{#if quote.author}
+									<footer class="mt-3 text-sm text-ink-600 dark:text-ink-300">
+										{quote.author}
+									</footer>
+								{/if}
+							</blockquote>
+							{#if quote.href}
+								<a class="content-link mt-4 inline-flex items-center gap-1" href={href(quote.href)}>
+									相关手记 <ArrowUpRight size={14} />
+								</a>
+							{/if}
 						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
-
-		<div
-			class="col-span-1 md:col-span-1 lg:col-span-1 row-span-1 bento-card flex items-center justify-center group"
-		>
-			{#if energyIcon}
-				{@const EnergyIcon = energyIcon}
-				<div class="text-center">
-					<EnergyIcon
-						size={24}
-						class="mx-auto mb-2 text-amber-400 transition-transform group-hover:scale-125 duration-500"
-					/>
-					<div class="text-xs font-mono">{energyLabel}</div>
+					{/if}
+					{#if items.length}
+						<div>
+							<div class="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+								<h3 class="text-sm font-medium text-jade-700 dark:text-jade-300">最近在做</h3>
+								{#if updatedAt}
+									<time datetime={updatedAt} class="text-xs text-ink-600 dark:text-ink-300"
+										>{updatedAt} 更新</time
+									>
+								{/if}
+							</div>
+							<dl class="space-y-4">
+								{#each items as item, index (`${item.id}-${index}`)}
+									<div class="grid grid-cols-[5rem_minmax(0,1fr)] gap-4 text-sm leading-relaxed">
+										<dt class="text-ink-600 dark:text-ink-300 break-words">{item.label}</dt>
+										<dd class="text-ink-900 dark:text-ink-100 break-words">{item.value}</dd>
+									</div>
+								{/each}
+							</dl>
+						</div>
+					{/if}
 				</div>
 			{/if}
+			{#if work}
+				<article class="min-w-0">
+					<h3 class="text-sm font-medium text-jade-700 dark:text-jade-300 mb-4">小作品 / 实验</h3>
+					<a class="work-link block" href={href(work.href)}>
+						<img
+							src={href(work.image)}
+							alt={work.title}
+							loading="lazy"
+							class="aspect-[16/10] w-full object-cover rounded-sm"
+						/>
+						<div class="flex items-start justify-between gap-4 mt-4">
+							<h4 class="font-serif text-lg text-ink-900 dark:text-ink-100 break-words">
+								{work.title}
+							</h4>
+							<ArrowUpRight size={18} class="shrink-0 text-jade-700 dark:text-jade-300" />
+						</div>
+						<p class="mt-2 text-sm leading-relaxed text-ink-700 dark:text-ink-200 break-words">
+							{work.description}
+						</p>
+					</a>
+				</article>
+			{/if}
 		</div>
-
-		{#each statItems as stat (stat.id)}
-			{@const StatIcon = resolveIcon(stat.icon, Library)}
-			<div
-				class="col-span-1 md:col-span-1 lg:col-span-1 row-span-1 bento-card p-4 flex flex-col justify-between hover:border-jade-200 dark:hover:border-jade-900/50 transition-colors"
-			>
-				<StatIcon size={18} class="text-ink-400" />
-				<div>
-					<div
-						class="text-2xl font-serif {isStatMissing(stat, wordStats, githubStats)
-							? 'text-cinnabar-500 dark:text-cinnabar-400'
-							: stat.colorClass || 'text-jade-500'}"
-					>
-						{resolveDynamicStatValue(stat, wordStats, githubStats)}
-					</div>
-					<div class="text-[10px] font-mono uppercase tracking-tighter text-ink-400">
-						{stat.label}
-					</div>
-				</div>
-			</div>
-		{/each}
-
-		<div
-			class="col-span-1 md:col-span-2 lg:col-span-3 row-span-1 bento-card px-6 flex items-center justify-between overflow-hidden relative"
-		>
-			<div class="flex flex-col">
-				<div class="text-[10px] font-mono text-ink-400 uppercase mb-1">{techTitle}</div>
-				<div class="flex gap-4">
-					{#each techItems as item (`stack-${item}`)}
-						<span class="text-sm font-medium hover:text-jade-500 cursor-default transition-colors">
-							{item}
-						</span>
-					{/each}
-				</div>
-			</div>
-			<div class="flex gap-2">
-				{#each techIcons as Icon, idx (`icon-${idx}`)}
-					<div
-						class="w-8 h-8 rounded-full bg-ink-100 dark:bg-ink-800 flex items-center justify-center transition-colors hover:bg-jade-100 dark:hover:bg-jade-900/30"
-					>
-						<Icon size={14} />
-					</div>
-				{/each}
-			</div>
-		</div>
-	</StaggerList>
+	{:else}
+		<p class="py-6 text-sm text-ink-700 dark:text-ink-200">最近的灵感与近况还未记录。</p>
+	{/if}
 </section>
 
 <style lang="postcss">
 	@reference "$routes/layout.css";
-
-	.bento-card {
-		@apply relative z-0 rounded-default border border-ink-200/80 bg-ink-50 transition-all duration-500 hover:shadow-glass dark:border-ink-800 dark:bg-ink-900/50 dark:hover:shadow-glass-dark;
+	.section-heading {
+		@apply mb-8 flex items-center gap-3 border-b border-ink-300/50 pb-4 font-serif text-xl font-medium text-ink-900 dark:border-ink-600/50 dark:text-ink-100;
 	}
-
-	.bento-card::after {
+	.section-heading::before {
 		content: '';
-		@apply pointer-events-none absolute inset-0 -z-10 rounded-default opacity-20;
-		background-image: var(--texture-noise);
-		mix-blend-mode: soft-light;
+		@apply h-px w-8 bg-jade-500/60;
 	}
-
-	:root[class~='dark'] .bento-card::after {
-		@apply opacity-10;
-		filter: invert(1);
+	.inspiration-layout {
+		display: grid;
+		gap: 2.5rem;
 	}
-
-	.bento-card:hover {
-		@apply -translate-y-1 border-ink-200 dark:border-ink-700;
+	.content-link {
+		@apply text-sm text-jade-700 dark:text-jade-300;
+	}
+	a:hover {
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	a:focus-visible {
+		outline: 2px solid var(--color-jade-500);
+		outline-offset: 5px;
+	}
+	@media (min-width: 768px) {
+		.has-work {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			gap: 3.5rem;
+		}
 	}
 </style>

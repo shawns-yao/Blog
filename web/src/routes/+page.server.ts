@@ -1,4 +1,4 @@
-import { getHomeActivityPulse, getHomeInspirationStats } from '$lib/features/home/api';
+import { getHomeActivityPulse } from '$lib/features/home/api';
 import { resolveHomeThemeConfig } from '$lib/features/home/theme';
 import { getRecentMoments } from '$lib/features/moment/api';
 import { trackISRDeps } from '$lib/server/isr-deps';
@@ -8,31 +8,21 @@ export const load: PageServerLoad = async (event) => {
 	const { fetch } = event;
 	const parentData = await event.parent();
 	const homeTheme = resolveHomeThemeConfig(parentData.websiteInfo);
-	const configuredRangeDays = homeTheme.activityPulse?.rangeDays;
-	const activityDays =
-		configuredRangeDays === 'all'
-			? 'all'
-			: configuredRangeDays && configuredRangeDays > 0
-				? configuredRangeDays
-				: 365;
+	trackISRDeps(event, 'home:recent-moments', 'home:activity-pulse', 'home:inspiration-stats');
 
-	trackISRDeps(
-		event,
-		'home:recent-moments',
-		'home:activity-pulse',
-		'home:inspiration-stats'
-	);
-
-	const [recentMoments, activityPulse, inspirationStats] = await Promise.all([
+	const [recentResult, activityResult] = await Promise.allSettled([
 		getRecentMoments(fetch),
-		getHomeActivityPulse(fetch, { days: activityDays }),
-		getHomeInspirationStats(fetch, { githubUsername: homeTheme.inspiration?.github?.username })
+		getHomeActivityPulse(fetch, { days: 365 })
 	]);
 
 	return {
-		recentMoments,
-		activityPulse,
-		inspirationStats,
+		recentMoments:
+			recentResult.status === 'fulfilled'
+				? recentResult.value
+				: { items: [], total: 0, page: 1, size: 3 },
+		recentMomentsFailed: recentResult.status === 'rejected',
+		activityPulse: activityResult.status === 'fulfilled' ? activityResult.value : null,
+		activityPulseFailed: activityResult.status === 'rejected',
 		homeTheme
 	};
 };

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import SocialItem from '$lib/features/home/SocialItem.svelte';
 	import { FadeIn } from '$lib/ui/animation';
-	import { ArrowDown } from 'lucide-svelte';
 	import { brand } from '$lib/shared/brand/brand';
 	import type { HomeHeroSocialLink, HomeHeroTemplateNode, HomeHeroThemeConfig } from './types';
 
@@ -142,7 +141,7 @@
 						{/if}
 					{/each}
 				</div>
-				<p class="text-[11px] font-mono text-ink-500 leading-relaxed mt-4">
+				<p class="hero-subtitle text-[11px] font-mono text-ink-500 leading-relaxed mt-4">
 					{description}
 				</p>
 			</div>
@@ -159,10 +158,6 @@
 			</div>
 		</FadeIn>
 	</div>
-
-	<div class="hero-scroll-hint hidden md:flex" aria-hidden="true">
-		<ArrowDown size={20} />
-	</div>
 </div>
 
 <style lang="postcss">
@@ -170,21 +165,39 @@
 
 	.hero-container {
 		@apply relative;
+		--hero-text-color: #fffaf0;
+		--hero-text-shadow:
+			-1px 0 1px rgb(15 20 17 / 0.9), 1px 0 1px rgb(15 20 17 / 0.9), 0 -1px 1px rgb(15 20 17 / 0.9),
+			0 1px 1px rgb(15 20 17 / 0.9), 0 2px 5px rgb(15 20 17 / 0.65);
 	}
 
-	.hero-scroll-hint {
-		@apply absolute right-10 bottom-8 flex h-12 w-12 items-center justify-center text-ink-400 opacity-40;
-		animation: hero-scroll-bounce 1.6s ease-in-out infinite;
+	.hero-container :global(.hero-title-desktop > :is(h1, span, code)),
+	.hero-container :global(.hero-title-mobile > :is(h1, span, code)),
+	.hero-subtitle,
+	.hero-motto,
+	.hero-container :global(.social-item-container a) {
+		color: var(--hero-text-color);
+		text-shadow: var(--hero-text-shadow);
 	}
 
-	@keyframes hero-scroll-bounce {
-		0%,
-		100% {
-			transform: translateY(0);
-		}
-		50% {
-			transform: translateY(8px);
-		}
+	.hero-subtitle {
+		font-weight: 500;
+	}
+
+	.hero-container :global(.social-item-container svg) {
+		filter: drop-shadow(0 1px 1px rgb(15 20 17 / 0.95)) drop-shadow(0 -1px 1px rgb(15 20 17 / 0.8));
+	}
+
+	.hero-container :global(.social-item-container a:hover),
+	.hero-container :global(.social-item-container a:focus-visible) {
+		color: #b9f1df;
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+
+	.hero-container :global(.social-item-container a:focus-visible) {
+		outline: 2px solid var(--hero-text-color);
+		outline-offset: 5px;
 	}
 
 	@keyframes hero-blink {

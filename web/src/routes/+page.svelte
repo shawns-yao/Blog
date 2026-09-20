@@ -5,6 +5,7 @@
 	import ActivityPulse from '$lib/features/home/ActivityPulse.svelte';
 	import HomeMomentItem from '$lib/features/moment/components/HomeMomentItem.svelte';
 	import { SlideIn, StaggerList } from '$lib/ui/animation';
+	import { scrollFade } from '$lib/shared/actions/scroll-fade';
 	import { ArrowRight } from 'lucide-svelte';
 	import type { PageData } from './$types';
 
@@ -12,7 +13,7 @@
 </script>
 
 <div class="homepage-container">
-	<div class="home-visual">
+	<div class="home-visual" use:scrollFade={{ distance: 420 }}>
 		<div class="home-hero">
 			<Hero config={data.homeTheme?.hero} />
 		</div>
@@ -44,13 +45,24 @@
 					<HomeMomentItem {moment} />
 				{/each}
 			</StaggerList>
+			{#if data.recentMomentsFailed}
+				<p role="status" class="py-6 text-sm text-ink-700 dark:text-ink-200">
+					手记暂时加载失败，请稍后重试。
+				</p>
+			{:else if data.recentMoments.items.length === 0}
+				<p class="py-6 text-sm text-ink-700 dark:text-ink-200">还没有公开的手记。</p>
+			{/if}
 		</section>
 
 		<!-- New Inspiration Grid -->
-		<InspirationGrid config={data.homeTheme?.inspiration} stats={data.inspirationStats} />
+		<InspirationGrid config={data.homeTheme?.inspiration} />
 
 		<!-- New Activity Pulse -->
-		<ActivityPulse pulse={data.activityPulse} config={data.homeTheme?.activityPulse} />
+		<ActivityPulse
+			pulse={data.activityPulse}
+			failed={data.activityPulseFailed}
+			config={data.homeTheme?.activityPulse}
+		/>
 	</div>
 </div>
 
@@ -59,22 +71,37 @@
 
 	.homepage-container {
 		position: relative;
-		background: #f4eee3;
+		isolation: isolate;
+		background: transparent;
+	}
+
+	.homepage-container::before,
+	.homepage-container::after {
+		content: '';
+		position: fixed;
+		inset: 0;
+		pointer-events: none;
+	}
+
+	.homepage-container::before {
+		z-index: -2;
+		background: url('/bg.png') center top / cover no-repeat;
+	}
+
+	:global(.dark) .homepage-container::before {
+		background-image: url('/bg-night.png');
+	}
+
+	.homepage-container::after {
+		z-index: -1;
+		background: linear-gradient(180deg, rgb(65 44 28 / 0.03) 0%, rgb(65 44 28 / 0.14) 100%);
 	}
 
 	.home-visual {
+		--scroll-fade-progress: 0;
 		position: relative;
 		min-height: 100svh;
-		background:
-			linear-gradient(
-				90deg,
-				rgb(247 240 228 / 0.8) 0%,
-				rgb(247 240 228 / 0.56) 30%,
-				transparent 66%
-			),
-			linear-gradient(0deg, rgb(38 27 18 / 0.2), transparent 35%),
-			url('/bg.png') center / cover no-repeat;
-		box-shadow: inset 0 -34px 48px rgb(45 30 19 / 0.15);
+		background: transparent;
 	}
 
 	.home-hero {
@@ -83,38 +110,57 @@
 		width: min(1200px, 100%);
 		margin: 0 auto;
 		padding: 0 1.5rem;
+		opacity: calc(1 - var(--scroll-fade-progress));
+		transform: translateY(calc(var(--scroll-fade-progress) * -1.5rem));
+		transition:
+			opacity 120ms linear,
+			transform 120ms linear;
 	}
 
 	.home-content {
 		position: relative;
-		background: rgb(255 252 246 / 0.94);
-		box-shadow: 0 -18px 48px rgb(61 42 26 / 0.13);
+		isolation: isolate;
 	}
 
-	:global(.dark) .homepage-container {
-		background: #211d19;
+	.home-content::before {
+		content: '';
+		position: absolute;
+		inset: 0 calc(50% - 50vw);
+		z-index: -1;
+		pointer-events: none;
+		background: rgb(255 255 255 / 0.42);
+		-webkit-backdrop-filter: blur(8px);
+		backdrop-filter: blur(8px);
+		mask-image: linear-gradient(
+			to bottom,
+			transparent,
+			black 32px,
+			black calc(100% - 32px),
+			transparent
+		);
 	}
 
-	:global(.dark) .home-visual {
+	:global(.dark) .home-content::before {
+		background: rgb(20 23 22 / 0.42);
+	}
+
+	:global(.dark) .homepage-container::after {
 		background:
-			linear-gradient(90deg, rgb(29 25 21 / 0.82) 0%, rgb(29 25 21 / 0.54) 30%, transparent 68%),
-			linear-gradient(0deg, rgb(17 13 10 / 0.36), transparent 38%),
-			url('/bg.png') center / cover no-repeat;
-	}
-
-	:global(.dark) .home-content {
-		background: rgb(31 27 23 / 0.95);
+			linear-gradient(90deg, rgb(29 25 21 / 0.44) 0%, rgb(29 25 21 / 0.2) 36%, transparent 72%),
+			linear-gradient(180deg, transparent 0%, rgb(17 13 10 / 0.14) 72%, rgb(17 13 10 / 0.38) 100%);
 	}
 
 	@media (max-width: 767px) {
+		.homepage-container::before {
+			background-position: 57% center;
+		}
+
 		.home-visual {
 			min-height: calc(100svh - 5rem);
-			background-position: 57% center;
 		}
 
 		.home-hero {
 			padding: 0 1rem;
-			background: linear-gradient(180deg, rgb(248 242 231 / 0.34), rgb(248 242 231 / 0.62));
 		}
 	}
 </style>
