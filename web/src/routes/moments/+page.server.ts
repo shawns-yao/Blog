@@ -8,17 +8,22 @@ const DEFAULT_PAGE_SIZE = 20;
 
 export const load: PageServerLoad = async (event) => {
 	const { fetch, url } = event;
+	const search = url.searchParams.get('q')?.trim() ?? '';
 	const rawPage = Number(url.searchParams.get('page') ?? '1');
 	const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
 	if (page > 1) {
-		throw redirect(308, `/moments/page/${page}`);
+		throw redirect(
+			308,
+			`/moments/page/${page}/${search ? `?${new URLSearchParams({ q: search })}` : ''}`
+		);
 	}
 	if (page <= TRACKED_MOMENT_LIST_PAGES) {
 		trackISRDeps(event, `moment:list:page:${page}`);
 	}
 
-	const data = await getMomentList(fetch, { page, pageSize: DEFAULT_PAGE_SIZE });
+	const data = await getMomentList(fetch, { page, pageSize: DEFAULT_PAGE_SIZE, search });
 	return {
-		moments: data
+		moments: data,
+		search
 	};
 };

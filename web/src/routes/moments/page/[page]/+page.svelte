@@ -5,4 +5,8 @@
 	let { data } = $props<{ data: PageData }>();
 </script>
 
-<MomentListPage moments={data.moments} staggerKey={`moments-${data.moments.page}`} />
+<MomentListPage
+	moments={data.moments}
+	search={data.search}
+	staggerKey={`moments-${data.moments.page}`}
+/>
