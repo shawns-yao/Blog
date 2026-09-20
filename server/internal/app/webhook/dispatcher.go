@@ -3,8 +3,8 @@ package webhook
 import (
 	"context"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	domainwebhook "github.com/shawns-yao/grtblog-v2/server/internal/domain/webhook"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	domainwebhook "github.com/shawns-yao/shawn-blog/server/internal/domain/webhook"
 )
 
 type dispatchTask struct {

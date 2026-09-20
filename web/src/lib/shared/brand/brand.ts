@@ -1,5 +1,5 @@
 export const brand = {
-	name: 'grtblog',
+	name: 'shawn-blog',
 	author: 'shawn',
 	version: typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '0.0.0',
 	commit: typeof __BUILD_COMMIT__ === 'string' ? __BUILD_COMMIT__ : 'dev',

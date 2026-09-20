@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
 )
 
 // InMemoryBus is a synchronous event bus for in-process handlers.

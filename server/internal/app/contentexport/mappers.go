@@ -13,12 +13,12 @@ import (
 
 	"github.com/jinzhu/copier"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/moment"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/comment"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
 )
 
 // Mapper 持有复刻映射器所需的全部公开依赖。

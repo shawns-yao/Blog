@@ -4,7 +4,7 @@ datasources:
     uid: telemetry-pg
     type: postgres
     url: postgres:5432
-    database: grtblog_telemetry
+    database: shawn-blog_telemetry
     user: postgres
     secureJsonData:
       password: $POSTGRES_PASSWORD

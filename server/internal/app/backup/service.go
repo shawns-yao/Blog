@@ -21,11 +21,11 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	mediaapp "github.com/shawns-yao/grtblog-v2/server/internal/app/media"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	backupdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/backup"
+	mediaapp "github.com/shawns-yao/shawn-blog/server/internal/app/media"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/buildinfo"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	backupdomain "github.com/shawns-yao/shawn-blog/server/internal/domain/backup"
 )
 
 type Service struct {
@@ -83,7 +83,7 @@ func (s *Service) createLocked(ctx context.Context, triggerType string) (*backup
 	now := time.Now().UTC()
 	id := uuid.NewString()
 	item := &backupdomain.Record{
-		ID: id, Filename: fmt.Sprintf("grtblog-backup-%s-%s.tar.gz", now.Format("20060102T150405Z"), id[:8]),
+		ID: id, Filename: fmt.Sprintf("shawn-blog-backup-%s-%s.tar.gz", now.Format("20060102T150405Z"), id[:8]),
 		Status: backupdomain.StatusQueued, Stage: "queued", TriggerType: triggerType, CreatedAt: now,
 	}
 	if err := s.repo.Create(ctx, item); err != nil {
@@ -371,7 +371,7 @@ func (s *Service) ImportAndRequestRestore(ctx context.Context, reader io.Reader,
 	}
 	id := uuid.NewString()
 	now := time.Now().UTC()
-	filename := fmt.Sprintf("grtblog-import-%s-%s.tar.gz", now.Format("20060102T150405Z"), id[:8])
+	filename := fmt.Sprintf("shawn-blog-import-%s-%s.tar.gz", now.Format("20060102T150405Z"), id[:8])
 	tempPath := filepath.Join(s.cfg.RootDir, ".work", id+".upload")
 	file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {

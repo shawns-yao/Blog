@@ -6,10 +6,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/friendtimeline"
-	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/friendtimeline"
+	domainfed "github.com/shawns-yao/shawn-blog/server/internal/domain/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type FriendTimelineHandler struct {

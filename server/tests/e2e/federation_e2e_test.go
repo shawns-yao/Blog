@@ -24,14 +24,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	"github.com/shawns-yao/grtblog-v2/server/internal/database"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
-	"github.com/shawns-yao/grtblog-v2/server/internal/security/jwt"
-	appserver "github.com/shawns-yao/grtblog-v2/server/internal/server"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/database"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/security/jwt"
+	appserver "github.com/shawns-yao/shawn-blog/server/internal/server"
 )
 
 const (
@@ -154,7 +154,7 @@ func newTestSite(t *testing.T, name, baseURL, dsn string, federationClient *http
 	t.Helper()
 	cfg := config.Config{
 		App: config.AppConfig{
-			Name:                "grtblog-e2e-" + strings.ToLower(name),
+			Name:                "shawn-blog-e2e-" + strings.ToLower(name),
 			Env:                 "test",
 			Port:                "0",
 			HTMLSnapshotBaseURL: "http://127.0.0.1:9",

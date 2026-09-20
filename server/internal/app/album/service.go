@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/contentutil"
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	domainalbum "github.com/shawns-yao/grtblog-v2/server/internal/domain/album"
-	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/contentutil"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	domainalbum "github.com/shawns-yao/shawn-blog/server/internal/domain/album"
+	domaincomment "github.com/shawns-yao/shawn-blog/server/internal/domain/comment"
 )
 
 type Service struct {

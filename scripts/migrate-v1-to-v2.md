@@ -1,4 +1,4 @@
-# grtblog v1 -> v2 API Migration
+# shawn-blog v1 -> v2 API Migration
 
 This migration script is at `scripts/migrate-v1-to-v2.mjs`.
 

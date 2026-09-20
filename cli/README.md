@@ -1,11 +1,11 @@
-# grtblog CLI
+# shawn-blog CLI
 
-grtblog 博客系统的命令行管理工具。使用**管理员令牌（admin token，`gt_` 开头）**连接站点，在终端里管理文章、手记、思考、评论、媒体文件与设置项。
+shawn-blog 博客系统的命令行管理工具。使用**管理员令牌（admin token，`gt_` 开头）**连接站点，在终端里管理文章、手记、思考、评论、媒体文件与设置项。
 
 适合这些场景：
 
 - 用本地编辑器写 Markdown，保存即发布
-- `grtblog thinking "一句话"` 快速发思考
+- `shawn-blog thinking "一句话"` 快速发思考
 - 上传图片后直接拿到 Markdown 链接
 - 在终端里处理待审评论、批量发布/置顶/删除
 - 脚本化/CI 中调用（`--json` 输出）
@@ -18,17 +18,17 @@ grtblog 博客系统的命令行管理工具。使用**管理员令牌（admin t
 
 ```bash
 # 从源码安装（版本随项目 tag，例如 v2.2.0）
-go install github.com/shawns-yao/grtblog-v2/cli/v2/cmd/grtblog@v2.2.0
+go install github.com/shawns-yao/shawn-blog/cli/v2/cmd/shawn-blog@v2.2.0
 
 # 或安装最新版本
-go install github.com/shawns-yao/grtblog-v2/cli/v2/cmd/grtblog@latest
+go install github.com/shawns-yao/shawn-blog/cli/v2/cmd/shawn-blog@latest
 
 # 或在 cli/ 目录本地构建
-make build          # 生成 ./grtblog，版本取项目最新 tag
+make build          # 生成 ./shawn-blog，版本取项目最新 tag
 make install        # 安装到 $GOBIN
 ```
 
-> CLI 的版本与项目版本保持一致（`grtblog version` 会显示 `v2.2.0`）。
+> CLI 的版本与项目版本保持一致（`shawn-blog version` 会显示 `v2.2.0`）。
 > 项目发版时会同时打 `vX.Y.Z` 和 `cli/vX.Y.Z` 两个 tag，后者供 `go install` 使用。
 
 ## 快速开始
@@ -37,15 +37,15 @@ make install        # 安装到 $GOBIN
 2. 登录：
 
 ```bash
-grtblog auth login --server https://your.blog --token gt_xxx
+shawn-blog auth login --server https://your.blog --token gt_xxx
 ```
 
 3. 开始使用：
 
 ```bash
-grtblog article ls
-grtblog thinking "今天天气不错"
-grtblog upload ./cover.png --markdown
+shawn-blog article ls
+shawn-blog thinking "今天天气不错"
+shawn-blog upload ./cover.png --markdown
 ```
 
 ## 认证
@@ -53,9 +53,9 @@ grtblog upload ./cover.png --markdown
 CLI 直接使用管理员令牌作为 `Authorization` 头（`gt_xxx` 原样发送），无需用户名密码，也不经过人机校验。
 
 ```bash
-grtblog auth login   # 交互式输入 server 和 token，并校验令牌有效性
-grtblog auth status  # 查看当前站点、用户与令牌状态
-grtblog auth logout  # 删除本地凭据（不会吊销服务端令牌）
+shawn-blog auth login   # 交互式输入 server 和 token，并校验令牌有效性
+shawn-blog auth status  # 查看当前站点、用户与令牌状态
+shawn-blog auth logout  # 删除本地凭据（不会吊销服务端令牌）
 ```
 
 ### 多站点（profile）
@@ -63,27 +63,27 @@ grtblog auth logout  # 删除本地凭据（不会吊销服务端令牌）
 默认写入 `default` profile，可用 `--as` 指定其他名称：
 
 ```bash
-grtblog auth login --server http://127.0.0.1:8080 --token gt_dev --as dev
-grtblog article ls --profile dev        # 使用 dev 站点
-grtblog --profile dev status
+shawn-blog auth login --server http://127.0.0.1:8080 --token gt_dev --as dev
+shawn-blog article ls --profile dev        # 使用 dev 站点
+shawn-blog --profile dev status
 ```
 
 ### 环境变量
 
 | 变量 | 说明 |
 |------|------|
-| `GRTBLOG_SERVER` | 服务器地址 |
-| `GRTBLOG_TOKEN` | 管理员令牌 |
-| `GRTBLOG_PROFILE` | 使用的 profile |
-| `GRTBLOG_CONFIG` | 配置文件路径 |
-| `GRTBLOG_EDITOR` | 编辑器（其次 `VISUAL` / `EDITOR` / `vi`） |
+| `SHAWN_BLOG_SERVER` | 服务器地址 |
+| `SHAWN_BLOG_TOKEN` | 管理员令牌 |
+| `SHAWN_BLOG_PROFILE` | 使用的 profile |
+| `SHAWN_BLOG_CONFIG` | 配置文件路径 |
+| `SHAWN_BLOG_EDITOR` | 编辑器（其次 `VISUAL` / `EDITOR` / `vi`） |
 | `NO_COLOR` | 设置后禁用颜色 |
 
 优先级：命令行 flag > 环境变量 > 配置文件。
 
 ### 配置文件
 
-默认路径 `~/.config/grtblog/config.yaml`（权限 0600）：
+默认路径 `~/.config/shawn-blog/config.yaml`（权限 0600）：
 
 ```yaml
 current: default
@@ -102,7 +102,7 @@ profiles:
 auth        login / logout / status
 article     文章：ls / view / new / edit / rm / publish / unpublish / top / untop
 moment      手记：ls / view / new / edit / rm / publish / unpublish / top / untop
-thinking    思考：ls / new / edit / rm（也可直接 grtblog thinking "内容"）
+thinking    思考：ls / new / edit / rm（也可直接 shawn-blog thinking "内容"）
 upload      上传文件，输出 URL 或 Markdown 链接
 file        媒体库：ls / rename / rm / download / sync
 comment     评论：ls / reply / approve / reject / block / rm / viewed
@@ -115,7 +115,7 @@ version     版本信息
 completion  生成 shell 补全脚本
 ```
 
-查看任意命令帮助：`grtblog <命令> --help`。
+查看任意命令帮助：`shawn-blog <命令> --help`。
 
 ## 编辑器工作流
 
@@ -143,43 +143,43 @@ allowComment: true
 也可以完全跳过编辑器：
 
 ```bash
-grtblog article new -f post.md        # 从文件创建（可含 front-matter）
-grtblog article new -f - < post.md    # 从标准输入创建
-grtblog article new --publish         # 撰写后直接发布
-grtblog article edit 42               # 编辑已有文章
+shawn-blog article new -f post.md        # 从文件创建（可含 front-matter）
+shawn-blog article new -f - < post.md    # 从标准输入创建
+shawn-blog article new --publish         # 撰写后直接发布
+shawn-blog article edit 42               # 编辑已有文章
 ```
 
 ## 常用示例
 
 ```bash
 # 文章
-grtblog article ls --search Go --published
-grtblog article view 42
-grtblog article publish 42 43
-grtblog article top 42
-grtblog article rm 43 -y
+shawn-blog article ls --search Go --published
+shawn-blog article view 42
+shawn-blog article publish 42 43
+shawn-blog article top 42
+shawn-blog article rm 43 -y
 
 # 思考（最快路径）
-grtblog thinking "刚看到一个很有意思的观点……"
-echo "多行内容" | grtblog thinking
+shawn-blog thinking "刚看到一个很有意思的观点……"
+echo "多行内容" | shawn-blog thinking
 
 # 媒体
-grtblog upload cover.png a.png --markdown
-grtblog file ls
-grtblog file sync
+shawn-blog upload cover.png a.png --markdown
+shawn-blog file ls
+shawn-blog file sync
 
 # 评论审核
-grtblog comment ls --status pending
-grtblog comment approve c_xxx
-grtblog comment reply c_xxx "谢谢支持！"
+shawn-blog comment ls --status pending
+shawn-blog comment approve c_xxx
+shawn-blog comment reply c_xxx "谢谢支持！"
 
 # 设置项
-grtblog config ls --group site
-grtblog config get site.title
-grtblog config set site.title "我的博客"
+shawn-blog config ls --group site
+shawn-blog config get site.title
+shawn-blog config set site.title "我的博客"
 
 # 运维
-grtblog status
+shawn-blog status
 ```
 
 ## 输出与脚本
@@ -190,7 +190,7 @@ grtblog status
 - 出错时退出码为 `1`，认证失败会提示重新 `auth login`
 
 ```bash
-grtblog article ls --json | jq '.items[] | {id, title}'
+shawn-blog article ls --json | jq '.items[] | {id, title}'
 ```
 
 ## 开发
@@ -199,7 +199,7 @@ grtblog article ls --json | jq '.items[] | {id, title}'
 cd cli
 make test      # go test ./...
 make vet       # go vet ./...
-make build     # 构建到 ./grtblog
+make build     # 构建到 ./shawn-blog
 make fmt       # gofmt
 ```
 
@@ -207,7 +207,7 @@ make fmt       # gofmt
 
 ```
 cli/
-├── cmd/grtblog/         # 入口
+├── cmd/shawn-blog/         # 入口
 └── internal/
     ├── client/          # API 客户端（envelope、鉴权、上传下载）
     ├── commands/        # 各子命令

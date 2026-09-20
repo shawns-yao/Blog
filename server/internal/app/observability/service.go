@@ -15,11 +15,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/htmlsnapshot"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/isr"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/metrics"
-	"github.com/shawns-yao/grtblog-v2/server/internal/ws"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/htmlsnapshot"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/isr"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/metrics"
+	"github.com/shawns-yao/shawn-blog/server/internal/ws"
 )
 
 type Service struct {

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# GrtBlog v2 — One-Click Deployment Script
-# https://github.com/shawns-yao/grtblog-v2
+# shawn-blog v2 — One-Click Deployment Script
+# https://github.com/shawns-yao/shawn-blog
 #
 # Usage:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main/deploy/install.sh)
+#   bash <(curl -fsSL https://raw.githubusercontent.com/shawns-yao/shawn-blog/main/deploy/install.sh)
 #   # China:
-#   bash <(curl -fsSL https://cnb.cool/shawns-yao/grtblog-v2/-/git/raw/main/deploy/install.sh)
+#   bash <(curl -fsSL https://cnb.cool/shawns-yao/shawn-blog/-/git/raw/main/deploy/install.sh)
 #
 # Non-interactive:
-#   GRTBLOG_NONINTERACTIVE=1 APP_VERSION=2.0.2 \
-#     IMAGE_REPO_PREFIX=docker.cnb.cool/shawns-yao/grtblog-v2/ \
+#   SHAWN_BLOG_NONINTERACTIVE=1 APP_VERSION=2.0.2 \
+#     IMAGE_REPO_PREFIX=docker.cnb.cool/shawns-yao/shawn-blog/ \
 #     bash <(curl -fsSL ...)
 set -euo pipefail
-trap 'printf "\n  \033[1;31m✗\033[0m Script failed at line %d (exit code %d).\n    Please report this issue: https://github.com/shawns-yao/grtblog-v2/issues\n" "$LINENO" "$?" >&2' ERR
+trap 'printf "\n  \033[1;31m✗\033[0m Script failed at line %d (exit code %d).\n    Please report this issue: https://github.com/shawns-yao/shawn-blog/issues\n" "$LINENO" "$?" >&2' ERR
 
 # ---------------------------------------------------------------------------
 # Output helpers (matches scripts/release.sh conventions)
@@ -55,7 +55,7 @@ prompt_value() {
 # ---------------------------------------------------------------------------
 # Utilities
 # ---------------------------------------------------------------------------
-NONINTERACTIVE="${GRTBLOG_NONINTERACTIVE:-0}"
+NONINTERACTIVE="${SHAWN_BLOG_NONINTERACTIVE:-0}"
 
 ask() {
   # ask "prompt" default_value variable_name
@@ -158,8 +158,8 @@ parse_multi_selection() {
   ((${#SELECTED_INDICES[@]} > 0))
 }
 
-cleanup_old_grtblog_images() {
-  # cleanup_old_grtblog_images health_status
+cleanup_old_shawn_blog_images() {
+  # cleanup_old_shawn_blog_images health_status
   # Lists local server/renderer images that are not used by the current
   # Compose services, then lets an interactive user remove selected tags.
   local health_status="$1" row repository tag short_id created_since size ref full_id is_current
@@ -177,7 +177,7 @@ cleanup_old_grtblog_images() {
 
   while IFS= read -r row; do
     IFS=$'\t' read -r repository tag short_id created_since size <<<"$row"
-    [[ "$repository" =~ (^|/)grtblog-(server|renderer)$ ]] || continue
+    [[ "$repository" =~ (^|/)shawn-blog-(server|renderer)$ ]] || continue
     [[ -n "$tag" && "$tag" != "<none>" ]] || continue
 
     ref="${repository}:${tag}"
@@ -328,7 +328,7 @@ read_env_value() {
 # ---------------------------------------------------------------------------
 # i18n — Chinese / English bilingual support
 # ---------------------------------------------------------------------------
-LANG_CODE="${GRTBLOG_LANG:-}"
+LANG_CODE="${SHAWN_BLOG_LANG:-}"
 
 __() {
   # __ KEY — prints the localized string for KEY
@@ -435,8 +435,8 @@ MSG_en_DOCS="Documentation"
 MSG_en_DONE="Done!"
 MSG_en_WAITING="waiting"
 MSG_en_OLD_IMAGES_TITLE="Historical Image Cleanup"
-MSG_en_OLD_IMAGES_SCANNING="Scanning historical grtblog-server and grtblog-renderer images..."
-MSG_en_OLD_IMAGES_NONE="No removable historical GrtBlog images found"
+MSG_en_OLD_IMAGES_SCANNING="Scanning historical shawn-blog-server and shawn-blog-renderer images..."
+MSG_en_OLD_IMAGES_NONE="No removable historical shawn-blog images found"
 MSG_en_OLD_IMAGES_FOUND="Historical images found"
 MSG_en_OLD_IMAGES_UNHEALTHY_SKIP="Health check did not pass; keeping historical images for rollback."
 MSG_en_OLD_IMAGES_NONINTERACTIVE_SKIP="Non-interactive mode: scan completed without deleting images."
@@ -549,8 +549,8 @@ MSG_zh_DOCS="文档"
 MSG_zh_DONE="完成！"
 MSG_zh_WAITING="等待中"
 MSG_zh_OLD_IMAGES_TITLE="历史镜像清理"
-MSG_zh_OLD_IMAGES_SCANNING="正在扫描 grtblog-server 和 grtblog-renderer 的历史镜像..."
-MSG_zh_OLD_IMAGES_NONE="未发现可清理的 GrtBlog 历史镜像"
+MSG_zh_OLD_IMAGES_SCANNING="正在扫描 shawn-blog-server 和 shawn-blog-renderer 的历史镜像..."
+MSG_zh_OLD_IMAGES_NONE="未发现可清理的 shawn-blog 历史镜像"
 MSG_zh_OLD_IMAGES_FOUND="发现历史镜像"
 MSG_zh_OLD_IMAGES_UNHEALTHY_SKIP="健康检查未通过，已保留历史镜像以便回滚。"
 MSG_zh_OLD_IMAGES_NONINTERACTIVE_SKIP="非交互模式：扫描已完成，不会自动删除镜像。"
@@ -597,15 +597,15 @@ DOCKER_MIRROR="${DOCKER_MIRROR:-}"
 NGINX_PORT="${NGINX_PORT:-80}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
 AUTH_SECRET="${AUTH_SECRET:-}"
-DEFAULT_UPDATE_CHECK_REPO="shawns-yao/grtblog-v2"
+DEFAULT_UPDATE_CHECK_REPO="shawns-yao/shawn-blog"
 
-GITHUB_RAW_BASE="https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main"
-CNB_RAW_BASE="https://cnb.cool/shawns-yao/grtblog-v2/-/git/raw/main"
+GITHUB_RAW_BASE="https://raw.githubusercontent.com/shawns-yao/shawn-blog/main"
+CNB_RAW_BASE="https://cnb.cool/shawns-yao/shawn-blog/-/git/raw/main"
 CONFIG_BASE_URL=""
 
 REPO_DOCKERHUB="shawns-yao/"
 REPO_GHCR="ghcr.io/shawns-yao/"
-REPO_CNB="docker.cnb.cool/shawns-yao/grtblog-v2/"
+REPO_CNB="docker.cnb.cool/shawns-yao/shawn-blog/"
 
 # =========================================================================
 # Step 1: Environment Check
@@ -783,7 +783,7 @@ if [[ -z "$APP_VERSION" ]]; then
 
   if [[ "$APP_UPDATE_CHANNEL" == "stable" ]]; then
     info "$(__ FETCH_STABLE)"
-    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/grtblog-v2/releases/latest" || true)"
+    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/shawn-blog/releases/latest" || true)"
     if [[ -n "$API_RESPONSE" ]]; then
       FETCHED_VERSION="$(printf '%s' "$API_RESPONSE" | grep '"tag_name"' | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' | head -n1)"
       # Strip leading 'v' if present
@@ -791,7 +791,7 @@ if [[ -z "$APP_VERSION" ]]; then
     fi
   else
     info "$(__ FETCH_PREVIEW)"
-    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/grtblog-v2/git/refs/tags" || true)"
+    API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/shawn-blog/git/refs/tags" || true)"
     if [[ -n "$API_RESPONSE" ]]; then
       # Find all tags with pre-release suffixes, pick the last one
       FETCHED_VERSION="$(printf '%s' "$API_RESPONSE" | grep '"ref"' | grep -E '(alpha|beta|rc)' | sed 's/.*refs\/tags\/v\{0,1\}\([^"]*\)".*/\1/' | tail -n1)"
@@ -800,7 +800,7 @@ if [[ -z "$APP_VERSION" ]]; then
     # If no preview found, fall back to latest stable
     if [[ -z "$FETCHED_VERSION" ]]; then
       warn "$(__ FETCH_FALLBACK)"
-      API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/grtblog-v2/releases/latest" || true)"
+      API_RESPONSE="$(http_get_stdout "https://api.github.com/repos/shawns-yao/shawn-blog/releases/latest" || true)"
       if [[ -n "$API_RESPONSE" ]]; then
         FETCHED_VERSION="$(printf '%s' "$API_RESPONSE" | grep '"tag_name"' | sed 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' | head -n1)"
         FETCHED_VERSION="${FETCHED_VERSION#v}"
@@ -912,7 +912,7 @@ if [[ "$INSTALL_MODE" == "upgrade" ]] && [[ -f "nginx/nginx.conf" ]]; then
   NGINX_BACKUP_FILE="nginx/nginx.conf.backup.$(date +%Y%m%d%H%M%S)"
   cp "nginx/nginx.conf" "$NGINX_BACKUP_FILE"
   warn "Backed up existing nginx/nginx.conf to ${NGINX_BACKUP_FILE}"
-  warn "nginx/nginx.conf is managed by grtblog. Put custom reverse-proxy rules in your outer proxy instead of editing this file."
+  warn "nginx/nginx.conf is managed by shawn-blog. Put custom reverse-proxy rules in your outer proxy instead of editing this file."
 fi
 download_with_fallback "nginx/nginx.conf" "nginx/nginx.conf" || exit 1
 
@@ -945,14 +945,8 @@ if [[ "$INSTALL_MODE" == "upgrade" ]]; then
     printf '\nAPP_UPDATE_CHANNEL=%s\n' "$APP_UPDATE_CHANNEL" >> .env
   fi
 
-  # The official release repository moved from grtblog-v2 to grtblog. Migrate
-  # the retired official value and fill a missing key, while preserving an
-  # explicitly configured custom release repository.
-  if grep -q '^APP_UPDATE_CHECK_REPO=' .env; then
-    if grep -q '^APP_UPDATE_CHECK_REPO=shawns-yao/grtblog-v2-v2[[:space:]]*$' .env; then
-      sed -i.bak "s|^APP_UPDATE_CHECK_REPO=.*|APP_UPDATE_CHECK_REPO=${DEFAULT_UPDATE_CHECK_REPO}|" .env
-    fi
-  else
+  # Preserve an explicitly configured release repository.
+  if ! grep -q '^APP_UPDATE_CHECK_REPO=' .env; then
     printf '\nAPP_UPDATE_CHECK_REPO=%s\n' "$DEFAULT_UPDATE_CHECK_REPO" >> .env
   fi
 
@@ -973,22 +967,22 @@ DOCKER_MIRROR=${DOCKER_MIRROR}
 
 NGINX_PORT=${NGINX_PORT}
 
-POSTGRES_DB=grtblog
+POSTGRES_DB=shawn-blog
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
 REDIS_PASSWORD=
-REDIS_PREFIX=grtblog:
+REDIS_PREFIX=shawn-blog:
 
 AUTH_SECRET=${AUTH_SECRET}
 
-APP_UPDATE_CHECK_ENABLED=true
+APP_UPDATE_CHECK_ENABLED=false
 APP_UPDATE_CHECK_REPO=${DEFAULT_UPDATE_CHECK_REPO}
 APP_UPDATE_CHANNEL=${APP_UPDATE_CHANNEL}
 
 # Admin panel (build-time, baked into JS bundle)
 VITE_APP_BASE=/admin/
-VITE_APP_NAME=Grtblog Admin
+VITE_APP_NAME=shawn-blog Admin
 VITE_APP_TITLE=管理后台
 VITE_WATERMARK_CONTENT=
 VITE_API_BASE_URL=/api/v2
@@ -1067,7 +1061,7 @@ fi
 # deletion after an upgrade. A failed health check still performs the scan,
 # but keeps every image automatically.
 if [[ "$INSTALL_MODE" == "upgrade" ]]; then
-  cleanup_old_grtblog_images "$HEALTHY"
+  cleanup_old_shawn_blog_images "$HEALTHY"
 fi
 
 # ---------------------------------------------------------------------------
@@ -1101,5 +1095,5 @@ printf '\n'
 info "$(__ UPGRADE_LATER)"
 info "  bash <(curl -fsSL ${CONFIG_BASE_URL}/deploy/install.sh)"
 printf '\n'
-info "$(__ DOCS): https://github.com/shawns-yao/grtblog-v2"
+info "$(__ DOCS): https://github.com/shawns-yao/shawn-blog"
 ok "$(__ DONE)"

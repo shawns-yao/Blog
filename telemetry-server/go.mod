@@ -1,4 +1,4 @@
-module github.com/shawns-yao/grtblog-v2/telemetry-server
+module github.com/shawns-yao/shawn-blog/telemetry-server
 
 go 1.25.0
 

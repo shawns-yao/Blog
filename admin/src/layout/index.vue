@@ -57,7 +57,7 @@ const releaseNotesMd = createMarkdownIt({
   },
 })
 
-const UPDATE_DIALOG_ACK_KEY = 'grtblog:update-dialog:last-seen'
+const UPDATE_DIALOG_ACK_KEY = 'shawn-blog:update-dialog:last-seen'
 
 const { data: updateInfo } = useQuery({
   queryKey: ['system-update-check'],
@@ -95,16 +95,16 @@ function buildUpgradeCommands(targetVersion: string) {
   const tag = `v${bare}`
 
   const script = [
-    `bash <(curl -fsSL https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main/deploy/install.sh)`,
+    `bash <(curl -fsSL https://raw.githubusercontent.com/shawns-yao/shawn-blog/main/deploy/install.sh)`,
     `# 国内：`,
-    `bash <(curl -fsSL https://cnb.cool/shawns-yao/grtblog-v2/-/git/raw/main/deploy/install.sh)`,
+    `bash <(curl -fsSL https://cnb.cool/shawns-yao/shawn-blog/-/git/raw/main/deploy/install.sh)`,
   ].join('\n')
 
   const prebuilt = [
     `# 1. deploy/.env 中更新版本号`,
     `APP_VERSION=${bare}`,
     `# 2. 同步部署配置（每次升级都要做，新版本可能修改了挂载或路由）`,
-    `BASE=https://raw.githubusercontent.com/shawns-yao/grtblog-v2/main`,
+    `BASE=https://raw.githubusercontent.com/shawns-yao/shawn-blog/main`,
     `curl -fsSL "$BASE/deploy/docker-compose.yml"  -o docker-compose.yml`,
     `curl -fsSL "$BASE/deploy/nginx/nginx.conf"    -o nginx/nginx.conf`,
     `# 3. 拉取镜像并重启，重载 nginx 配置`,
@@ -191,7 +191,7 @@ function openUpdateDialog() {
   if (!info || !shouldShowUpdateDialog()) return
 
   const tag = info.targetRelease?.tag || info.latestRelease?.tag || ''
-  const releaseNotesUrl = tag ? `https://grtblog.js.org/releases/${tag}` : ''
+  const releaseNotesUrl = info.releaseNotesUrl || ''
 
   dialog.info({
     title: `发现新版本 ${tag}`.trim(),

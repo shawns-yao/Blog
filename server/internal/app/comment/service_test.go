@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	domaincomment "github.com/shawns-yao/shawn-blog/server/internal/domain/comment"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
 )
 
 type commentRepositoryStub struct {

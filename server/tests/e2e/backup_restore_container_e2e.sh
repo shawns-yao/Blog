@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 compose_file="$script_dir/backup/docker-compose.yml"
-project_name="grtblog-backup-e2e-$$"
+project_name="shawn-blog-backup-e2e-$$"
 BACKUP_E2E_PORT=$((20000 + ($$ % 20000)))
 export BACKUP_E2E_PORT
 base_url="http://127.0.0.1:$BACKUP_E2E_PORT"
@@ -83,7 +83,7 @@ login_json=$(curl -fsS -H 'Content-Type: application/json' \
 	"$base_url/api/v2/auth/login")
 token=$(printf '%s' "$login_json" | jq -er '.data.token')
 
-compose exec -T postgres psql -U postgres -d grtblog -v ON_ERROR_STOP=1 <<'SQL'
+compose exec -T postgres psql -U postgres -d shawn-blog -v ON_ERROR_STOP=1 <<'SQL'
 CREATE TABLE public.backup_e2e_probe (id INTEGER PRIMARY KEY, value TEXT NOT NULL);
 INSERT INTO public.backup_e2e_probe (id, value) VALUES (1, 'before-backup');
 SQL
@@ -104,7 +104,7 @@ tar -xOzf "$temp_dir/site-backup.tar.gz" manifest.json | jq -e '.formatVersion =
 curl -fsS -X PUT -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
 	-d '{"enabled":true,"intervalHours":1,"retentionCount":2}' \
 	"$base_url/api/v2/admin/backups/schedule" >/dev/null
-compose exec -T postgres psql -U postgres -d grtblog -v ON_ERROR_STOP=1 \
+compose exec -T postgres psql -U postgres -d shawn-blog -v ON_ERROR_STOP=1 \
 	-c "UPDATE backup_ops.schedule_config SET next_run_at = NOW() - INTERVAL '1 second' WHERE id = 1" >/dev/null
 
 scheduled_backup_id=""
@@ -126,7 +126,7 @@ wait_for_backup "$scheduled_backup_id"
 curl -fsS -X PATCH -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
 	-d '{"pinned":true}' "$base_url/api/v2/admin/backups/$scheduled_backup_id/pin" >/dev/null
 
-compose exec -T postgres psql -U postgres -d grtblog -v ON_ERROR_STOP=1 \
+compose exec -T postgres psql -U postgres -d shawn-blog -v ON_ERROR_STOP=1 \
 	-c "UPDATE public.backup_e2e_probe SET value = 'after-backup' WHERE id = 1" >/dev/null
 compose exec -T -u app server sh -c 'printf %s after-backup-file > /app/storage/uploads/e2e/probe.txt && printf %s extra-file > /app/storage/uploads/e2e/extra.txt'
 compose exec -T redis redis-cli MSET 'backup-e2e:restore-stale' 'stale' 'backup-e2e:isr:url:%2F' 'stale' >/dev/null
@@ -164,7 +164,7 @@ if [ "$started_before" = "$started_after" ]; then
 	echo "[backup-e2e] server container did not restart for offline restore" >&2
 	exit 1
 fi
-database_value=$(compose exec -T postgres psql -U postgres -d grtblog -Atqc 'SELECT value FROM public.backup_e2e_probe WHERE id = 1')
+database_value=$(compose exec -T postgres psql -U postgres -d shawn-blog -Atqc 'SELECT value FROM public.backup_e2e_probe WHERE id = 1')
 if [ "$database_value" != "before-backup" ]; then
 	echo "[backup-e2e] database was not restored: $database_value" >&2
 	exit 1
@@ -190,7 +190,7 @@ fi
 
 echo "[backup-e2e] simulating a fresh install and restoring through the setup endpoint"
 compose stop server >/dev/null
-compose exec -T postgres psql -U postgres -d grtblog -v ON_ERROR_STOP=1 <<'SQL'
+compose exec -T postgres psql -U postgres -d shawn-blog -v ON_ERROR_STOP=1 <<'SQL'
 DROP SCHEMA public CASCADE;
 DROP SCHEMA backup_ops CASCADE;
 CREATE SCHEMA public;
@@ -223,7 +223,7 @@ if [ "$setup_restored" != "true" ]; then
 	echo "[backup-e2e] setup restore did not recover the administrator" >&2
 	exit 1
 fi
-database_value=$(compose exec -T postgres psql -U postgres -d grtblog -Atqc 'SELECT value FROM public.backup_e2e_probe WHERE id = 1')
+database_value=$(compose exec -T postgres psql -U postgres -d shawn-blog -Atqc 'SELECT value FROM public.backup_e2e_probe WHERE id = 1')
 if [ "$database_value" != "before-backup" ]; then
 	echo "[backup-e2e] setup restore did not recover database content: $database_value" >&2
 	exit 1

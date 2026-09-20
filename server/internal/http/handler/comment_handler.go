@@ -8,12 +8,12 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jinzhu/copier"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
-	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
-	"github.com/shawns-yao/grtblog-v2/server/internal/security/jwt"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/comment"
+	domaincomment "github.com/shawns-yao/shawn-blog/server/internal/domain/comment"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/middleware"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/security/jwt"
 )
 
 type CommentHandler struct {

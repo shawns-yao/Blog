@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	domain "github.com/shawns-yao/grtblog-v2/server/internal/domain/discovery"
+	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/discovery"
 )
 
 type testSettings map[string]string

@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/config"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/config"
 )
 
 func newAuthCmd(app *App) *cobra.Command {
@@ -26,8 +26,8 @@ func newAuthCmd(app *App) *cobra.Command {
 	login := &cobra.Command{
 		Use:   "login",
 		Short: "使用管理员令牌（gt_xxx）登录",
-		Example: `  grtblog auth login --server https://your.blog --token gt_xxx
-  grtblog auth login   # 交互式输入`,
+		Example: `  shawn-blog auth login --server https://your.blog --token gt_xxx
+  shawn-blog auth login   # 交互式输入`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			server := config.NormalizeServer(app.Resolved.Server)
 			if server == "" {
@@ -100,7 +100,7 @@ func newAuthCmd(app *App) *cobra.Command {
 		Short: "查看当前登录状态",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if app.Resolved.Server == "" || app.Resolved.Token == "" {
-				return errors.New("未登录，请先运行: grtblog auth login")
+				return errors.New("未登录，请先运行: shawn-blog auth login")
 			}
 			cli, err := app.Client()
 			if err != nil {

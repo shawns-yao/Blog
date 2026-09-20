@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/config"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 type SysConfigRepository struct {

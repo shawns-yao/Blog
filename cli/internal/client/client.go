@@ -1,4 +1,4 @@
-// Package client 是 grtblog API (/api/v2) 的 HTTP 客户端。
+// Package client 是 shawn-blog API (/api/v2) 的 HTTP 客户端。
 package client
 
 import (
@@ -52,7 +52,7 @@ func New(server, token, version string) *Client {
 		SetBaseURL(strings.TrimRight(server, "/")+"/api/v2").
 		SetTimeout(60*time.Second).
 		SetHeader("Accept", "application/json").
-		SetHeader("User-Agent", "grtblog-cli/"+version)
+		SetHeader("User-Agent", "shawn-blog-cli/"+version)
 	if token != "" {
 		if strings.HasPrefix(token, "gt_") {
 			rc.SetHeader("Authorization", token)

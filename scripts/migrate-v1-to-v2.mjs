@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * API migration tool: grtblog(v1) -> grtblog-v2
+ * API migration tool: shawn-blog(v1) -> shawn-blog
  *
  * Scope:
  * - taxonomy (categories -> categories/columns, tags)

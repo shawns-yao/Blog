@@ -7,8 +7,8 @@ import (
 
 	"gorm.io/gorm"
 
-	exportdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/contentexport"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	exportdomain "github.com/shawns-yao/shawn-blog/server/internal/domain/contentexport"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 type ContentExportRepository struct{ db *gorm.DB }

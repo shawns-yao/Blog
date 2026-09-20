@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/middleware"
 )
 
 // Audit 记录简单的审计日志，携带 requestId、用户与动作。

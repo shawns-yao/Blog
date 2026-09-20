@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	domainsearch "github.com/shawns-yao/grtblog-v2/server/internal/domain/search"
+	domainsearch "github.com/shawns-yao/shawn-blog/server/internal/domain/search"
 	"gorm.io/gorm"
 )
 

@@ -15,10 +15,10 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/htmlsnapshot"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	domainalbum "github.com/shawns-yao/grtblog-v2/server/internal/domain/album"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/htmlsnapshot"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	domainalbum "github.com/shawns-yao/shawn-blog/server/internal/domain/album"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
 )
 
 const (

@@ -7,8 +7,8 @@ import (
 
 	"gorm.io/gorm"
 
-	backupdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/backup"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	backupdomain "github.com/shawns-yao/shawn-blog/server/internal/domain/backup"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 type BackupRepository struct{ db *gorm.DB }

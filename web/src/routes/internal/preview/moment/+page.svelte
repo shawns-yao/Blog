@@ -80,13 +80,13 @@
 		if (!browser) return;
 		if (event.source !== window.parent) return;
 		const data = event.data as { type?: string; payload?: PreviewMomentPayload } | null;
-		if (!data || data.type !== 'grtblog-preview:moment') return;
+		if (!data || data.type !== 'shawn-blog-preview:moment') return;
 		applyPayload(data.payload ?? {});
 	};
 
 	onMount(() => {
 		if (!browser) return;
-		window.parent?.postMessage({ type: 'grtblog-preview:ready' }, '*');
+		window.parent?.postMessage({ type: 'shawn-blog-preview:ready' }, '*');
 	});
 </script>
 

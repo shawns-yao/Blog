@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
 )
 
 func TestClassifier(t *testing.T) {

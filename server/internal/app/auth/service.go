@@ -13,9 +13,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/oauth2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
-	"github.com/shawns-yao/grtblog-v2/server/internal/security/jwt"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
+	"github.com/shawns-yao/shawn-blog/server/internal/security/jwt"
 )
 
 var (

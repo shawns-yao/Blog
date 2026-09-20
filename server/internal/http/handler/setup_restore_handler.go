@@ -3,9 +3,9 @@ package handler
 import (
 	"github.com/gofiber/fiber/v2"
 
-	backupapp "github.com/shawns-yao/grtblog-v2/server/internal/app/backup"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/setupstate"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	backupapp "github.com/shawns-yao/shawn-blog/server/internal/app/backup"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/setupstate"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type SetupRestoreHandler struct {

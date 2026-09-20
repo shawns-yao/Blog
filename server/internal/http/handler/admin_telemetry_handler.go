@@ -4,8 +4,8 @@ import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/telemetry"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/telemetry"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 func (h *AdminTelemetryHandler) GetPreferences(c *fiber.Ctx) error {

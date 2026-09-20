@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 const ADMIN_PANEL_TITLE = '管理后台'
-const DEFAULT_SITE_NAME = 'Grtblog Admin'
+const DEFAULT_SITE_NAME = 'shawn-blog'
 const FALLBACK_SITE_NAME =
   (import.meta.env.VITE_APP_NAME || DEFAULT_SITE_NAME).trim() || DEFAULT_SITE_NAME
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v2').replace(/\/$/, '')

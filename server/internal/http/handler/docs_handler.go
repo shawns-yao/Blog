@@ -8,7 +8,7 @@ import (
 
 	scalar "github.com/MarceloPetrucio/go-scalar-api-reference"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 // DocsHandler 提供 OpenAPI JSON 以及 Scalar UI。
@@ -44,7 +44,7 @@ func (h *DocsHandler) Scalar(c *fiber.Ctx) error {
 	html, err := scalar.ApiReferenceHTML(&scalar.Options{
 		SpecURL: specURL,
 		CustomOptions: scalar.CustomOptions{
-			PageTitle: "grtblog API V2",
+			PageTitle: "shawn-blog API V2",
 		},
 		DarkMode: true,
 	})

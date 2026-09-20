@@ -6,8 +6,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/media"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/media"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 type UploadFileRepository struct {

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/health"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/health"
 )
 
 // RegisterHealthSubscriber listens for health state changes and broadcasts

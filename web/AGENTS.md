@@ -1,4 +1,4 @@
-# AGENTS.md — GrtBlog v2 (Svelte 5 + SvelteKit) 工程规范
+# AGENTS.md — shawn-blog v2 (Svelte 5 + SvelteKit) 工程规范
 
 > 目标：把“优雅代码”的原则落到当前仓库结构与命名上，供任何 LLM / Agent 在本项目中遵循。
 

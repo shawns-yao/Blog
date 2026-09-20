@@ -9,15 +9,15 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	"github.com/shawns-yao/grtblog-v2/server/internal/database"
-	appserver "github.com/shawns-yao/grtblog-v2/server/internal/server"
+	"github.com/shawns-yao/shawn-blog/server/internal/buildinfo"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/database"
+	appserver "github.com/shawns-yao/shawn-blog/server/internal/server"
 )
 
-// @title grtblog API v2
+// @title shawn-blog API v2
 // @version 2.0.0
-// @description grtblog 后端接口
+// @description shawn-blog 后端接口
 // @BasePath /api/v2
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -66,13 +66,7 @@ func main() {
 
 func startupBanner(cfg config.Config) string {
 	const apiBasePath = "/api/v2"
-	const asciiLogo = ` ________  ________  _________  ________  ___       ________  ________
-|\   ____\|\   __  \|\___   ___\\   __  \|\  \     |\   __  \|\   ____\
-\ \  \___|\ \  \|\  \|___ \  \_\ \  \|\ /\ \  \    \ \  \|\  \ \  \___|
- \ \  \  __\ \   _  _\   \ \  \ \ \   __  \ \  \    \ \  \\\  \ \  \  ___
-  \ \  \|\  \ \  \\  \|   \ \  \ \ \  \|\  \ \  \____\ \  \\\  \ \  \|\  \
-   \ \_______\ \__\\ _\    \ \__\ \ \_______\ \_______\ \_______\ \_______\
-    \|_______|\|__|\|__|    \|__|  \|_______|\|_______|\|_______|\|_______|`
+	const asciiLogo = "shawn-blog"
 	version := buildinfo.Version()
 	return "\n" +
 		asciiLogo + "\n\n" +

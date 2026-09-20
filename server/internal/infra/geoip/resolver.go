@@ -15,7 +15,7 @@ import (
 
 	"github.com/oschwald/geoip2-golang/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/comment"
 )
 
 type Resolver struct {

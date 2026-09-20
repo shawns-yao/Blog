@@ -8,10 +8,10 @@ LDFLAGS = -s -w -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date
 .PHONY: build install test vet fmt tidy clean
 
 build:
-	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o grtblog ./cmd/grtblog
+	$(GO) build -trimpath -ldflags "$(LDFLAGS)" -o shawn-blog ./cmd/shawn-blog
 
 install:
-	$(GO) install -trimpath -ldflags "$(LDFLAGS)" ./cmd/grtblog
+	$(GO) install -trimpath -ldflags "$(LDFLAGS)" ./cmd/shawn-blog
 
 test:
 	$(GO) test ./...
@@ -26,4 +26,4 @@ tidy:
 	$(GO) mod tidy
 
 clean:
-	rm -f grtblog
+	rm -f shawn-blog

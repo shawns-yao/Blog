@@ -11,7 +11,7 @@ COPY admin/. ./
 COPY shared /shared
 
 ARG VITE_APP_BASE=/admin/
-ARG VITE_APP_NAME=Grtblog Admin
+ARG VITE_APP_NAME=shawn-blog Admin
 ARG VITE_APP_TITLE=管理后台
 ARG VITE_WATERMARK_CONTENT=
 ARG VITE_API_BASE_URL=/api/v2

@@ -1,4 +1,4 @@
-// Package config 负责 grtblog CLI 的本地配置（多 profile）读写与解析。
+// Package config 负责 shawn-blog CLI 的本地配置（多 profile）读写与解析。
 package config
 
 import (
@@ -13,13 +13,13 @@ import (
 
 const (
 	// EnvConfig 覆盖配置文件路径。
-	EnvConfig = "GRTBLOG_CONFIG"
+	EnvConfig = "SHAWN_BLOG_CONFIG"
 	// EnvProfile 指定使用的 profile。
-	EnvProfile = "GRTBLOG_PROFILE"
+	EnvProfile = "SHAWN_BLOG_PROFILE"
 	// EnvServer 覆盖服务器地址。
-	EnvServer = "GRTBLOG_SERVER"
+	EnvServer = "SHAWN_BLOG_SERVER"
 	// EnvToken 覆盖管理员令牌。
-	EnvToken = "GRTBLOG_TOKEN"
+	EnvToken = "SHAWN_BLOG_TOKEN"
 )
 
 // Profile 表示一个站点的连接配置。
@@ -36,19 +36,31 @@ type Config struct {
 	path string
 }
 
-// DefaultPath 返回配置文件路径：GRTBLOG_CONFIG > XDG_CONFIG_HOME/grtblog/config.yaml > ~/.config/grtblog/config.yaml。
+// DefaultPath 优先使用显式配置，其次使用 shawn-blog 目录，并兼容已有配置。
 func DefaultPath() string {
 	if p := strings.TrimSpace(os.Getenv(EnvConfig)); p != "" {
 		return p
 	}
 	if xdg := strings.TrimSpace(os.Getenv("XDG_CONFIG_HOME")); xdg != "" {
-		return filepath.Join(xdg, "grtblog", "config.yaml")
+		return configPath(xdg)
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "config.yaml"
 	}
-	return filepath.Join(home, ".config", "grtblog", "config.yaml")
+	return configPath(filepath.Join(home, ".config"))
+}
+
+func configPath(base string) string {
+	path := filepath.Join(base, "shawn-blog", "config.yaml")
+	if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+		return path
+	}
+	legacy := filepath.Join(base, "grtblog", "config.yaml")
+	if _, err := os.Stat(legacy); err == nil {
+		return legacy
+	}
+	return path
 }
 
 // Load 从默认路径加载配置；文件不存在时返回空配置。

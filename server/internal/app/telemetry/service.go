@@ -9,10 +9,10 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/htmlsnapshot"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/metrics"
-	"github.com/shawns-yao/grtblog-v2/server/internal/ws"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/htmlsnapshot"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/metrics"
+	"github.com/shawns-yao/shawn-blog/server/internal/ws"
 )
 
 // Service ties together error collection and runtime metrics into a

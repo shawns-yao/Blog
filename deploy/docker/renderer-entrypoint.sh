@@ -9,7 +9,7 @@ HOST="${HOST:-0.0.0.0}"
 
 cat <<EOF
 ================================================================
-> grtblog renderer ${APP_VERSION} (${BUILD_COMMIT})
+> shawn-blog renderer ${APP_VERSION} (${BUILD_COMMIT})
 > 不仅是博客，也是全新的内容基础设施。
 
 by @shawn · github.com/shawns-yao

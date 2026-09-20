@@ -20,8 +20,8 @@
 准备两个已经执行 `server/migrations` 全部 migration 的临时 PostgreSQL 数据库：
 
 ```bash
-export FEDERATION_E2E_DB_DSN_A='postgres://postgres:postgres@127.0.0.1:5432/grtblog_e2e_a?sslmode=disable'
-export FEDERATION_E2E_DB_DSN_B='postgres://postgres:postgres@127.0.0.1:5432/grtblog_e2e_b?sslmode=disable'
+export FEDERATION_E2E_DB_DSN_A='postgres://postgres:postgres@127.0.0.1:5432/shawn-blog_e2e_a?sslmode=disable'
+export FEDERATION_E2E_DB_DSN_B='postgres://postgres:postgres@127.0.0.1:5432/shawn-blog_e2e_b?sslmode=disable'
 
 make test-federation-e2e
 ```

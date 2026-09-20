@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )

@@ -3,7 +3,7 @@ package friendlink
 import (
 	"context"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/social"
 )
 
 type LinkService struct {

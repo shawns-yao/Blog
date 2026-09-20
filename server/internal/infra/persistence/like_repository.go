@@ -6,8 +6,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	domainlike "github.com/shawns-yao/grtblog-v2/server/internal/domain/like"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	domainlike "github.com/shawns-yao/shawn-blog/server/internal/domain/like"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 type LikeRepository struct {

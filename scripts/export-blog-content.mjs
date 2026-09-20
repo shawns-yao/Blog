@@ -5,14 +5,14 @@ import path from 'node:path';
 import process from 'node:process';
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8080/api/v2';
-const DEFAULT_OUTPUT_DIR = 'exports/grtblog-content';
+const DEFAULT_OUTPUT_DIR = 'exports/shawn-blog-content';
 const STRUCTURED_DIRNAME = 'site-root';
 const FLATTEN_DIRNAME = 'site-flatten';
 const DEFAULT_PAGE_SIZE = 100;
 const DEFAULT_CONCURRENCY = 6;
 
 function printHelp() {
-  console.log(`导出 GrtBlog 内容到本地文件夹
+  console.log(`导出 shawn-blog 内容到本地文件夹
 
 用法：
   node scripts/export-blog-content.mjs --base-url https://your-blog.com --token gt_xxx
@@ -30,8 +30,8 @@ function printHelp() {
 
 环境变量：
   GT_TOKEN             等价于 --token
-  GRTBLOG_TOKEN        等价于 --token
-  GRTBLOG_BASE_URL     等价于 --base-url
+  SHAWN_BLOG_TOKEN        等价于 --token
+  SHAWN_BLOG_BASE_URL     等价于 --base-url
 
 导出内容：
   - moments -> moments/YYYY/MM/DD/<slug>/
@@ -45,8 +45,8 @@ function printHelp() {
 
 function parseArgs(argv) {
   const parsed = {
-    baseUrl: process.env.GRTBLOG_BASE_URL || DEFAULT_API_BASE_URL,
-    token: process.env.GT_TOKEN || process.env.GRTBLOG_TOKEN || '',
+    baseUrl: process.env.SHAWN_BLOG_BASE_URL || DEFAULT_API_BASE_URL,
+    token: process.env.GT_TOKEN || process.env.SHAWN_BLOG_TOKEN || '',
     output: DEFAULT_OUTPUT_DIR,
     mode: 'structured',
     pageSize: DEFAULT_PAGE_SIZE,

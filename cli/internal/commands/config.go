@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/output"
 )
 
 func newConfigCmd(app *App) *cobra.Command {
@@ -91,8 +91,8 @@ func newConfigCmd(app *App) *cobra.Command {
 	set := &cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "修改设置项（value 支持 JSON，无法解析时按字符串处理）",
-		Example: `  grtblog config set site.title "我的博客"
-  grtblog config set site.footer.icp '{"text":"京ICP备xxx","url":"https://beian.miit.gov.cn"}'`,
+		Example: `  shawn-blog config set site.title "我的博客"
+  shawn-blog config set site.footer.icp '{"text":"京ICP备xxx","url":"https://beian.miit.gov.cn"}'`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cli, err := app.Client()

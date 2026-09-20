@@ -66,7 +66,7 @@ const enabled = defineModel<boolean>('enabled', { default: false })
       </div>
 
       <p>
-        可随时在「设置 → 帮助我们变得更好」中预览将要上报的完整数据，或关闭此功能。GrtBlog
+        可随时在「设置 → 帮助我们变得更好」中预览将要上报的完整数据，或关闭此功能。本项目
         是开源项目，遥测相关代码均可在 GitHub 上查看与审计。
       </p>
     </div>

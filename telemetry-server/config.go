@@ -19,7 +19,7 @@ type Config struct {
 func LoadConfig() Config {
 	return Config{
 		Port:           getEnv("PORT", "9090"),
-		DSN:            getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/grtblog_telemetry?sslmode=disable"),
+		DSN:            getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/shawn-blog_telemetry?sslmode=disable"),
 		SetupToken:     strings.TrimSpace(getEnv("SETUP_TOKEN", "")),
 		WebAuthnRPID:   getEnv("WEBAUTHN_RP_ID", "localhost"),
 		WebAuthnOrigin: getEnv("WEBAUTHN_RP_ORIGIN", "http://localhost:9090"),

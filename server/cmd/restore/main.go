@@ -7,8 +7,8 @@ import (
 
 	"github.com/joho/godotenv"
 
-	backupapp "github.com/shawns-yao/grtblog-v2/server/internal/app/backup"
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	backupapp "github.com/shawns-yao/shawn-blog/server/internal/app/backup"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
 )
 
 func main() {

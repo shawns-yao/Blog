@@ -72,5 +72,5 @@ $:
               echo "Verified ${image_name}@${expected_digest}"
             }
 
-            mirror_image grtblog-server "$SERVER_DIGEST"
-            mirror_image grtblog-renderer "$RENDERER_DIGEST"
+            mirror_image shawn-blog-server "$SERVER_DIGEST"
+            mirror_image shawn-blog-renderer "$RENDERER_DIGEST"

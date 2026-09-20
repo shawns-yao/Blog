@@ -13,7 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 const (

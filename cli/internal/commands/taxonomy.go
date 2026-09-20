@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
 )
 
 // newTaxonomyCmd 生成 column / tag 两个结构一致的命令。

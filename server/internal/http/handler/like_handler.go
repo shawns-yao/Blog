@@ -5,10 +5,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	applike "github.com/shawns-yao/grtblog-v2/server/internal/app/like"
-	domainlike "github.com/shawns-yao/grtblog-v2/server/internal/domain/like"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	applike "github.com/shawns-yao/shawn-blog/server/internal/app/like"
+	domainlike "github.com/shawns-yao/shawn-blog/server/internal/domain/like"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type LikeHandler struct {

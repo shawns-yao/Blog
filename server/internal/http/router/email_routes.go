@@ -7,11 +7,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/email"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/email"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/handler"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence"
 )
 
 func registerEmailPublicRoutes(v2 fiber.Router, deps Dependencies, sysCfgSvc *sysconfig.Service) {

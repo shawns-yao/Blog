@@ -11,7 +11,7 @@ COPY admin/. ./
 COPY shared /shared
 
 ARG VITE_APP_BASE=/admin/
-ARG VITE_APP_NAME=Grtblog Admin
+ARG VITE_APP_NAME=shawn-blog Admin
 ARG VITE_APP_TITLE=管理后台
 ARG VITE_WATERMARK_CONTENT=
 ARG VITE_API_BASE_URL=/api/v2
@@ -43,13 +43,13 @@ ARG BUILD_COMMIT=unknown
 
 RUN CGO_ENABLED=0 GOOS=linux \
   go build -trimpath -ldflags="-s -w \
-  -X github.com/shawns-yao/grtblog-v2/server/internal/buildinfo.BuildVersion=${APP_VERSION} \
-  -X github.com/shawns-yao/grtblog-v2/server/internal/buildinfo.BuildCommit=${BUILD_COMMIT}" \
-  -o /out/grtblog-server ./cmd/api
+  -X github.com/shawns-yao/shawn-blog/server/internal/buildinfo.BuildVersion=${APP_VERSION} \
+  -X github.com/shawns-yao/shawn-blog/server/internal/buildinfo.BuildCommit=${BUILD_COMMIT}" \
+  -o /out/shawn-blog-server ./cmd/api
 
 RUN CGO_ENABLED=0 GOOS=linux \
   go build -trimpath -ldflags="-s -w" \
-  -o /out/grtblog-restore ./cmd/restore
+  -o /out/shawn-blog-restore ./cmd/restore
 
 FROM alpine:3.21 AS runtime
 
@@ -59,8 +59,8 @@ RUN apk add --no-cache ca-certificates tzdata su-exec postgresql17-client \
 
 WORKDIR /app
 
-COPY --from=builder /out/grtblog-server /app/grtblog-server
-COPY --from=builder /out/grtblog-restore /app/grtblog-restore
+COPY --from=builder /out/shawn-blog-server /app/shawn-blog-server
+COPY --from=builder /out/shawn-blog-restore /app/shawn-blog-restore
 COPY --from=builder /out/goose /usr/local/bin/goose
 COPY --from=builder /src/server/docs /app/docs
 COPY --from=builder /src/server/migrations /app/migrations

@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	domainconfig "github.com/shawns-yao/grtblog-v2/server/internal/domain/config"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	domainconfig "github.com/shawns-yao/shawn-blog/server/internal/domain/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
 )
 
 type fakeContentRepo struct {

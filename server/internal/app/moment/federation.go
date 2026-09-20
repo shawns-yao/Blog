@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	appfed "github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	appfed "github.com/shawns-yao/shawn-blog/server/internal/app/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
 )
 
 func publishFederationSignals(ctx context.Context, bus appEvent.Bus, moment *content.Moment, contentBody string) {

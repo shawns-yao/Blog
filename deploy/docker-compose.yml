@@ -1,7 +1,7 @@
-name: grtblog
+name: shawn-blog
 services:
   server:
-    image: "${IMAGE_REPO_PREFIX:-}grtblog-server:${APP_VERSION:-local}"
+    image: "${IMAGE_REPO_PREFIX:-}shawn-blog-server:${APP_VERSION:-local}"
     build:
       context: ..
       dockerfile: deploy/docker/server.Dockerfile
@@ -9,11 +9,11 @@ services:
         APP_VERSION: "${APP_VERSION:-local}"
         BUILD_COMMIT: "${BUILD_COMMIT:-unknown}"
         VITE_APP_BASE: "${VITE_APP_BASE:-/admin/}"
-        VITE_APP_NAME: "${VITE_APP_NAME:-Grtblog Admin}"
+        VITE_APP_NAME: "${VITE_APP_NAME:-shawn-blog Admin}"
         VITE_APP_TITLE: "${VITE_APP_TITLE:-管理后台}"
         VITE_WATERMARK_CONTENT: "${VITE_WATERMARK_CONTENT:-}"
         VITE_API_BASE_URL: "${VITE_API_BASE_URL:-/api/v2}"
-    container_name: grtblog-server
+    container_name: shawn-blog-server
     environment:
       APP_ENV: production
       APP_PORT: "8080"
@@ -22,14 +22,14 @@ services:
       APP_IP_VALIDATION: "true"
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET is required}"
       DB_DRIVER: postgres
-      DB_DSN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-grtblog}?sslmode=disable"
+      DB_DSN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-shawn-blog}?sslmode=disable"
       REDIS_ADDR: redis:6379
       REDIS_PASSWORD: "${REDIS_PASSWORD:-}"
       REDIS_DB: "0"
-      REDIS_PREFIX: "${REDIS_PREFIX:-grtblog:}"
+      REDIS_PREFIX: "${REDIS_PREFIX:-shawn-blog:}"
       HTMLSNAPSHOT_BASE_URL: "http://renderer:3000"
-      APP_UPDATE_CHECK_ENABLED: "${APP_UPDATE_CHECK_ENABLED:-true}"
-      APP_UPDATE_CHECK_REPO: "${APP_UPDATE_CHECK_REPO:-shawns-yao/grtblog-v2}"
+      APP_UPDATE_CHECK_ENABLED: "${APP_UPDATE_CHECK_ENABLED:-false}"
+      APP_UPDATE_CHECK_REPO: "${APP_UPDATE_CHECK_REPO:-shawns-yao/shawn-blog}"
       APP_UPDATE_CHANNEL: "${APP_UPDATE_CHANNEL:-stable}"
       BACKUP_COMMAND_TIMEOUT: "${BACKUP_COMMAND_TIMEOUT:-30m}"
       BACKUP_DOWNLOAD_TICKET_TTL: "${BACKUP_DOWNLOAD_TICKET_TTL:-10m}"
@@ -49,18 +49,18 @@ services:
       - ./storage/backups:/app/storage/backups
       - ./storage/geoip:/app/storage/geoip
     networks:
-      - grtblog-internal
+      - shawn-blog-internal
     restart: unless-stopped
 
   renderer:
-    image: "${IMAGE_REPO_PREFIX:-}grtblog-renderer:${APP_VERSION:-local}"
+    image: "${IMAGE_REPO_PREFIX:-}shawn-blog-renderer:${APP_VERSION:-local}"
     build:
       context: ..
       dockerfile: deploy/docker/web.Dockerfile
       args:
         APP_VERSION: "${APP_VERSION:-local}"
         BUILD_COMMIT: "${BUILD_COMMIT:-unknown}"
-    container_name: grtblog-renderer
+    container_name: shawn-blog-renderer
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -70,12 +70,12 @@ services:
       - ./storage/html:/assets
       - ./storage/meta:/app/storage/meta
     networks:
-      - grtblog-internal
+      - shawn-blog-internal
     restart: unless-stopped
 
   nginx:
     image: ${DOCKER_MIRROR:-}nginx:1.27-alpine
-    container_name: grtblog-nginx
+    container_name: shawn-blog-nginx
     ports:
       - "${NGINX_PORT:-80}:80"
     volumes:
@@ -85,30 +85,30 @@ services:
       - server
       - renderer
     networks:
-      - grtblog-internal
+      - shawn-blog-internal
     restart: unless-stopped
 
   postgres:
     image: ${DOCKER_MIRROR:-}postgres:17-alpine
-    container_name: grtblog-postgres
+    container_name: shawn-blog-postgres
     environment:
-      POSTGRES_DB: "${POSTGRES_DB:-grtblog}"
+      POSTGRES_DB: "${POSTGRES_DB:-shawn-blog}"
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-change-me}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-grtblog}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-shawn-blog}"]
       interval: 10s
       timeout: 5s
       retries: 10
     networks:
-      - grtblog-internal
+      - shawn-blog-internal
     restart: unless-stopped
 
   redis:
     image: ${DOCKER_MIRROR:-}redis:7-alpine
-    container_name: grtblog-redis
+    container_name: shawn-blog-redis
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
@@ -118,16 +118,16 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      - grtblog-internal
+      - shawn-blog-internal
     restart: unless-stopped
 
 volumes:
   postgres_data:
-    name: grtblog_postgres_data
+    name: shawn-blog_postgres_data
   redis_data:
-    name: grtblog_redis_data
+    name: shawn-blog_redis_data
 
 networks:
-  grtblog-internal:
-    name: grtblog-internal
+  shawn-blog-internal:
+    name: shawn-blog-internal
     driver: bridge

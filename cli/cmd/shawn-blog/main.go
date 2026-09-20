@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/commands"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/commands"
 )
 
 var (
@@ -22,7 +22,7 @@ func main() {
 		var apiErr *client.APIError
 		switch {
 		case errors.As(err, &apiErr) && apiErr.IsAuth():
-			fmt.Fprintf(os.Stderr, "错误: %s（登录已过期或令牌无效，请重新运行 grtblog auth login）\n", apiErr.Msg)
+			fmt.Fprintf(os.Stderr, "错误: %s（登录已过期或令牌无效，请重新运行 shawn-blog auth login）\n", apiErr.Msg)
 		default:
 			fmt.Fprintf(os.Stderr, "错误: %s\n", err)
 		}

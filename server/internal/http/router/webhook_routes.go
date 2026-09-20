@@ -3,10 +3,10 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/webhook"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/webhook"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/handler"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/middleware"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence"
 )
 
 func registerWebhookAdminRoutes(v2 fiber.Router, deps Dependencies, webhookSvc *webhook.Service) {

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
 	"github.com/mozillazg/go-pinyin"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"

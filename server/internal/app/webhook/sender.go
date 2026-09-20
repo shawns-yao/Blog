@@ -12,10 +12,10 @@ import (
 	"text/template"
 	"time"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	domainwebhook "github.com/shawns-yao/grtblog-v2/server/internal/domain/webhook"
-	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	domainwebhook "github.com/shawns-yao/shawn-blog/server/internal/domain/webhook"
+	fedinfra "github.com/shawns-yao/shawn-blog/server/internal/infra/federation"
 )
 
 const (

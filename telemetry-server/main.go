@@ -40,7 +40,7 @@ func main() {
 	passkeys := NewPasskeyService(store, cfg)
 
 	app := fiber.New(fiber.Config{
-		AppName:   "grtblog-telemetry",
+		AppName:   "shawn-blog-telemetry",
 		BodyLimit: 5 * 1024 * 1024,
 	})
 

@@ -74,7 +74,7 @@ func SanitiseMessage(msg string) string {
 //
 // Example input line:
 //
-//	github.com/shawns-yao/grtblog-v2/server/internal/app/content.(*Service).GenerateHTML(...)
+//	github.com/shawns-yao/shawn-blog/server/internal/app/content.(*Service).GenerateHTML(...)
 //	    /home/deploy/server/internal/app/content/service.go:142 +0x3a4
 //
 // Example output line:
@@ -119,7 +119,7 @@ func NormaliseStack(raw []byte) string {
 }
 
 // stripModulePrefix removes the Go module path, keeping only the package-relative path.
-// e.g. "github.com/shawns-yao/grtblog-v2/server/internal/app/foo.Bar" → "internal/app/foo.Bar"
+// e.g. "github.com/shawns-yao/shawn-blog/server/internal/app/foo.Bar" → "internal/app/foo.Bar"
 func stripModulePrefix(s string) string {
 	const marker = "/internal/"
 	if idx := strings.Index(s, marker); idx >= 0 {

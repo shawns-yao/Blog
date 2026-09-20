@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/editor"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/frontmatter"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/editor"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/frontmatter"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/output"
 )
 
 // momentFrontMatter 是手记编辑模板的 YAML 头部。
@@ -148,10 +148,10 @@ func newMomentCmd(app *App) *cobra.Command {
 	newCmd := &cobra.Command{
 		Use:   "new",
 		Short: "创建手记（默认打开编辑器，默认保存为草稿）",
-		Example: `  grtblog moment new                  # 打开编辑器撰写
-  grtblog moment new -f note.md       # 从 Markdown 文件创建
-  grtblog moment new -f - < note.md   # 从标准输入创建
-  grtblog moment new --publish        # 撰写后直接发布`,
+		Example: `  shawn-blog moment new                  # 打开编辑器撰写
+  shawn-blog moment new -f note.md       # 从 Markdown 文件创建
+  shawn-blog moment new -f - < note.md   # 从标准输入创建
+  shawn-blog moment new --publish        # 撰写后直接发布`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cli, err := app.Client()
 			if err != nil {

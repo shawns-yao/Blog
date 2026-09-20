@@ -6,7 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 // AdminLogHandler 读取应用日志（仅后台查看）。

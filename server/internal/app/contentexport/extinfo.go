@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
 )
 
 // extInfoRefs 收集 extInfo JSON 中所有字符串值里的图片引用（用于登记打包）。

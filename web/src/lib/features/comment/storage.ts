@@ -1,7 +1,8 @@
 import { browser } from '$app/environment';
 
-const GUEST_PROFILE_KEY = 'grtblog:comment:guest-profile:v1';
-const DRAFT_KEY_PREFIX = 'grtblog:comment:draft:v1';
+const GUEST_PROFILE_KEY = 'shawn-blog:comment:guest-profile:v1';
+const DRAFT_KEY_PREFIX = 'shawn-blog:comment:draft:v1';
+const legacyKey = (key: string) => key.replace(/^shawn-blog:/, 'grtblog:');
 
 export type CommentGuestProfile = {
 	guestName: string;
@@ -20,7 +21,9 @@ const parseJson = <T>(raw: string | null): T | null => {
 
 export const readCommentGuestProfile = (): CommentGuestProfile | null => {
 	if (!browser) return null;
-	const parsed = parseJson<Partial<CommentGuestProfile>>(localStorage.getItem(GUEST_PROFILE_KEY));
+	const parsed = parseJson<Partial<CommentGuestProfile>>(
+		localStorage.getItem(GUEST_PROFILE_KEY) ?? localStorage.getItem(legacyKey(GUEST_PROFILE_KEY))
+	);
 	if (!parsed) return null;
 	return {
 		guestName: typeof parsed.guestName === 'string' ? parsed.guestName : '',
@@ -31,6 +34,7 @@ export const readCommentGuestProfile = (): CommentGuestProfile | null => {
 
 export const writeCommentGuestProfile = (profile: Partial<CommentGuestProfile>) => {
 	if (!browser) return;
+	localStorage.removeItem(legacyKey(GUEST_PROFILE_KEY));
 	const next: CommentGuestProfile = {
 		guestName: typeof profile.guestName === 'string' ? profile.guestName : '',
 		guestEmail: typeof profile.guestEmail === 'string' ? profile.guestEmail : '',
@@ -48,12 +52,13 @@ export const buildCommentDraftKey = (areaId: number, parentId?: number): string 
 
 export const readCommentDraft = (key: string): string => {
 	if (!browser || !key) return '';
-	const raw = localStorage.getItem(key);
+	const raw = localStorage.getItem(key) ?? localStorage.getItem(legacyKey(key));
 	return typeof raw === 'string' ? raw : '';
 };
 
 export const writeCommentDraft = (key: string, value: string) => {
 	if (!browser || !key) return;
+	localStorage.removeItem(legacyKey(key));
 	if (!value) {
 		localStorage.removeItem(key);
 		return;
@@ -64,4 +69,5 @@ export const writeCommentDraft = (key: string, value: string) => {
 export const clearCommentDraft = (key: string) => {
 	if (!browser || !key) return;
 	localStorage.removeItem(key);
+	localStorage.removeItem(legacyKey(key));
 };

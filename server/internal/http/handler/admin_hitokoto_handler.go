@@ -5,8 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/hitokoto"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/hitokoto"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type AdminHitokotoHandler struct {

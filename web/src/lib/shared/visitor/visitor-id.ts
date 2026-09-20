@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 
-const STORAGE_KEY = 'grtblog:analytics:visitor-id:v1';
+const STORAGE_KEY = 'shawn-blog:analytics:visitor-id:v1';
+const LEGACY_STORAGE_KEY = 'grtblog:analytics:visitor-id:v1';
 const PREFIX = 'v2';
 
 const normalizeVisitorId = (value: string | null | undefined): string | null => {
@@ -26,11 +27,14 @@ export const createVisitorId = (): string => {
 
 export const getVisitorId = (): string | null => {
 	if (!browser) return null;
-	return normalizeVisitorId(localStorage.getItem(STORAGE_KEY));
+	return normalizeVisitorId(
+		localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
+	);
 };
 
 export const setVisitorId = (visitorId: string | null | undefined): string | null => {
 	if (!browser) return null;
+	localStorage.removeItem(LEGACY_STORAGE_KEY);
 	const normalized = normalizeVisitorId(visitorId);
 	if (!normalized) {
 		localStorage.removeItem(STORAGE_KEY);

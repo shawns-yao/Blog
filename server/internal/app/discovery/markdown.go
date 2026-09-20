@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/federation"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"

@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/taxonomy"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/moment"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/taxonomy"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
 )
 
 // exportPageSize 是批量加载内容时的分页大小。必须 >= 1（GORM Limit(0) 会返回空集）。

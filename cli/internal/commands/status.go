@@ -3,8 +3,8 @@ package commands
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/output"
 )
 
 func newStatusCmd(app *App) *cobra.Command {

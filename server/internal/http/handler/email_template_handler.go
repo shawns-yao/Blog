@@ -7,10 +7,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/email"
-	domainemail "github.com/shawns-yao/grtblog-v2/server/internal/domain/email"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/email"
+	domainemail "github.com/shawns-yao/shawn-blog/server/internal/domain/email"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type EmailTemplateHandler struct {

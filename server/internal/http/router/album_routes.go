@@ -3,11 +3,11 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 
-	appalbum "github.com/shawns-yao/grtblog-v2/server/internal/app/album"
-	mediaapp "github.com/shawns-yao/grtblog-v2/server/internal/app/media"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	appalbum "github.com/shawns-yao/shawn-blog/server/internal/app/album"
+	mediaapp "github.com/shawns-yao/shawn-blog/server/internal/app/media"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/handler"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/middleware"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence"
 )
 
 func registerAlbumPublicRoutes(v2 fiber.Router, deps Dependencies) {

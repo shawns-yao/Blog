@@ -11,14 +11,14 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
-	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/social"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
+	fedinfra "github.com/shawns-yao/shawn-blog/server/internal/infra/federation"
 )
 
 type FederationCitationHandler struct {

@@ -189,7 +189,7 @@ class AdminRealtimeWSCore {
     wsUrl.search = ''
 
     if (this.jwtToken) {
-      return new WebSocket(wsUrl.toString(), ['grtblog.jwt', this.jwtToken])
+      return new WebSocket(wsUrl.toString(), ['shawn-blog.jwt', this.jwtToken])
     }
     return new WebSocket(wsUrl.toString())
   }

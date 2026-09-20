@@ -72,9 +72,9 @@ func TestNormaliseStack(t *testing.T) {
 	raw := []byte(`goroutine 1 [running]:
 runtime/debug.Stack()
 	/usr/local/go/src/runtime/debug/stack.go:24 +0x5e
-github.com/shawns-yao/grtblog-v2/server/internal/app/content.(*Service).GenerateHTML(0xc0001a2340, {0xc0004e2000, 0x42})
+github.com/shawns-yao/shawn-blog/server/internal/app/content.(*Service).GenerateHTML(0xc0001a2340, {0xc0004e2000, 0x42})
 	/home/deploy/server/internal/app/content/service.go:142 +0x3a4
-github.com/shawns-yao/grtblog-v2/server/internal/http/handler.(*MomentHandler).Refresh(0xc0001b0000, 0xc000512000)
+github.com/shawns-yao/shawn-blog/server/internal/http/handler.(*MomentHandler).Refresh(0xc0001b0000, 0xc000512000)
 	/home/deploy/server/internal/http/handler/moment_handler.go:88 +0x1f2
 `)
 

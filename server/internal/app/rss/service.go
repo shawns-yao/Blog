@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 )

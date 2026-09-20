@@ -3,7 +3,7 @@ package contract
 import (
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/social"
 )
 
 type GlobalNotificationResp struct {

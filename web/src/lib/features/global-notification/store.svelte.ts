@@ -9,7 +9,7 @@ import GlobalNotificationToastBody from '$lib/features/global-notification/compo
 import { realtimeWSCore } from '$lib/shared/ws/realtime-core';
 import { toast } from 'svelte-sonner';
 
-const DISMISSED_STORAGE_KEY = 'grtblog:global-notification:dismissed:v1';
+const DISMISSED_STORAGE_KEY = 'shawn-blog:global-notification:dismissed:v1';
 
 class GlobalNotificationStore {
 	items = $state<GlobalNotificationItem[]>([]);

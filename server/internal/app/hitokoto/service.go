@@ -94,7 +94,7 @@ func (s *Service) fetchSentence(ctx context.Context, query Query) (*Sentence, er
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "grtblog-admin/1.0")
+	req.Header.Set("User-Agent", "shawn-blog-admin/1.0")
 
 	resp, err := s.client.Do(req)
 	if err != nil {

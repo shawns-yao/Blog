@@ -19,9 +19,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	exportdomain "github.com/shawns-yao/grtblog-v2/server/internal/domain/contentexport"
+	"github.com/shawns-yao/shawn-blog/server/internal/buildinfo"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	exportdomain "github.com/shawns-yao/shawn-blog/server/internal/domain/contentexport"
 )
 
 type Service struct {
@@ -75,7 +75,7 @@ func (s *Service) Create(ctx context.Context, mode string) (*exportdomain.Record
 	id := uuid.NewString()
 	item := &exportdomain.Record{
 		ID:          id,
-		Filename:    fmt.Sprintf("grtblog-export-%s-%s.tar.gz", now.Format("20060102T150405Z"), id[:8]),
+		Filename:    fmt.Sprintf("shawn-blog-export-%s-%s.tar.gz", now.Format("20060102T150405Z"), id[:8]),
 		Status:      exportdomain.StatusQueued,
 		Stage:       "queued",
 		TriggerType: "manual",

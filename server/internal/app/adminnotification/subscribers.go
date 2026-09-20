@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	appcomment "github.com/shawns-yao/grtblog-v2/server/internal/app/comment"
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	appfed "github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/content"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
+	appcomment "github.com/shawns-yao/shawn-blog/server/internal/app/comment"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	appfed "github.com/shawns-yao/shawn-blog/server/internal/app/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/content"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
 )
 
 type handlerFunc func(ctx context.Context, event appEvent.Event) error

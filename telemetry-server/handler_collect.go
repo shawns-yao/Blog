@@ -82,7 +82,7 @@ type digestJSON struct {
 func CollectHandler(store *Store, limiter *RateLimiter) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		// Check User-Agent.
-		if ua := c.Get("User-Agent"); ua != "grtblog-telemetry/1.0" {
+		if ua := c.Get("User-Agent"); ua != "shawn-blog-telemetry/1.0" {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user-agent"})
 		}
 

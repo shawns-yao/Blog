@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/redis/go-redis/v9"
-	appalbum "github.com/shawns-yao/grtblog-v2/server/internal/app/album"
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/federation"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/moment"
+	appalbum "github.com/shawns-yao/shawn-blog/server/internal/app/album"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/moment"
 )
 
 type handlerFunc func(ctx context.Context, event appEvent.Event) error

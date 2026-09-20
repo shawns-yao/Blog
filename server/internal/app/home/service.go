@@ -17,8 +17,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 const (
@@ -385,7 +385,7 @@ func (s *Service) fetchGitHubJSON(ctx context.Context, endpoint string, target a
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	req.Header.Set("User-Agent", "grtblog-v2-home")
+	req.Header.Set("User-Agent", "shawn-blog-home")
 
 	resp, err := client.Do(req)
 	if err != nil {

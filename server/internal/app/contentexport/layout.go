@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
 )
 
 const (

@@ -323,7 +323,7 @@ if [[ ! -f "$INDEX_FILE" ]]; then
   cat > "$INDEX_FILE" <<'EOF'
 # 版本发布
 
-这里汇总 GrtBlog 的版本发布记录，包含两个通道：
+这里汇总 shawn-blog 的版本发布记录，包含两个通道：
 
 - `stable`：正式版本，会同步发布 GitHub Release、GHCR，以及已配置时的 Docker Hub
 - `preview`：预发布版本，只保留 Git tag 和 GHCR 镜像，用于 beta / rc 验证
@@ -505,8 +505,8 @@ section "Create Tag"
 git tag -a "$VERSION" -m "release(${CHANNEL}): ${VERSION}"
 info "created annotated tag: ${VERSION}"
 
-# CLI 是独立 Go 子模块（module github.com/shawns-yao/grtblog-v2/cli/v2），
-# 需要一个 cli/ 前缀的 tag，`go install .../cli/v2/cmd/grtblog@${VERSION}` 才能解析到精确版本。
+# CLI 是独立 Go 子模块（module github.com/shawns-yao/shawn-blog/cli/v2），
+# 需要一个 cli/ 前缀的 tag，`go install .../cli/v2/cmd/shawn-blog@${VERSION}` 才能解析到精确版本。
 CLI_TAG="cli/${VERSION}"
 if git rev-parse -q --verify "refs/tags/$CLI_TAG" >/dev/null 2>&1; then
   warn "CLI tag already exists: ${CLI_TAG}"

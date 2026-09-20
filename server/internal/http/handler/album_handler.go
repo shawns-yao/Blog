@@ -8,13 +8,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	appalbum "github.com/shawns-yao/grtblog-v2/server/internal/app/album"
-	mediaapp "github.com/shawns-yao/grtblog-v2/server/internal/app/media"
-	domainalbum "github.com/shawns-yao/grtblog-v2/server/internal/domain/album"
-	domaincomment "github.com/shawns-yao/grtblog-v2/server/internal/domain/comment"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	appalbum "github.com/shawns-yao/shawn-blog/server/internal/app/album"
+	mediaapp "github.com/shawns-yao/shawn-blog/server/internal/app/media"
+	domainalbum "github.com/shawns-yao/shawn-blog/server/internal/domain/album"
+	domaincomment "github.com/shawns-yao/shawn-blog/server/internal/domain/comment"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/middleware"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type AlbumHandler struct {

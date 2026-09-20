@@ -101,7 +101,7 @@ type ExportConfig struct {
 func Load() Config {
 	return Config{
 		App: AppConfig{
-			Name:                getEnv("APP_NAME", "grtblog-server"),
+			Name:                getEnv("APP_NAME", "shawn-blog-server"),
 			Port:                getEnv("APP_PORT", "8080"),
 			Env:                 strings.ToLower(getEnv("APP_ENV", "development")),
 			HTMLSnapshotBaseURL: strings.TrimRight(getEnv("HTMLSNAPSHOT_BASE_URL", "http://localhost:3000"), "/"),
@@ -116,19 +116,19 @@ func Load() Config {
 			}),
 			TrustedProxyCheck:        getEnvAsBool("APP_TRUSTED_PROXY_CHECK", true),
 			IPValidation:             getEnvAsBool("APP_IP_VALIDATION", true),
-			UpdateCheckEnabled:       getEnvAsBool("APP_UPDATE_CHECK_ENABLED", true),
-			UpdateCheckRepo:          strings.TrimSpace(getEnv("APP_UPDATE_CHECK_REPO", "shawns-yao/grtblog-v2")),
+			UpdateCheckEnabled:       getEnvAsBool("APP_UPDATE_CHECK_ENABLED", false),
+			UpdateCheckRepo:          strings.TrimSpace(getEnv("APP_UPDATE_CHECK_REPO", "shawns-yao/shawn-blog")),
 			UpdateCheckChannel:       strings.TrimSpace(getEnv("APP_UPDATE_CHANNEL", "stable")),
 			TelemetryDefaultEndpoint: strings.TrimSpace(getEnv("TELEMETRY_DEFAULT_ENDPOINT", "")),
 		},
 		Database: DatabaseConfig{
 			Driver:      strings.ToLower(getEnv("DB_DRIVER", "postgres")),
-			DSN:         getEnv("DB_DSN", "postgres://postgres:postgres@localhost:5432/grtblog?sslmode=disable"),
+			DSN:         getEnv("DB_DSN", "postgres://postgres:postgres@localhost:5432/shawn-blog?sslmode=disable"),
 			AutoMigrate: getEnvAsBool("DB_AUTO_MIGRATE", true),
 		},
 		Auth: AuthConfig{
 			Secret:        getEnv("AUTH_SECRET", "change-me"),
-			Issuer:        getEnv("AUTH_ISSUER", "grtblog-api"),
+			Issuer:        getEnv("AUTH_ISSUER", "shawn-blog-api"),
 			AccessTTL:     getEnvAsDuration("AUTH_ACCESS_TTL", 7*24*time.Hour),
 			OAuthStateTTL: getEnvAsDuration("AUTH_STATE_TTL", time.Minute*10),
 		},
@@ -142,7 +142,7 @@ func Load() Config {
 			Addr:     getEnv("REDIS_ADDR", "127.0.0.1:6379"),
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getEnvAsInt("REDIS_DB", 0),
-			Prefix:   getEnv("REDIS_PREFIX", "grtblog:"),
+			Prefix:   getEnv("REDIS_PREFIX", "shawn-blog:"),
 		},
 		GeoIP: GeoIPConfig{
 			DBPath:      getEnv("GEOIP_DB_PATH", "storage/geoip/GeoLite2-City.mmdb"),

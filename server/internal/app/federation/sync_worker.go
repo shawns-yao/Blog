@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	appEvent "github.com/shawns-yao/grtblog-v2/server/internal/app/event"
-	domainfed "github.com/shawns-yao/grtblog-v2/server/internal/domain/federation"
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/social"
-	fedinfra "github.com/shawns-yao/grtblog-v2/server/internal/infra/federation"
+	appEvent "github.com/shawns-yao/shawn-blog/server/internal/app/event"
+	domainfed "github.com/shawns-yao/shawn-blog/server/internal/domain/federation"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/social"
+	fedinfra "github.com/shawns-yao/shawn-blog/server/internal/infra/federation"
 	"github.com/mmcdole/gofeed"
 )
 

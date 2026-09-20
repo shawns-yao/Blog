@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/buildinfo"
+	"github.com/shawns-yao/shawn-blog/server/internal/buildinfo"
 )
 
 // ---------------------------------------------------------------------------
@@ -217,6 +217,7 @@ func anonymousInstanceID(extraSalt string) string {
 	if hostname == "" {
 		hostname = "unknown"
 	}
+	// Keep the historical salt so a project rename does not create a new identity.
 	h := sha256.Sum256([]byte("grtblog-telemetry:" + hostname + ":" + extraSalt))
 	return fmt.Sprintf("%x", h[:8]) // 16-char hex
 }

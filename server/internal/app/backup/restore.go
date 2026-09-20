@@ -15,7 +15,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
 )
 
 const bootstrapVersionFile = "storage/meta/isr/.bootstrap-version"

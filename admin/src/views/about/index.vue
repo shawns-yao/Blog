@@ -99,7 +99,7 @@ onMounted(async () => {
     <!-- Section 1: Hero -->
     <div class="mt-4 mb-2">
       <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-semibold text-neutral-800 dark:text-neutral-100">Grtblog Admin</h1>
+        <h1 class="text-2xl font-semibold text-neutral-800 dark:text-neutral-100">shawn-blog 管理后台</h1>
         <NTag
           size="small"
           round
@@ -111,7 +111,7 @@ onMounted(async () => {
         面向创作者与读者的全栈内容平台
       </p>
       <p class="mt-3 max-w-3xl text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-        grtblog-v2 是对 v1 的系统性重构：回到单体结构、减少依赖与复杂度，以默认 SSG 为主、按需引入
+        本项目采用单体结构，减少依赖与复杂度，以默认 SSG 为主、按需引入
         SSR / API。 项目由 Go API、SvelteKit 前台、Vue 后台与共享 Markdown 组件能力组成，本后台为
         Lithe Admin 的二次开发版本， 专为内容管理、发布与运营流程定制。
       </p>

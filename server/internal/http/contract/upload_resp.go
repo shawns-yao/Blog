@@ -3,8 +3,8 @@ package contract
 import (
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/media"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/media"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type UploadImageMeta struct {

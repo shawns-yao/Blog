@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/output"
 )
 
 func newUploadCmd(app *App) *cobra.Command {
@@ -17,8 +17,8 @@ func newUploadCmd(app *App) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "upload <file>...",
 		Short: "上传文件到媒体库，输出访问链接",
-		Example: `  grtblog upload ./cover.png            # 输出文件 → URL
-  grtblog upload a.png b.jpg --markdown # 输出 Markdown 图片语法`,
+		Example: `  shawn-blog upload ./cover.png            # 输出文件 → URL
+  shawn-blog upload a.png b.jpg --markdown # 输出 Markdown 图片语法`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cli, err := app.Client()
@@ -163,7 +163,7 @@ func newFileCmd(app *App) *cobra.Command {
 			}
 			// dest 是已存在目录时，先下载为临时名，再按服务端文件名落位
 			if info, err := os.Stat(dest); err == nil && info.IsDir() {
-				tmp := filepath.Join(dest, fmt.Sprintf(".grtblog-dl-%s", args[0]))
+				tmp := filepath.Join(dest, fmt.Sprintf(".shawn-blog-dl-%s", args[0]))
 				name, err := cli.Download("/upload/"+args[0]+"/download", tmp)
 				if err != nil {
 					os.Remove(tmp)

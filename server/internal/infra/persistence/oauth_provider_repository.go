@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/domain/identity"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/domain/identity"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 	"gorm.io/gorm"
 )
 

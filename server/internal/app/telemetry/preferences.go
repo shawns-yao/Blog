@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/sysconfig"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
 )
 
 var ErrInvalidPreferences = errors.New("invalid telemetry preferences")

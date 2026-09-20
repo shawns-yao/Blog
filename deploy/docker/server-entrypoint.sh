@@ -12,7 +12,7 @@ chown -R app:app /app/storage
 
 if [ -f /app/storage/backups/.restore-request.json ] || [ -f /app/storage/backups/.restore-running.json ]; then
 	echo "[entrypoint] Pending full-site restore found; restoring before startup..."
-	if ! su-exec app /app/grtblog-restore; then
+	if ! su-exec app /app/shawn-blog-restore; then
 		echo "[entrypoint] Restore failed. The previous site was preserved where possible; starting normally for inspection."
 	fi
 fi
@@ -22,4 +22,4 @@ echo "[entrypoint] Running database migrations..."
 goose -table public.goose_db_version -dir /app/migrations postgres "$DB_DSN" up
 echo "[entrypoint] Migrations complete."
 
-exec su-exec app /app/grtblog-server
+exec su-exec app /app/shawn-blog-server

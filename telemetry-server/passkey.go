@@ -44,7 +44,7 @@ type PasskeyService struct {
 func NewPasskeyService(store *Store, cfg Config) *PasskeyService {
 	wa, err := webauthn.New(&webauthn.Config{
 		RPID:          cfg.WebAuthnRPID,
-		RPDisplayName: "GrtBlog Telemetry",
+		RPDisplayName: "shawn-blog Telemetry",
 		RPOrigins:     []string{cfg.WebAuthnOrigin},
 	})
 	if err != nil {

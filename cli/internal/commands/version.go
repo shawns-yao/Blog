@@ -16,7 +16,7 @@ func newVersionCmd(app *App) *cobra.Command {
 			if v == "" {
 				v = "dev"
 			}
-			fmt.Printf("grtblog %s\n", v)
+			fmt.Printf("shawn-blog %s\n", v)
 			if app.Info.Commit != "" {
 				fmt.Printf("commit: %s\n", app.Info.Commit)
 			}

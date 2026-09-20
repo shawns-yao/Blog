@@ -1,12 +1,12 @@
-// Package commands 包含 grtblog CLI 的全部子命令。
+// Package commands 包含 shawn-blog CLI 的全部子命令。
 package commands
 
 import (
 	"errors"
 
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/client"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/config"
-	"github.com/shawns-yao/grtblog-v2/cli/v2/internal/output"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/client"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/config"
+	"github.com/shawns-yao/shawn-blog/cli/v2/internal/output"
 )
 
 // BuildInfo 构建信息，通过 -ldflags 注入。
@@ -50,10 +50,10 @@ func (a *App) Client() (*client.Client, error) {
 		return a.client, nil
 	}
 	if a.Resolved.Server == "" {
-		return nil, errors.New("未配置服务器地址，请先运行: grtblog auth login")
+		return nil, errors.New("未配置服务器地址，请先运行: shawn-blog auth login")
 	}
 	if a.Resolved.Token == "" {
-		return nil, errors.New("未登录，请先运行: grtblog auth login")
+		return nil, errors.New("未登录，请先运行: shawn-blog auth login")
 	}
 	version := a.Info.Version
 	if version == "" {

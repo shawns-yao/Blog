@@ -1,6 +1,6 @@
-# GrtBlog v2 版本、通道与更新策略
+# shawn-blog v2 版本、通道与更新策略
 
-本文档定义 GrtBlog v2 的版本规则、发布通道、更新检查策略、数据库迁移兼容策略和回滚策略。
+本文档定义 shawn-blog v2 的版本规则、发布通道、更新检查策略、数据库迁移兼容策略和回滚策略。
 
 ## 1. 版本体系
 
@@ -54,8 +54,8 @@
 仓库中包含 `server`、`renderer(web)`、`admin` 三个组件，采用“**单仓统一发布号 + 镜像分组件标签**”策略：
 
 - Git Tag（统一）：`v2.1.0-beta.2`
-- Server 镜像：`ghcr.io/shawns-yao/grtblog-v2-server:2.1.0-beta.2`
-- Renderer 镜像：`ghcr.io/shawns-yao/grtblog-v2-renderer:2.1.0-beta.2`
+- Server 镜像：`ghcr.io/shawns-yao/shawn-blog-server:2.1.0-beta.2`
+- Renderer 镜像：`ghcr.io/shawns-yao/shawn-blog-renderer:2.1.0-beta.2`
 - Admin：随 `server` 镜像一起发布，不单独打包成生产部署单元
 
 ## 4. API 与协议兼容策略

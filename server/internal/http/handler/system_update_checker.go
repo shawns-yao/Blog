@@ -285,7 +285,7 @@ func (h *SystemHandler) fetchGitHubReleases(ctx context.Context, repo string) ([
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "grtblog-update-check")
+	req.Header.Set("User-Agent", "shawn-blog-update-check")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -320,7 +320,7 @@ func (h *SystemHandler) fetchGitHubTags(ctx context.Context, repo string) ([]git
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "grtblog-update-check")
+	req.Header.Set("User-Agent", "shawn-blog-update-check")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -382,7 +382,7 @@ func (h *SystemHandler) fetchTagReleaseNotes(ctx context.Context, repo, tag stri
 	if err != nil {
 		return "", "", err
 	}
-	req.Header.Set("User-Agent", "grtblog-update-check")
+	req.Header.Set("User-Agent", "shawn-blog-update-check")
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -415,7 +415,7 @@ func (h *SystemHandler) fetchTagCommitTime(ctx context.Context, repo, tag string
 		return time.Time{}, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "grtblog-update-check")
+	req.Header.Set("User-Agent", "shawn-blog-update-check")
 
 	resp, err := client.Do(req)
 	if err != nil {

@@ -11,20 +11,20 @@
 #
 # 注意：
 #   1. 本机 `docker compose` 子命令不可用，须使用独立二进制 `docker-compose`。
-#   2. 若此前已用 `docker run` 手工创建过同名容器（grtblog-postgres / grtblog-redis），
+#   2. 若此前已用 `docker run` 手工创建过同名容器（shawn-blog-postgres / shawn-blog-redis），
 #      需先删除它们再启动本文件，否则会因 container_name 冲突而失败：
-#        docker rm -f grtblog-postgres grtblog-redis grtblog-server-dev
-#      数据保存在命名卷 grtblog_postgres_data / grtblog_redis_data 中，删除容器不会丢数据。
+#        docker rm -f shawn-blog-postgres shawn-blog-redis shawn-blog-server-dev
+#      数据保存在命名卷 shawn-blog_postgres_data / shawn-blog_redis_data 中，删除容器不会丢数据。
 #   3. 变量取自同目录的 deploy/.env（该文件已被根 .gitignore 忽略，不会提交）。
 
-name: grtblog-dev
+name: "${DEV_PROJECT_NAME:-shawn-blog-dev}"
 
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: grtblog-postgres
+    container_name: shawn-blog-postgres
     environment:
-      POSTGRES_DB: "${POSTGRES_DB:-grtblog}"
+      POSTGRES_DB: "${POSTGRES_DB:-shawn-blog}"
       POSTGRES_USER: "${POSTGRES_USER:-postgres}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
     ports:
@@ -32,7 +32,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-grtblog}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-shawn-blog}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -40,7 +40,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: grtblog-redis
+    container_name: shawn-blog-redis
     command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
@@ -55,21 +55,22 @@ services:
 
   server:
     image: golang:1.25-alpine
-    container_name: grtblog-server-dev
+    container_name: shawn-blog-server-dev
     working_dir: /src
     command: ["sh", "-c", "go mod download && exec go run ./cmd/api"]
     ports:
       - "8080:8080"
     environment:
-      APP_NAME: grtblog-server
+      APP_NAME: shawn-blog-server
       APP_ENV: development
       APP_PORT: "8080"
       DB_DRIVER: postgres
       # 容器内直接使用 compose 服务名互联，无需经过宿主端口
-      DB_DSN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-grtblog}?sslmode=disable"
+      DB_DSN: "postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-shawn-blog}?sslmode=disable"
       REDIS_ADDR: "redis:6379"
-      REDIS_PREFIX: "${REDIS_PREFIX:-grtblog:}"
+      REDIS_PREFIX: "${REDIS_PREFIX:-shawn-blog:}"
       AUTH_SECRET: "${AUTH_SECRET:?AUTH_SECRET is required}"
+      AUTH_ISSUER: "${AUTH_ISSUER:-shawn-blog-api}"
       # 指向宿主机的 SSR/renderer（make preview-isr 会在宿主 3000 端口启动）
       HTMLSNAPSHOT_BASE_URL: "http://host.docker.internal:3000"
       APP_UPDATE_CHECK_ENABLED: "false"
@@ -86,11 +87,16 @@ services:
 
 volumes:
   postgres_data:
-    name: grtblog_postgres_data
+    name: "${POSTGRES_VOLUME_NAME:-shawn-blog_postgres_data}"
   redis_data:
-    name: grtblog_redis_data
+    name: "${REDIS_VOLUME_NAME:-shawn-blog_redis_data}"
   # 与手工运行阶段创建的缓存卷同名，切换后无需重新下载依赖
   go_mod_cache:
-    name: grtblog_go_mod
+    name: "${GO_MOD_VOLUME_NAME:-shawn-blog_go_mod}"
   go_build_cache:
-    name: grtblog_go_build
+    name: "${GO_BUILD_VOLUME_NAME:-shawn-blog_go_build}"
+
+networks:
+  default:
+    name: "${DEV_NETWORK_NAME:-shawn-blog-dev_default}"
+    external: ${DEV_NETWORK_EXTERNAL:-false}

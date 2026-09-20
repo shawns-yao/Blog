@@ -12,10 +12,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	appai "github.com/shawns-yao/grtblog-v2/server/internal/app/ai"
-	domainai "github.com/shawns-yao/grtblog-v2/server/internal/domain/ai"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/contract"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/response"
+	appai "github.com/shawns-yao/shawn-blog/server/internal/app/ai"
+	domainai "github.com/shawns-yao/shawn-blog/server/internal/domain/ai"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/contract"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/response"
 )
 
 type AIHandler struct {

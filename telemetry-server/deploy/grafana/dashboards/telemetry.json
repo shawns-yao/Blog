@@ -153,9 +153,9 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": ["telemetry", "grtblog"],
+  "tags": ["telemetry", "shawn-blog"],
   "templating": { "list": [] },
   "time": { "from": "now-7d", "to": "now" },
-  "title": "GrtBlog Telemetry",
-  "uid": "grtblog-telemetry"
+  "title": "shawn-blog Telemetry",
+  "uid": "shawn-blog-telemetry"
 }

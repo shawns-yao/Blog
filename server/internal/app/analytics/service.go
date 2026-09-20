@@ -12,10 +12,10 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/config"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/clientinfo"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/geoip"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence/model"
+	"github.com/shawns-yao/shawn-blog/server/internal/config"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/clientinfo"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/geoip"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence/model"
 )
 
 const (

@@ -278,7 +278,7 @@ async function loadPosterFonts(): Promise<void> {
 	const loadedFonts = await Promise.all([
 		document.fonts.load('700 76px "Noto Serif SC"', '分享卡片'),
 		document.fonts.load('400 30px "Noto Serif SC"', '根据本页内容生成'),
-		document.fonts.load('400 24px "Google Sans"', 'GRtBlog'),
+		document.fonts.load('400 24px "Google Sans"', 'shawn-blog'),
 		document.fonts.load('500 22px "Victor Mono Variable"', 'example.com/article')
 	]);
 	await document.fonts.ready;

@@ -8,7 +8,7 @@ const FEDERATION_BETA_CONTENT =
 
 let federationBetaConfirmHandler: FederationBetaConfirmHandler | null = null
 
-const FEDERATION_BETA_ACK_KEY = 'grtblog:federation-beta-ack'
+const FEDERATION_BETA_ACK_KEY = 'shawn-blog:federation-beta-ack'
 
 export function isFederationBetaRoute(to: RouteLocationNormalized) {
   if (to.name === 'settings' && to.query.tab === 'federation') {

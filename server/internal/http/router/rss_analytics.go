@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	apprss "github.com/shawns-yao/grtblog-v2/server/internal/app/rss"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/geoip"
+	apprss "github.com/shawns-yao/shawn-blog/server/internal/app/rss"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/geoip"
 )
 
 func newRSSAccessAnalyticsService(deps Dependencies) *apprss.AccessAnalyticsService {

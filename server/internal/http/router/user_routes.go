@@ -3,13 +3,13 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/adminnotification"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/auth"
-	"github.com/shawns-yao/grtblog-v2/server/internal/app/friendlink"
-	mediaapp "github.com/shawns-yao/grtblog-v2/server/internal/app/media"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/handler"
-	"github.com/shawns-yao/grtblog-v2/server/internal/http/middleware"
-	"github.com/shawns-yao/grtblog-v2/server/internal/infra/persistence"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/adminnotification"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/auth"
+	"github.com/shawns-yao/shawn-blog/server/internal/app/friendlink"
+	mediaapp "github.com/shawns-yao/shawn-blog/server/internal/app/media"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/handler"
+	"github.com/shawns-yao/shawn-blog/server/internal/http/middleware"
+	"github.com/shawns-yao/shawn-blog/server/internal/infra/persistence"
 )
 
 func registerUserRoutes(v2 fiber.Router, deps Dependencies, websiteInfoHandler *handler.WebsiteInfoHandler) {

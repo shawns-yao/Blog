@@ -32,7 +32,7 @@ Every tagged release triggers a GitHub Actions workflow that builds multi-arch (
 |------|---------------------|----------|
 | Docker Hub | `shawns-yao/` | 国际通用 |
 | GHCR | `ghcr.io/shawns-yao/` | 国际通用、预发布版本 |
-| CNB（推荐国内） | `docker.cnb.cool/shawns-yao/grtblog-v2/` | 国内服务器加速拉取 |
+| CNB（推荐国内） | `docker.cnb.cool/shawns-yao/shawn-blog/` | 国内服务器加速拉取 |
 
 ```ini
 IMAGE_REPO_PREFIX=ghcr.io/shawns-yao/
@@ -43,7 +43,7 @@ APP_UPDATE_CHANNEL=stable
 国内服务器推荐：
 
 ```ini
-IMAGE_REPO_PREFIX=docker.cnb.cool/shawns-yao/grtblog-v2/
+IMAGE_REPO_PREFIX=docker.cnb.cool/shawns-yao/shawn-blog/
 APP_VERSION=1.2.3
 APP_UPDATE_CHANNEL=stable
 # Docker Hub 镜像加速（nginx/postgres/redis）
@@ -170,7 +170,7 @@ Admin panel URL: `http://localhost:${NGINX_PORT:-80}/admin/`
 - `BACKUP_RESTORE_MAX_ARCHIVE_BYTES`：上传归档上限，默认 10 GiB
 - `BACKUP_RESTORE_MAX_EXTRACTED_BYTES`：解压后总量上限，默认 50 GiB
 
-初始化恢复接口只在数据库完全没有用户时开放；站点已有用户后必须以管理员身份从设置页恢复。只应恢复自己信任的 grtblog 归档，因为 PostgreSQL 归档本质上包含可执行的数据库定义。
+初始化恢复接口只在数据库完全没有用户时开放；站点已有用户后必须以管理员身份从设置页恢复。只应恢复自己信任的 shawn-blog 归档，因为 PostgreSQL 归档本质上包含可执行的数据库定义。
 
 备份工具要求 `DB_DSN` 使用 `postgres://` 或 `postgresql://` URL；官方 Compose 已按此格式配置。连接密码只通过 libpq 环境变量传给 `pg_dump` / `pg_restore`，不会出现在命令行参数中。
 
@@ -257,7 +257,7 @@ server {
 - Nginx 使用 Docker 内置 DNS (`resolver 127.0.0.11 valid=10s`) 代替 `upstream` 块，容器重建后最多 10s 自动恢复。
 - `renderer` entrypoint 每次启动时清理旧 `_app/` 并拷贝新资源，解决版本堆积问题。
 - `server` entrypoint 自动运行数据库迁移，无需单独的 migrate 服务。
-- Internal service network: `grtblog-internal`.
+- Internal service network: `shawn-blog-internal`.
 - `server` renders snapshot pages from `HTMLSNAPSHOT_BASE_URL=http://renderer:3000`.
 - `renderer` SSR calls API via `INTERNAL_API_BASE_URL=http://server:8080/api/v2`.
 - Admin SPA 内置于 server 镜像 (`/app/admin/`)，由 Fiber 直接 serve，无需独立容器。
