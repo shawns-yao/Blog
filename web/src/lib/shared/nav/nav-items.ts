@@ -16,11 +16,12 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+	{ name: '首页', url: '/', icon: 'house' },
 	{ name: '手记', url: '/moments', icon: 'pen-tool' },
-	{ name: '标签', url: '/tags', icon: 'hash' },
-	{ name: '相册', url: '/albums', icon: 'image' },
-	{ name: '时间线', url: '/timeline', icon: 'archive' },
-	{ name: '友链', url: '/friends', icon: 'user' }
+	{ name: '图书馆', url: '/gallery', icon: 'book-open' },
+	{ name: '搜索', url: '/search', icon: 'search' },
+	{ name: '友链', url: '/friends', icon: 'link' },
+	{ name: '关于', url: '/about', icon: 'user' }
 ];
 
 /**
@@ -73,7 +74,7 @@ export const SHELF_BOOKS: ShelfBook[] = [
 		width: 45
 	},
 	{
-		name: '图库',
+		name: '图书馆',
 		url: '/gallery',
 		icon: 'book-open',
 		color: '#3f5871',

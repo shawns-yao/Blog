@@ -1,9 +1,28 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { resolveTheme, themeManager, type Theme } from '$lib/shared/theme/theme.svelte';
-	import { Monitor, Moon, Sun } from 'lucide-svelte';
+	import { Moon, Sun } from 'lucide-svelte';
+	import AlarmClock from './AlarmClock.svelte';
 
+	let { compact = false }: { compact?: boolean } = $props();
 	const theme = themeManager;
 	const resolved = $derived.by(() => resolveTheme(theme.current));
+	let clockElement: HTMLSpanElement | undefined;
+	let ringing: Animation | undefined;
+
+	onDestroy(() => ringing?.cancel());
+
+	function ringClock() {
+		ringing?.cancel();
+		if (!clockElement || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+		ringing = clockElement.animate(
+			[0, -9, 9, -8, 8, -6, 6, -4, 4, -2, 2, 0].map((angle) => ({
+				transform: `rotate(${angle}deg)`
+			})),
+			{ duration: 850, easing: 'ease-in-out' }
+		);
+	}
 
 	type ViewTransitionLike = { ready: Promise<void> };
 	type DocumentWithViewTransition = Document & {
@@ -12,19 +31,15 @@
 
 	const isMobile = () => window.innerWidth < 768;
 
-	const cycleOrder: Theme[] = ['light', 'dark', 'system'];
-	const nextTheme = (): Theme => {
-		const idx = cycleOrder.indexOf(theme.current);
-		return cycleOrder[(idx + 1) % cycleOrder.length];
-	};
+	const nextTheme = (): Theme => (theme.current === 'light' ? 'dark' : 'light');
 
 	const labelMap: Record<Theme, string> = {
 		light: '浅色模式',
-		dark: '深色模式',
-		system: '跟随系统'
+		dark: '深色模式'
 	};
 
 	const toggleTheme = async (event: MouseEvent) => {
+		if (compact) ringClock();
 		const next = nextTheme();
 		const willChange = resolveTheme(next) !== resolved;
 		const doc = document as DocumentWithViewTransition;
@@ -70,17 +85,55 @@
 
 <button
 	type="button"
+	class:theme-toggle-compact={compact}
 	data-theme={theme.current}
 	aria-label={labelMap[theme.current]}
 	title={labelMap[theme.current]}
 	onclick={toggleTheme}
-	class="h-10 w-10 rounded-default text-ink-400 hover:bg-ink-100 hover:text-ink-900 dark:hover:bg-ink-800 dark:hover:text-ink-100 flex items-center justify-center"
+	class="flex h-10 w-10 items-center justify-center rounded-default text-ink-400 hover:bg-ink-100 hover:text-ink-900 dark:hover:bg-ink-800 dark:hover:text-ink-100"
 >
-	{#if theme.current === 'dark'}
+	{#if compact}
+		<span class="clock-motion" bind:this={clockElement}>
+			<AlarmClock />
+		</span>
+	{:else if theme.current === 'dark'}
 		<Moon class="w-5 h-5 relative z-10" />
-	{:else if theme.current === 'system'}
-		<Monitor class="w-5 h-5 relative z-10" />
 	{:else}
 		<Sun class="w-5 h-5 relative z-10" />
 	{/if}
 </button>
+
+<style>
+	.clock-motion {
+		display: block;
+		width: 100%;
+		height: 100%;
+		transform-origin: 50% 90%;
+	}
+
+	.theme-toggle-compact {
+		height: 76.5px;
+		width: 68px;
+		padding: 0;
+		border-radius: 4px;
+		background: transparent;
+		transition: filter 160ms ease;
+	}
+
+	.theme-toggle-compact:hover,
+	.theme-toggle-compact:focus-visible {
+		background: transparent;
+		filter: brightness(1.08);
+	}
+
+	.theme-toggle-compact:focus-visible {
+		outline: 2px solid #d7c295;
+		outline-offset: 3px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.theme-toggle-compact {
+			transition: none;
+		}
+	}
+</style>

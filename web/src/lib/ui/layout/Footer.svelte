@@ -4,12 +4,18 @@
 	import { websiteInfoCtx } from '$lib/features/website-info/context';
 
 	type Props = {
+		imageBackground?: boolean;
 		onlineCount?: number;
 		presenceConnected?: boolean;
 		onOpenPresence?: () => void;
 	};
 
-	let { onlineCount = 0, presenceConnected = false, onOpenPresence = () => {} }: Props = $props();
+	let {
+		imageBackground = false,
+		onlineCount = 0,
+		presenceConnected = false,
+		onOpenPresence = () => {}
+	}: Props = $props();
 
 	const footerThemeStore = websiteInfoCtx.selectModelData((data) => resolveFooterThemeConfig(data));
 	const desktopColumnCount = $derived(Math.min($footerThemeStore.sections.length, 6));
@@ -24,7 +30,9 @@
 </script>
 
 <footer
-	class="mt-32 border-t border-jade-100/80 dark:border-ink-800 bg-jade-50/30 dark:bg-ink-950/30 backdrop-blur-sm"
+	class:image-background={imageBackground}
+	class:presence-connected={presenceConnected}
+	class="relative z-1 isolate mt-32 bg-transparent"
 >
 	<div class="max-w-[1200px] mx-auto px-6 py-12 md:py-16">
 		<!-- Mobile Compact Layout (Hidden on Desktop) -->
@@ -160,4 +168,58 @@
 
 <style lang="postcss">
 	@reference "$routes/layout.css";
+
+	.image-background {
+		--footer-text-shadow:
+			-1px 0 1px rgb(15 20 17 / 0.9), 1px 0 1px rgb(15 20 17 / 0.9), 0 -1px 1px rgb(15 20 17 / 0.9),
+			0 1px 1px rgb(15 20 17 / 0.9), 0 2px 4px rgb(15 20 17 / 0.65);
+		text-shadow: var(--footer-text-shadow);
+	}
+
+	.image-background .font-bold {
+		color: #fffaf0;
+	}
+
+	.image-background a,
+	.image-background p,
+	.image-background .font-normal {
+		color: #f1eee6;
+	}
+
+	.image-background a {
+		font-weight: 500;
+	}
+
+	.image-background p {
+		font-size: 12px;
+		line-height: 1.75;
+		letter-spacing: 0;
+	}
+
+	.image-background button {
+		color: #ffc6c6;
+	}
+
+	.image-background.presence-connected button {
+		color: #b9f1df;
+	}
+
+	.image-background button > span:last-child {
+		font-size: 12px;
+		line-height: 1.5;
+	}
+
+	.image-background a:hover,
+	.image-background a:focus-visible,
+	.image-background button:hover {
+		color: #b9f1df;
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+
+	.image-background a:focus-visible,
+	.image-background button:focus-visible {
+		outline: 2px solid #fffaf0;
+		outline-offset: 4px;
+	}
 </style>

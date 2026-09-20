@@ -1,105 +1,35 @@
 <script lang="ts">
 	import type { ShelfBook } from '$lib/shared/nav/nav-items';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
+	import { onDestroy } from 'svelte';
 	import DynamicLucideIcon from '$lib/ui/icons/DynamicLucideIcon.svelte';
-	import { bookTransition } from '$lib/shared/stores/book-transition.svelte';
+	import ThemeIcon from '$lib/ui/layout/sidebar/ThemeIcon.svelte';
+	import { uiState } from '$lib/shared/stores/ui.svelte';
 	import { page } from '$app/state';
 	import { resolveHref } from '$lib/shared/utils/resolve-path';
 
-	let { books = [] } = $props<{ books: ShelfBook[] }>();
+	let { books = [] }: { books: ShelfBook[] } = $props();
+	const aboutBook = $derived(books.find((book) => book.url === '/about'));
 
 	const isActive = (href: string) =>
 		page.url.pathname === href || (href !== '/' && page.url.pathname.startsWith(href + '/'));
 
-	const wait = (duration: number) =>
-		new Promise<void>((resolve) => {
-			window.setTimeout(resolve, duration);
-		});
+	let bookFeedback: Animation | undefined;
+	onDestroy(() => bookFeedback?.cancel());
 
-	function canAnimateNavigation(event: MouseEvent, href: string) {
-		return (
-			browser &&
-			event.button === 0 &&
-			!event.metaKey &&
-			!event.ctrlKey &&
-			!event.shiftKey &&
-			!event.altKey &&
-			!bookTransition.active &&
-			!/^([a-z]+:)?\/\//i.test(href) &&
-			!isActive(href) &&
-			window.innerWidth >= 768 &&
-			!window.matchMedia('(prefers-reduced-motion: reduce)').matches
-		);
-	}
-
-	async function playBookTransition(book: ShelfBook, href: string, anchor: HTMLAnchorElement) {
-		const rect = anchor.getBoundingClientRect();
-		bookTransition.start({
-			title: book.name,
-			color: book.color,
-			edge: book.edge,
-			from: {
-				top: rect.top,
-				left: rect.left,
-				width: rect.width,
-				height: rect.height
-			}
-		});
-
-		await new Promise<void>((resolve) => {
-			requestAnimationFrame(() => {
-				requestAnimationFrame(() => resolve());
-			});
-		});
-		bookTransition.setPhase('opening');
-
-		try {
-			await Promise.all([goto(href), wait(720)]);
-			bookTransition.enterReadingMode();
-			bookTransition.setPhase('revealing');
-			await wait(220);
-			bookTransition.reset();
-		} catch {
-			bookTransition.reset();
-			window.location.assign(href);
-		}
-	}
-
-	async function navigateOpenBook(book: ShelfBook, href: string) {
-		if (book.url === '/') {
-			if (!bookTransition.startClosing()) return;
-			await wait(650);
-			bookTransition.leaveReadingMode();
-			await goto('/');
+	function handleBookClick(event: MouseEvent, book: ShelfBook) {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
 			return;
+		bookFeedback?.cancel();
+		if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+			bookFeedback = (event.currentTarget as HTMLAnchorElement).animate(
+				[{ translate: '0 0' }, { translate: '0 -4px', offset: 0.4 }, { translate: '0 0' }],
+				{ duration: 260, easing: 'ease-out' }
+			);
 		}
-
-		if (isActive(book.url) || !bookTransition.startPageTurn()) return;
-		await wait(190);
-		try {
-			await goto(href);
-			await wait(430);
-		} finally {
-			bookTransition.finishPageTurn();
-		}
-	}
-
-	function handleBookClick(event: MouseEvent, book: ShelfBook, href: string) {
-		if (bookTransition.active) {
+		if (book.url === '/search') {
 			event.preventDefault();
-			return;
+			uiState.openSearch();
 		}
-		if (bookTransition.reading) {
-			event.preventDefault();
-			void navigateOpenBook(book, href);
-			return;
-		}
-		if (book.url === '/') return;
-		if (!canAnimateNavigation(event, href)) return;
-
-		event.preventDefault();
-		void playBookTransition(book, href, event.currentTarget as HTMLAnchorElement);
 	}
 </script>
 
@@ -120,7 +50,7 @@
 					aria-label={book.name}
 					aria-current={active ? 'page' : undefined}
 					data-sveltekit-preload-data="hover"
-					onclick={(event) => handleBookClick(event, book, href)}
+					onclick={(event) => handleBookClick(event, book)}
 					class="book"
 					class:active
 					class:flat={book.placement === 'flat'}
@@ -138,6 +68,15 @@
 					</span>
 				</a>
 			{/each}
+			{#if aboutBook}
+				<div
+					class="shelf-theme-toggle"
+					style="--support-width:{aboutBook.width}px; --support-top:{aboutBook.height +
+						(aboutBook.lift ?? 0)}px;"
+				>
+					<ThemeIcon compact />
+				</div>
+			{/if}
 		</div>
 
 		<div class="shelf-board" aria-hidden="true">
@@ -294,7 +233,7 @@
 	.book:hover,
 	.book:focus-visible {
 		z-index: 8;
-		transform: rotate(0deg) translateY(-9px);
+		transform: rotate(0deg);
 		outline: none;
 		filter: saturate(1.08) brightness(1.04);
 		box-shadow:
@@ -321,12 +260,12 @@
 	}
 
 	.book.active:not(.flat) {
-		transform: rotate(var(--tilt)) translateY(-5px);
+		transform: rotate(var(--tilt));
 	}
 
 	.book.active:not(.flat):hover,
 	.book.active:not(.flat):focus-visible {
-		transform: rotate(0deg) translateY(-10px);
+		transform: rotate(0deg);
 	}
 
 	.book::before {
@@ -531,6 +470,16 @@
 			0 4px 5px rgb(45 27 15 / 0.34),
 			0 12px 20px rgb(45 27 15 / 0.18),
 			inset 0 -3px rgb(57 33 19 / 0.2);
+	}
+
+	.shelf-theme-toggle {
+		position: absolute;
+		z-index: 10;
+		right: 0;
+		bottom: var(--support-top);
+		display: flex;
+		justify-content: center;
+		width: var(--support-width);
 	}
 
 	.shelf-board::before {

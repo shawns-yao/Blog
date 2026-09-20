@@ -16,8 +16,8 @@ const defaultFooterConfig: FooterThemeConfig = {
 			title: '你也许在找',
 			links: [
 				{ name: '手记', href: '/moments' },
-				{ name: '友链', href: '/friends' },
-				{ name: '时间线', href: '/timeline' }
+				{ name: '图书馆', href: '/gallery' },
+				{ name: '友链', href: '/friends' }
 			]
 		},
 		{

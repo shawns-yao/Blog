@@ -69,9 +69,12 @@
 	function closeWithAnimation() {
 		isAnimating = false;
 		document.body.style.overflow = '';
-		setTimeout(() => {
-			uiState.closeSearch();
-		}, 500);
+		setTimeout(
+			() => {
+				uiState.closeSearch();
+			},
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 200
+		);
 	}
 
 	function onClose() {
@@ -262,7 +265,7 @@
 
 {#if shouldRender}
 	<div
-		class="fixed inset-0 z-[100] flex items-start justify-center bg-ink-900/20 dark:bg-black/60 pt-[15vh] px-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+		class="fixed inset-0 z-[2000] flex items-start justify-center bg-ink-900/20 dark:bg-black/60 pt-[15vh] px-4 transition-all duration-200 ease-out motion-reduce:transition-none"
 		class:opacity-100={isAnimating}
 		class:opacity-0={!isAnimating}
 		class:backdrop-blur-[3px]={isAnimating}
@@ -272,11 +275,7 @@
 		></button>
 
 		<div
-			class="relative w-full max-w-2xl overflow-hidden rounded-sm border border-ink-200/80 bg-ink-50/95 shadow-glass dark:border-ink-700/70 dark:bg-ink-900/95 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
-			class:translate-y-0={isAnimating}
-			class:translate-y-8={!isAnimating}
-			class:scale-100={isAnimating}
-			class:scale-95={!isAnimating}
+			class="relative w-full max-w-2xl overflow-hidden rounded-sm border border-ink-200/80 bg-ink-50/95 shadow-glass dark:border-ink-700/70 dark:bg-ink-900/95 transition-opacity duration-200 ease-out motion-reduce:transition-none"
 			class:opacity-100={isAnimating}
 			class:opacity-0={!isAnimating}
 		>

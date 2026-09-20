@@ -1,10 +1,10 @@
 import { browser } from '$app/environment';
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
 class ThemeManager {
-	current = $state<Theme>('system');
+	current = $state<Theme>('light');
 
 	set(theme: Theme) {
 		this.current = theme;
@@ -13,40 +13,20 @@ class ThemeManager {
 
 export const themeManager = new ThemeManager();
 
-export const resolveTheme = (theme: Theme): ResolvedTheme => {
-	if (!browser || theme !== 'system') {
-		return theme === 'dark' ? 'dark' : 'light';
-	}
-
-	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-};
+export const resolveTheme = (theme: Theme): ResolvedTheme => theme;
 
 export const initTheme = (manager: ThemeManager): void => {
 	if (!browser) return;
 
-	const saved = localStorage.getItem('theme') as Theme | null;
-	if (saved === 'light' || saved === 'dark' || saved === 'system') {
-		manager.set(saved);
-	}
+	const saved = localStorage.getItem('theme');
+	manager.set(saved === 'dark' ? 'dark' : 'light');
 };
 
 export const startThemeSync = (manager: ThemeManager): void => {
 	$effect(() => {
 		if (!browser) return;
 
-		const media = window.matchMedia('(prefers-color-scheme: dark)');
-		const apply = () => {
-			const resolved = resolveTheme(manager.current);
-			document.documentElement.classList.toggle('dark', resolved === 'dark');
-			localStorage.setItem('theme', manager.current);
-		};
-
-		apply();
-
-		if (manager.current !== 'system') return;
-
-		const onChange = () => apply();
-		media.addEventListener('change', onChange);
-		return () => media.removeEventListener('change', onChange);
+		document.documentElement.classList.toggle('dark', manager.current === 'dark');
+		localStorage.setItem('theme', manager.current);
 	});
 };

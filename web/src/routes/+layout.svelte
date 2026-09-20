@@ -2,28 +2,22 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import MobileNavBar from '$lib/ui/layout/sidebar/MobileNavBar.svelte';
-	import BookTransitionLayer from '$lib/ui/layout/shelf/BookTransitionLayer.svelte';
-	import BookReadingSurface from '$lib/ui/layout/shelf/BookReadingSurface.svelte';
+	import RouteContent from '$lib/ui/layout/RouteContent.svelte';
 	import ShelfNav from '$lib/ui/layout/shelf/ShelfNav.svelte';
-	import ThemeIcon from '$lib/ui/layout/sidebar/ThemeIcon.svelte';
-	import VisitorAvatar from '$lib/ui/layout/sidebar/VisitorAvatar.svelte';
-	import OwnerStatusAvatar from '$lib/features/owner-status/components/OwnerStatusAvatar.svelte';
 	import { SHELF_BOOKS, type NavItem } from '$lib/shared/nav/nav-items';
 	import { initTheme, startThemeSync, themeManager } from '$lib/shared/theme/theme.svelte.js';
 	import { onMount } from 'svelte';
 	import { consoleLogInfo } from '$lib/features/console-info/index';
 	import Toaster from '$lib/ui/primitives/toaster/Toaster.svelte';
 	import QueryRoot from '$lib/ui/common/QueryRoot.svelte';
-	import Loading from '$lib/ui/common/Loading.svelte';
 	import { navigating } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
-	import { beforeNavigate, onNavigate } from '$app/navigation';
+	import { beforeNavigate } from '$app/navigation';
 	import SearchModal from '$lib/ui/search/SearchModal.svelte';
 	import Footer from '$lib/ui/layout/Footer.svelte';
 	import FloatingWindow from '$lib/ui/common/FloatingWindow.svelte';
 	import { uiState } from '$lib/shared/stores/ui.svelte';
-	import { bookTransition } from '$lib/shared/stores/book-transition.svelte';
 	import { windowStore } from '$lib/shared/stores/windowStore.svelte';
 	import { presenceStore } from '$lib/features/presence/store.svelte';
 	import { ownerStatusStore } from '$lib/features/owner-status/store.svelte';
@@ -56,50 +50,13 @@
 		}
 	}
 
-	function isAlbumDetailPath(pathname: string | null | undefined) {
-		return typeof pathname === 'string' && /^\/albums\/[^/]+$/.test(pathname);
-	}
-
-	function isAlbumPhotoPath(pathname: string | null | undefined) {
-		return typeof pathname === 'string' && /^\/albums\/[^/]+\/photo\/[^/]+$/.test(pathname);
-	}
-
-	function shouldSkipNativeViewTransition(
-		fromPath: string | null | undefined,
-		toPath: string | null | undefined
-	) {
-		return (
-			(isAlbumDetailPath(fromPath) && isAlbumPhotoPath(toPath)) ||
-			(isAlbumPhotoPath(fromPath) && isAlbumDetailPath(toPath))
-		);
-	}
-
 	/**
 	 * Avoid back animation and LCP delay caused by lang time animation.
 	 * reference: https://innei.in/posts/design/page-transition-animation-and-lcp
 	 */
 	beforeNavigate(({ type, willUnload }) => {
 		if (willUnload || typeof document === 'undefined') return;
-		if (type === 'popstate' && bookTransition.reading) {
-			bookTransition.leaveReadingMode();
-		}
 		document.documentElement.dataset.navType = type === 'popstate' ? 'back' : 'forward';
-	});
-
-	onNavigate((navigation) => {
-		if (typeof document === 'undefined' || !document.startViewTransition) return;
-		if (bookTransition.active) return;
-		const fromPath = navigation.from?.url.pathname;
-		const toPath = navigation.to?.url.pathname;
-		if (shouldSkipNativeViewTransition(fromPath, toPath)) return;
-		const startViewTransition = document.startViewTransition.bind(document);
-
-		return new Promise((resolve) => {
-			startViewTransition(async () => {
-				resolve();
-				await navigation.complete;
-			});
-		});
 	});
 
 	import '@fontsource/google-sans/400.css';
@@ -321,7 +278,7 @@
 				if ($navigating) {
 					showRouteLoading = true;
 				}
-			}, 2000);
+			}, 250);
 
 			return () => {
 				clearTimeout(timer);
@@ -386,10 +343,8 @@
 		// Inline script to prevent theme flash (fallback before Svelte hydrates)
 		(function () {
 			try {
-				const theme = localStorage.getItem('theme') || 'system';
-				const isDark =
-					theme === 'dark' ||
-					(theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+				const theme = localStorage.getItem('theme');
+				const isDark = theme === 'dark';
 				document.documentElement.classList.toggle('dark', isDark);
 			} catch (e) {}
 		})();
@@ -398,21 +353,15 @@
 
 <header
 	class="desktop-shelf-header hidden md:flex"
-	class:book-reading-mode={bookTransition.reading}
+	class:home-shelf-header={page.url.pathname === '/'}
 >
-	<div class="shelf-status">
-		<OwnerStatusAvatar />
-		<ThemeIcon />
-		<VisitorAvatar />
-	</div>
 	<ShelfNav books={SHELF_BOOKS} />
 </header>
 <MobileNavBar menuTree={mobileNavItems} />
-<BookTransitionLayer />
 <!-- noise background -->
 <div class="bg-noise" aria-hidden="true"></div>
 
-<BookReadingSurface>
+<div class="relative">
 	<div class="relative overflow-x-clip">
 		{#if $detailHeroBgSrc}
 			<DetailHeroBg src={$detailHeroBgSrc} />
@@ -423,30 +372,26 @@
 				? 'max-w-none px-0 py-0'
 				: page.url.pathname === '/'
 					? 'max-w-none px-0 py-0'
-					: 'max-w-300 px-4 sm:px-6 lg:px-8 py-10 md:py-16'} {bookTransition.reading ||
-			page.url.pathname === '/'
+					: 'max-w-300 px-4 sm:px-6 lg:px-8 py-10 md:py-16'} {page.url.pathname === '/'
 				? ''
 				: 'md:pt-52'}"
 		>
-			<div class="content-container min-h-[60vh]">
+			<RouteContent>
 				{@render children()}
-			</div>
+			</RouteContent>
 		</main>
 		<Footer
+			imageBackground={page.url.pathname === '/'}
 			onlineCount={presenceStore.online}
 			presenceConnected={presenceStore.isConnected}
 			onOpenPresence={openPresenceWindow}
 		/>
 	</div>
-</BookReadingSurface>
+</div>
 
 {#if showRouteLoading}
-	<div
-		class="fixed px-12 py-6 left-1/2 top-1/2 z-99999 -translate-x-1/2 -translate-y-1/2 pointer-events-none rounded-default border border-ink-200/70 bg-ink-50/80 shadow-subtle backdrop-blur-lg dark:border-ink-700/70 dark:bg-ink-900/80"
-		aria-live="polite"
-		aria-busy="true"
-	>
-		<Loading size="w-8 h-8" duration={900} class="gap-0" text="正在玩命加载中...莫慌" />
+	<div class="route-progress" role="progressbar" aria-label="正在加载页面">
+		<span></span>
 	</div>
 {/if}
 
@@ -514,33 +459,46 @@
 		pointer-events: none;
 	}
 
+	.desktop-shelf-header.home-shelf-header {
+		position: absolute;
+	}
+
 	.desktop-shelf-header > :global(*) {
 		pointer-events: auto;
 	}
 
-	.desktop-shelf-header.book-reading-mode {
-		z-index: 1000;
+	.route-progress {
+		position: fixed;
+		inset: 0 0 auto;
+		height: 2px;
+		z-index: 1001;
+		overflow: hidden;
+		pointer-events: none;
+		background: rgb(20 184 166 / 0.15);
 	}
 
-	.shelf-status {
-		position: relative;
-		z-index: 20;
-		display: flex;
-		align-items: center;
-		gap: 0.25rem;
-		margin-top: 1.15rem;
-		padding: 0.25rem;
-		border: 1px solid rgb(120 92 67 / 0.14);
-		border-radius: 999px;
-		background: rgb(251 246 237 / 0.68);
-		box-shadow: 0 8px 24px rgb(70 45 27 / 0.08);
-		backdrop-filter: blur(8px);
+	.route-progress span {
+		display: block;
+		width: 35%;
+		height: 100%;
+		background: var(--color-jade-500);
+		animation: route-progress 1s ease-in-out infinite;
 	}
 
-	:global(.dark) .shelf-status {
-		border-color: rgb(255 255 255 / 0.1);
-		background: rgb(30 25 22 / 0.68);
-		box-shadow: 0 8px 24px rgb(0 0 0 / 0.22);
+	@keyframes route-progress {
+		from {
+			transform: translateX(-100%);
+		}
+		to {
+			transform: translateX(390%);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.route-progress span {
+			animation: none;
+			width: 100%;
+		}
 	}
 
 	:global(html) {
