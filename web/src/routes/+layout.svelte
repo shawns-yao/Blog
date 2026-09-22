@@ -78,6 +78,12 @@
 
 	let { children, data } = $props();
 	let showRouteLoading = $state(false);
+	const isMomentBookRoute = $derived(
+		page.url.pathname === '/moments' ||
+			page.url.pathname.startsWith('/moments/') ||
+			page.url.pathname === '/internal/preview/moment'
+	);
+	const isGalleryRoute = $derived(page.url.pathname.replace(/\/$/, '') === '/gallery');
 
 	// 移动端底部栏复用书架数据（转成 NavItem 形态）
 	const mobileNavItems: NavItem[] = SHELF_BOOKS.map((book) => ({
@@ -348,7 +354,11 @@
 			try {
 				const theme = localStorage.getItem('theme');
 				const until = Number(localStorage.getItem('theme-override-until'));
-				if (Number.isFinite(until) && until > Date.now() && (theme === 'light' || theme === 'dark')) {
+				if (
+					Number.isFinite(until) &&
+					until > Date.now() &&
+					(theme === 'light' || theme === 'dark')
+				) {
 					isDark = theme === 'dark';
 				}
 			} catch (e) {}
@@ -357,9 +367,9 @@
 	</script>
 </svelte:head>
 
-{#if page.url.pathname.replace(/\/$/, '') === '/gallery' || page.url.pathname.startsWith('/moments/')}
-	<LibraryNav activePath={page.url.pathname.startsWith('/moments/') ? '/moments' : '/gallery'} />
-{:else}
+{#if isGalleryRoute}
+	<LibraryNav activePath="/gallery" />
+{:else if !isMomentBookRoute}
 	<header
 		class="desktop-shelf-header hidden md:flex"
 		class:home-shelf-header={page.url.pathname === '/'}
@@ -367,9 +377,13 @@
 		<ShelfNav books={SHELF_BOOKS} />
 	</header>
 {/if}
-<MobileNavBar menuTree={mobileNavItems} />
+{#if !isMomentBookRoute}
+	<MobileNavBar menuTree={mobileNavItems} />
+{/if}
 <!-- noise background -->
-<div class="bg-noise" aria-hidden="true"></div>
+{#if !isMomentBookRoute}
+	<div class="bg-noise" aria-hidden="true"></div>
+{/if}
 
 <div class="relative">
 	<div class="relative overflow-x-clip">
@@ -378,14 +392,17 @@
 		{/if}
 		<SiteHealthBanner />
 		<main
-			class="page-wrapper mx-auto {page.url.pathname.startsWith('/timeline')
+			class="page-wrapper mx-auto {isMomentBookRoute
 				? 'max-w-none px-0 py-0'
-				: page.url.pathname === '/'
+				: page.url.pathname.startsWith('/timeline')
 					? 'max-w-none px-0 py-0'
-					: 'max-w-300 px-4 sm:px-6 lg:px-8 py-10 md:py-16'} {page.url.pathname === '/'
+					: page.url.pathname === '/'
+						? 'max-w-none px-0 py-0'
+						: 'max-w-300 px-4 sm:px-6 lg:px-8 py-10 md:py-16'} {isMomentBookRoute ||
+			page.url.pathname === '/'
 				? ''
-					: page.url.pathname.replace(/\/$/, '') === '/gallery' || page.url.pathname.startsWith('/moments/')
-					? 'md:pt-32'
+				: isGalleryRoute
+					? 'md:pt-4'
 					: 'md:pt-52'}"
 		>
 			<RouteContent>

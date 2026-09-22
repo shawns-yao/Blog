@@ -12,11 +12,21 @@ type MomentListOptions = {
 	contentKind?: 'note' | 'article';
 	columnId?: number;
 	search?: string;
+	includeChildren?: boolean;
+	newestFirst?: boolean;
 };
 
 export const getMomentList = async (
 	fetcher?: typeof fetch,
-	{ page = 1, pageSize = 10, contentKind = 'note', columnId, search }: MomentListOptions = {}
+	{
+		page = 1,
+		pageSize = 10,
+		contentKind = 'note',
+		columnId,
+		search,
+		includeChildren,
+		newestFirst
+	}: MomentListOptions = {}
 ): Promise<MomentListResponse> => {
 	const api = getApi(fetcher);
 	const query = new URLSearchParams({
@@ -26,6 +36,8 @@ export const getMomentList = async (
 	});
 	if (columnId) query.set('columnId', String(columnId));
 	if (search) query.set('search', search);
+	if (includeChildren) query.set('includeChildren', 'true');
+	if (newestFirst) query.set('sort', 'newest');
 	const result = await api<MomentListResponse>(`/moments?${query.toString()}`);
 	return result ?? { items: [], total: 0, page, size: pageSize };
 };

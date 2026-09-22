@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { resolvePath } from '$lib/shared/utils/resolve-path';
-	import { Calendar, FileText, ArrowRight } from 'lucide-svelte';
 	import { momentDetailCtx } from '$lib/features/moment/context';
 	import type { MomentRelatedMoment } from '$lib/features/moment/types';
 	import { buildMomentPath } from '$lib/shared/utils/content-path';
-	import { fly } from 'svelte/transition';
+	import { resolvePath } from '$lib/shared/utils/resolve-path';
+	import { ArrowRight } from 'lucide-svelte';
 
 	const sameRelatedMoments = (
 		a: MomentRelatedMoment[] | null | undefined,
@@ -34,63 +33,113 @@
 
 	const relatedMomentsStore = momentDetailCtx.selectModelData(
 		(data) => data?.relatedMoments ?? [],
-		{
-			equals: sameRelatedMoments
-		}
+		{ equals: sameRelatedMoments }
 	);
 
 	function formatDate(dateStr: string) {
 		const date = new Date(dateStr);
-		return `${date.getMonth() + 1}月${date.getDate()}日`;
+		return `${date.getMonth() + 1}.${String(date.getDate()).padStart(2, '0')}`;
 	}
 </script>
 
-<div class="space-y-6">
-	<div class="flex items-center justify-between border-b border-ink-800/10 pb-2">
-		<div class="flex items-center gap-2">
-			<FileText size={12} class="text-cinnabar-500" />
-			<span class="font-mono text-[8px] font-bold tracking-[0.4em] text-ink-400 uppercase">
-				同期手记
-			</span>
-		</div>
-		<a
-			href={resolvePath('/moments')}
-			class="group text-[10px] text-ink-300 transition-colors hover:text-cinnabar-500"
-		>
-			<ArrowRight size={10} class="transition-transform group-hover:translate-x-0.5" />
-		</a>
+<section class="related-moments" aria-labelledby="related-moments-heading">
+	<div class="related-head">
+		<h3 id="related-moments-heading">同期手记</h3>
+		<a href={resolvePath('/moments')} aria-label="查看全部手记"><ArrowRight size={12} /></a>
 	</div>
 
 	{#if $relatedMomentsStore.length === 0}
-		<div
-			class="rounded-default border border-dashed border-ink-200/70 bg-ink-50/30 p-3 text-[10px] text-ink-400 dark:border-ink-800/40 dark:bg-ink-900/20 dark:text-ink-500"
-		>
-			暂无同期手记
-		</div>
+		<p class="related-empty">暂无同期手记</p>
 	{:else}
-		<div class="space-y-4">
-			{#each $relatedMomentsStore as moment, i (moment.id)}
-				<a
-					href={resolvePath(buildMomentPath(moment.shortUrl, moment.createdAt))}
-					class="group block space-y-1.5 rounded-default border border-transparent bg-ink-50/40 p-3 transition-all hover:border-cinnabar-500/10 hover:bg-white hover:shadow-sm dark:bg-ink-900/20 dark:hover:bg-ink-900/40"
-					in:fly={{ x: 10, delay: i * 100 }}
-				>
-					<div class="flex items-center justify-between">
-						<div class="flex items-center gap-1 text-[9px] font-medium text-ink-400">
-							<Calendar size={10} strokeWidth={2} />
-							{formatDate(moment.createdAt)}
-						</div>
-					</div>
-					<h4
-						class="text-[11px] font-bold leading-snug text-ink-800 transition-colors group-hover:text-cinnabar-500 dark:text-ink-200"
-					>
-						{moment.title}
-					</h4>
-					<p class="line-clamp-2 text-[10px] leading-relaxed text-ink-500 dark:text-ink-400">
-						{moment.summary}
-					</p>
-				</a>
+		<ol>
+			{#each $relatedMomentsStore as moment (moment.id)}
+				<li>
+					<a href={resolvePath(buildMomentPath(moment.shortUrl, moment.createdAt))}>
+						<time datetime={moment.createdAt}>{formatDate(moment.createdAt)}</time>
+						<strong>{moment.title}</strong>
+						<p>{moment.summary}</p>
+					</a>
+				</li>
 			{/each}
-		</div>
+		</ol>
 	{/if}
-</div>
+</section>
+
+<style>
+	.related-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding-bottom: 0.65rem;
+		border-bottom: 1px solid var(--book-rule);
+	}
+
+	.related-head h3 {
+		font-family: var(--font-serif);
+		font-size: 0.62rem;
+		letter-spacing: 0.17em;
+		color: var(--book-faint);
+	}
+
+	.related-head a {
+		color: var(--book-faint);
+	}
+
+	.related-head a:hover,
+	.related-head a:focus-visible {
+		color: var(--book-accent);
+	}
+
+	.related-moments ol {
+		margin-top: 0.4rem;
+	}
+
+	.related-moments li a {
+		display: grid;
+		grid-template-columns: 2.4rem minmax(0, 1fr);
+		gap: 0.3rem 0.55rem;
+		padding: 0.72rem 0;
+		border-bottom: 1px solid rgba(76, 58, 43, 0.1);
+	}
+
+	.related-moments time {
+		grid-row: 1 / span 2;
+		font-family: var(--font-mono);
+		font-size: 0.5rem;
+		color: var(--book-faint);
+	}
+
+	.related-moments strong {
+		overflow: hidden;
+		font-family: var(--font-serif);
+		font-size: 0.69rem;
+		font-weight: 600;
+		line-height: 1.55;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.related-moments p {
+		display: -webkit-box;
+		overflow: hidden;
+		font-family: var(--font-serif);
+		font-size: 0.58rem;
+		line-height: 1.55;
+		color: var(--book-muted);
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+	}
+
+	.related-moments li a:hover strong,
+	.related-moments li a:focus-visible strong {
+		color: var(--book-accent);
+	}
+
+	.related-empty {
+		padding: 0.8rem 0;
+		font-family: var(--font-serif);
+		font-size: 0.64rem;
+		color: var(--book-faint);
+	}
+</style>
