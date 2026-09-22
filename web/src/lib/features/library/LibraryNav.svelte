@@ -6,10 +6,18 @@
 	import ThemeIcon from '$lib/ui/layout/sidebar/ThemeIcon.svelte';
 	import { Search, ArrowLeft, Menu, Sun, Moon } from 'lucide-svelte';
 	import { themeManager } from '$lib/shared/theme/theme.svelte';
+	import { page } from '$app/state';
+	import type { Column } from '$lib/features/taxonomy/types';
+	import { libraryPath } from './paths';
 	let { activePath = '/gallery' }: { activePath?: string } = $props();
+	const roots = $derived(
+		((page.data as { columns?: Column[] }).columns ?? []).filter((item) => !item.parentId)
+	);
+	const activeRoot = $derived((page.data as { root?: Column | null }).root?.id);
+	const bookColors = ['#3e6154', '#4a5b73', '#815159', '#70604a'];
 </script>
 
-<header class="library-nav">
+<header class="library-nav" class:library-categories={activePath === '/gallery'}>
 	{#if activePath === '/gallery'}
 		<a class="back-home" href={resolveHref('/')}><ArrowLeft size={16} />返回首页</a>
 		<a class="brand" href={resolveHref('/gallery/')}>图书馆</a>
@@ -37,6 +45,24 @@
 				</nav>
 			</details>
 		</div>
+		<nav class="primary-shelf" aria-label="一级分类书架">
+			<a
+				class="all-categories"
+				href={resolveHref('/gallery/')}
+				aria-current={!activeRoot ? 'page' : undefined}>全部</a
+			>
+			{#each roots as root, index (root.id)}
+				<a
+					class="category-spine"
+					style:--spine={bookColors[index % bookColors.length]}
+					href={resolveHref(libraryPath({ column: root.id }))}
+					aria-current={activeRoot === root.id ? 'page' : undefined}
+					title={root.name}
+				>
+					<span>{root.name}</span>
+				</a>
+			{/each}
+		</nav>
 	{:else}
 		<a class="brand" href={resolveHref('/')}>{brand.name}</a>
 		<nav aria-label="主导航">
@@ -58,6 +84,83 @@
 </header>
 
 <style>
+	.library-nav.library-categories {
+		position: relative;
+		height: auto;
+		min-height: 180px;
+		padding-top: 18px;
+		padding-bottom: 22px;
+		align-items: flex-start;
+		gap: 24px;
+		background: transparent;
+		box-shadow: none;
+		border: 0;
+		flex-wrap: wrap;
+	}
+	.library-categories .brand {
+		margin-right: 0;
+		padding-top: 6px;
+	}
+	.library-categories .back-home {
+		padding-top: 14px;
+	}
+	.library-categories .library-actions {
+		padding-top: 3px;
+	}
+	.library-categories .primary-shelf {
+		margin-left: auto;
+		display: flex;
+		align-items: end;
+		gap: 6px;
+		height: 154px;
+		max-width: min(600px, 100%);
+		overflow-x: auto;
+		padding: 8px 14px 12px;
+		border-bottom: 9px solid #826447;
+		box-shadow: 0 9px 10px -8px #0008;
+	}
+	.primary-shelf .category-spine {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 49px;
+		flex-shrink: 0;
+		height: 130px;
+		padding: 9px 0;
+		background: var(--spine);
+		color: #f6ecd7;
+		border: 1px solid #ead5a94d;
+		border-radius: 3px;
+		box-shadow:
+			inset 4px 0 5px #0005,
+			inset -3px 0 2px #fff2,
+			2px 2px 2px #0003;
+		transition: transform 180ms ease;
+	}
+	.category-spine span {
+		writing-mode: vertical-rl;
+		font: 15px/1.5 var(--font-serif);
+	}
+	.primary-shelf .category-spine[aria-current],
+	.primary-shelf .category-spine:hover {
+		transform: translateY(-5px);
+		outline: 1px solid #aa8959;
+	}
+	.primary-shelf .all-categories {
+		height: auto;
+		font-size: 12px;
+		padding: 8px;
+		white-space: nowrap;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.primary-shelf .category-spine {
+			transition: none;
+		}
+		.primary-shelf .category-spine[aria-current],
+		.primary-shelf .category-spine:hover {
+			transform: none;
+		}
+	}
 	.back-home {
 		display: flex;
 		align-items: center;
@@ -163,6 +266,13 @@
 	@media (max-width: 767px) {
 		.library-nav {
 			display: none;
+		}
+		.library-nav.library-categories {
+			display: flex;
+			padding: 24px 20px;
+		}
+		.library-categories .primary-shelf {
+			width: 100%;
 		}
 	}
 </style>

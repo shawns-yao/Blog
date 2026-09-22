@@ -10,6 +10,7 @@ type TOCNode struct {
 
 type MomentColumn struct {
 	ID        int64
+	ParentID  *int64
 	Name      string
 	ShortURL  *string
 	CreatedAt time.Time

@@ -7,6 +7,7 @@ import (
 )
 
 type ColumnResp struct {
+	ParentID  *int64    `json:"parentId"`
 	ID        int64     `json:"id"`
 	Name      string    `json:"name"`
 	ShortURL  string    `json:"shortUrl"`

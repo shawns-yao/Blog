@@ -29,8 +29,8 @@
 
 <section class="library-reader">
 	<header class="reader-heading">
-		<a href={resolvePath(libraryPath({ column: column?.id }))}
-			><ArrowLeft size={16} />{column ? `返回${column.name}` : '返回图书馆'}</a
+		<a href={resolvePath(libraryPath({ column: column?.parentId ?? column?.id, view: 'list' }))}
+			><ArrowLeft size={16} />返回时间列表</a
 		>
 		<label
 			>切换分类
@@ -59,7 +59,7 @@
 						class="chapter"
 						aria-current="page"
 						href={resolvePath(
-							libraryPath({ column: column?.id, read: selected.shortUrl, page: moments.page })
+								libraryPath({ read: selected.shortUrl, page: moments.page })
 						)}
 					>
 						<FileText size={16} /><span>{selected.title}</span>
@@ -70,7 +70,7 @@
 						class="chapter"
 						aria-current={selected?.id === article.id ? 'page' : undefined}
 						href={resolvePath(
-							libraryPath({ column: column?.id, read: article.shortUrl, page: moments.page })
+								libraryPath({ read: article.shortUrl, page: moments.page })
 						)}
 					>
 						<FileText size={16} /><span>{article.title}</span>
@@ -187,8 +187,13 @@
 	.open-book {
 		display: grid;
 		grid-template-columns: 270px minmax(0, 1fr);
-		border-top: 1px solid var(--color-ink-200);
-		background: var(--color-ink-50);
+		border: 1px solid #c4baa5;
+		border-bottom: 5px double #c4baa5;
+		border-radius: 3px;
+		background: #f5f0e5;
+		box-shadow:
+			0 12px 26px #00000012,
+			3px 3px 0 #d8d0bf;
 		min-height: 650px;
 	}
 	aside {
@@ -242,6 +247,7 @@
 		min-width: 0;
 		padding: 28px 52px 56px;
 		border-left: 1px solid #c2bdae;
+		box-shadow: inset 12px 0 18px -14px #51402b80;
 	}
 	.page-running {
 		display: flex;
@@ -334,6 +340,23 @@
 		}
 		.reading-page {
 			padding: 28px;
+		}
+	}
+	@media (max-width: 640px) {
+		.open-book {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		aside {
+			position: static;
+			max-height: 230px;
+			border-bottom: 1px solid #aaa4;
+		}
+		.reading-page {
+			border-left: 0;
+			padding: 24px 18px;
+		}
+		.reader-heading {
+			flex-wrap: wrap;
 		}
 	}
 </style>

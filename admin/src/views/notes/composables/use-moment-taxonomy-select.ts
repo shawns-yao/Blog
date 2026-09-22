@@ -33,8 +33,11 @@ export function useMomentTaxonomySelect(
   async function fetchOptions() {
     try {
       const [columns] = await Promise.all([listColumns(), loadTopicOptions()])
+      const names = new Map(columns.map((column) => [column.id, column.name]))
       columnOptions.value = columns.map((column) => ({
-        label: column.name,
+        label: column.parentId
+          ? `${names.get(column.parentId) ?? ''} / ${column.name}`
+          : column.name,
         value: column.id,
       }))
     } catch (error) {

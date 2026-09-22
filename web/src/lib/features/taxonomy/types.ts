@@ -7,6 +7,7 @@ export type Category = {
 };
 
 export type Column = {
+	parentId: number | null;
 	id: number;
 	name: string;
 	shortUrl: string;

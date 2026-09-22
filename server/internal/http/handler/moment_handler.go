@@ -540,13 +540,15 @@ func (h *MomentHandler) listPublicMomentsWithQuery(c *fiber.Ctx, query contract.
 		return response.NewBizErrorWithMsg(response.ParamsError, "内容类型无效")
 	}
 	moments, total, err := h.svc.ListPublicMoments(c.Context(), content.MomentListOptions{
-		Page:        query.Page,
-		PageSize:    query.PageSize,
-		ColumnID:    query.ColumnID,
-		TopicID:     query.TopicID,
-		AuthorID:    query.AuthorID,
-		Search:      query.Search,
-		ContentKind: query.ContentKind,
+		IncludeChildren: c.Query("includeChildren") == "true",
+		NewestFirst:     c.Query("sort") == "newest",
+		Page:            query.Page,
+		PageSize:        query.PageSize,
+		ColumnID:        query.ColumnID,
+		TopicID:         query.TopicID,
+		AuthorID:        query.AuthorID,
+		Search:          query.Search,
+		ContentKind:     query.ContentKind,
 	})
 	if err != nil {
 		return err

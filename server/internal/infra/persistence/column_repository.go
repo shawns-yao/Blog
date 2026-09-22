@@ -51,10 +51,19 @@ func (r *MomentColumnRepository) GetByID(ctx context.Context, id int64) (*conten
 
 func (r *MomentColumnRepository) Create(ctx context.Context, column *content.MomentColumn) error {
 	rec := model.MomentColumn{
+		ParentID: column.ParentID,
 		Name:     column.Name,
 		ShortURL: optionalString(column.ShortURL),
 	}
-	if err := r.repo.Create(ctx, &rec); err != nil {
+	if err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockColumnHierarchy(tx); err != nil {
+			return err
+		}
+		if err := validateColumnParent(tx, column); err != nil {
+			return err
+		}
+		return tx.Create(&rec).Error
+	}); err != nil {
 		return err
 	}
 	column.ID = rec.ID
@@ -65,36 +74,92 @@ func (r *MomentColumnRepository) Create(ctx context.Context, column *content.Mom
 
 func (r *MomentColumnRepository) Update(ctx context.Context, column *content.MomentColumn) error {
 	updates := map[string]any{
+		"parent_id":  column.ParentID,
 		"name":       column.Name,
 		"short_url":  optionalString(column.ShortURL),
 		"updated_at": time.Now(),
 	}
-	result := r.db.WithContext(ctx).
-		Model(&model.MomentColumn{}).
-		Where("id = ?", column.ID).
-		Updates(updates)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return content.ErrColumnNotFound
-	}
-	return nil
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockColumnHierarchy(tx); err != nil {
+			return err
+		}
+		if err := validateColumnParent(tx, column); err != nil {
+			return err
+		}
+		result := tx.Model(&model.MomentColumn{}).Where("id = ?", column.ID).Updates(updates)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return content.ErrColumnNotFound
+		}
+		return nil
+	})
 }
 
 func (r *MomentColumnRepository) Delete(ctx context.Context, id int64) error {
-	affected, err := r.repo.DeleteWhere(ctx, "id = ?", id)
-	if err != nil {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := lockColumnHierarchy(tx); err != nil {
+			return err
+		}
+		var children, articles int64
+		if err := tx.Model(&model.MomentColumn{}).Where("parent_id = ?", id).Count(&children).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.Moment{}).Where("column_id = ?", id).Count(&articles).Error; err != nil {
+			return err
+		}
+		if children > 0 || articles > 0 {
+			return content.ErrColumnInUse
+		}
+		result := tx.Where("id = ?", id).Delete(&model.MomentColumn{})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return content.ErrColumnNotFound
+		}
+		return nil
+	})
+}
+
+// Serialize category edits so concurrent moves cannot create a third level or a cycle.
+func lockColumnHierarchy(tx *gorm.DB) error {
+	return tx.Exec("LOCK TABLE moment_column IN SHARE ROW EXCLUSIVE MODE").Error
+}
+
+func validateColumnParent(tx *gorm.DB, column *content.MomentColumn) error {
+	if column.ParentID == nil {
+		return nil
+	}
+	if *column.ParentID <= 0 || *column.ParentID == column.ID {
+		return content.ErrColumnHierarchy
+	}
+	var parent model.MomentColumn
+	if err := tx.First(&parent, *column.ParentID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return content.ErrColumnHierarchy
+		}
 		return err
 	}
-	if affected == 0 {
-		return content.ErrColumnNotFound
+	if parent.ParentID != nil {
+		return content.ErrColumnHierarchy
+	}
+	if column.ID > 0 {
+		var children int64
+		if err := tx.Model(&model.MomentColumn{}).Where("parent_id = ?", column.ID).Count(&children).Error; err != nil {
+			return err
+		}
+		if children > 0 {
+			return content.ErrColumnHierarchy
+		}
 	}
 	return nil
 }
 
 func mapColumnToDomain(rec model.MomentColumn) *content.MomentColumn {
 	return &content.MomentColumn{
+		ParentID:  rec.ParentID,
 		ID:        rec.ID,
 		Name:      rec.Name,
 		ShortURL:  stringToPtr(rec.ShortURL),

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import LibraryCollection from '$lib/features/library/LibraryCollection.svelte';
+	import LibraryHierarchy from '$lib/features/library/LibraryHierarchy.svelte';
 	import LibraryReader from '$lib/features/library/LibraryReader.svelte';
 	import type { PageData } from './$types';
 
@@ -12,19 +12,20 @@
 
 {#key `${data.columnId ?? ''}:${data.selected?.id ?? ''}:${data.moments.page}:${data.query}`}
 	<div class="library-content">
+		<LibraryHierarchy
+			columns={data.columns}
+			root={data.root}
+			secondary={data.secondary}
+			moments={data.moments}
+			query={data.query}
+			reading={data.reading}
+		/>
 		{#if data.reading}
 			<LibraryReader
 				columns={data.columns}
 				column={data.column}
 				moments={data.moments}
 				selected={data.selected}
-			/>
-		{:else}
-			<LibraryCollection
-				columns={data.columns}
-				column={data.column}
-				moments={data.moments}
-				query={data.query}
 			/>
 		{/if}
 	</div>

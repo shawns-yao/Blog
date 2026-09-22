@@ -44,6 +44,7 @@ func (h *TaxonomyHandler) ListColumns(c *fiber.Ctx) error {
 			shortURL = *item.ShortURL
 		}
 		resp[i] = contract.ColumnResp{
+			ParentID:  item.ParentID,
 			ID:        item.ID,
 			Name:      item.Name,
 			ShortURL:  shortURL,
@@ -74,8 +75,11 @@ func (h *TaxonomyHandler) CreateColumn(c *fiber.Ctx) error {
 	if req.ShortURL == nil || strings.TrimSpace(*req.ShortURL) == "" {
 		return response.NewBizErrorWithMsg(response.ParamsError, "分区短链接不能为空")
 	}
-	item, err := h.columns.Create(c.Context(), req.Name, req.ShortURL)
+	item, err := h.columns.Create(c.Context(), req.Name, req.ShortURL, req.ParentID)
 	if err != nil {
+		if errors.Is(err, content.ErrColumnHierarchy) {
+			return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
+		}
 		return err
 	}
 	shortURL := ""
@@ -83,6 +87,7 @@ func (h *TaxonomyHandler) CreateColumn(c *fiber.Ctx) error {
 		shortURL = *item.ShortURL
 	}
 	resp := contract.ColumnResp{
+		ParentID:  item.ParentID,
 		ID:        item.ID,
 		Name:      item.Name,
 		ShortURL:  shortURL,
@@ -117,8 +122,11 @@ func (h *TaxonomyHandler) UpdateColumn(c *fiber.Ctx) error {
 	if req.ShortURL == nil || strings.TrimSpace(*req.ShortURL) == "" {
 		return response.NewBizErrorWithMsg(response.ParamsError, "分区短链接不能为空")
 	}
-	item, err := h.columns.Update(c.Context(), id, req.Name, req.ShortURL)
+	item, err := h.columns.Update(c.Context(), id, req.Name, req.ShortURL, req.ParentID)
 	if err != nil {
+		if errors.Is(err, content.ErrColumnHierarchy) {
+			return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
+		}
 		if errors.Is(err, content.ErrColumnNotFound) {
 			return response.NewBizErrorWithMsg(response.NotFound, "手记分区不存在")
 		}
@@ -129,6 +137,7 @@ func (h *TaxonomyHandler) UpdateColumn(c *fiber.Ctx) error {
 		shortURL = *item.ShortURL
 	}
 	resp := contract.ColumnResp{
+		ParentID:  item.ParentID,
 		ID:        item.ID,
 		Name:      item.Name,
 		ShortURL:  shortURL,
@@ -151,6 +160,9 @@ func (h *TaxonomyHandler) DeleteColumn(c *fiber.Ctx) error {
 		return response.NewBizErrorWithMsg(response.ParamsError, "无效的分区ID")
 	}
 	if err := h.columns.Delete(c.Context(), id); err != nil {
+		if errors.Is(err, content.ErrColumnInUse) {
+			return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
+		}
 		if errors.Is(err, content.ErrColumnNotFound) {
 			return response.NewBizErrorWithMsg(response.NotFound, "手记分区不存在")
 		}

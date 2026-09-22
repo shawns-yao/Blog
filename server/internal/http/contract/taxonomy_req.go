@@ -2,12 +2,14 @@ package contract
 
 // ColumnCreateReq 手记分区创建请求。
 type ColumnCreateReq struct {
+	ParentID *int64  `json:"parentId"`
 	Name     string  `json:"name"`
 	ShortURL *string `json:"shortUrl,omitempty"`
 }
 
 // ColumnUpdateReq 手记分区更新请求。
 type ColumnUpdateReq struct {
+	ParentID *int64  `json:"parentId"`
 	Name     string  `json:"name"`
 	ShortURL *string `json:"shortUrl,omitempty"`
 }

@@ -19,8 +19,9 @@ func (s *ColumnService) List(ctx context.Context) ([]*content.MomentColumn, erro
 	return s.repo.List(ctx)
 }
 
-func (s *ColumnService) Create(ctx context.Context, name string, shortURL *string) (*content.MomentColumn, error) {
+func (s *ColumnService) Create(ctx context.Context, name string, shortURL *string, parentID *int64) (*content.MomentColumn, error) {
 	column := &content.MomentColumn{
+		ParentID: parentID,
 		Name:     strings.TrimSpace(name),
 		ShortURL: trimPtr(shortURL),
 	}
@@ -30,8 +31,9 @@ func (s *ColumnService) Create(ctx context.Context, name string, shortURL *strin
 	return column, nil
 }
 
-func (s *ColumnService) Update(ctx context.Context, id int64, name string, shortURL *string) (*content.MomentColumn, error) {
+func (s *ColumnService) Update(ctx context.Context, id int64, name string, shortURL *string, parentID *int64) (*content.MomentColumn, error) {
 	column := &content.MomentColumn{
+		ParentID: parentID,
 		ID:       id,
 		Name:     strings.TrimSpace(name),
 		ShortURL: trimPtr(shortURL),

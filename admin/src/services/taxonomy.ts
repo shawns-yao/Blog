@@ -1,6 +1,7 @@
 import { request } from './http'
 
 export interface ColumnItem {
+  parentId: number | null
   id: number
   name: string
   shortUrl: string
@@ -20,6 +21,7 @@ export interface TaxonomyNamePayload {
 }
 
 export interface TaxonomySlugPayload {
+  parentId?: number | null
   name: string
   shortUrl: string
 }
@@ -36,7 +38,7 @@ export function listTags() {
   })
 }
 
-export function createColumn(payload: { name: string; shortUrl: string }) {
+export function createColumn(payload: TaxonomySlugPayload) {
   return request<ColumnItem>('/admin/columns', {
     method: 'POST',
     body: payload,

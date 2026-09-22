@@ -8,6 +8,7 @@ import (
 
 type MomentColumn struct {
 	ID        int64          `gorm:"column:id;primaryKey"`
+	ParentID  *int64         `gorm:"column:parent_id"`
 	Name      string         `gorm:"column:name;size:45;not null"`
 	ShortURL  string         `gorm:"column:short_url;size:255"`
 	CreatedAt time.Time      `gorm:"column:created_at;autoCreateTime"`

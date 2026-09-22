@@ -21,17 +21,7 @@ type ContentRepository struct {
 }
 
 func (r *ContentRepository) CreateColumn(ctx context.Context, column *content.MomentColumn) error {
-	rec := model.MomentColumn{
-		Name:     column.Name,
-		ShortURL: optionalString(column.ShortURL),
-	}
-	if err := r.db.WithContext(ctx).Create(&rec).Error; err != nil {
-		return err
-	}
-	column.ID = rec.ID
-	column.CreatedAt = rec.CreatedAt
-	column.UpdatedAt = rec.UpdatedAt
-	return nil
+	return NewMomentColumnRepository(r.db).Create(ctx, column)
 }
 
 func (r *ContentRepository) GetColumnByID(ctx context.Context, id int64) (*content.MomentColumn, error) {
@@ -69,32 +59,11 @@ func (r *ContentRepository) ListColumns(ctx context.Context) ([]*content.MomentC
 }
 
 func (r *ContentRepository) UpdateColumn(ctx context.Context, column *content.MomentColumn) error {
-	updates := map[string]any{
-		"name":      column.Name,
-		"short_url": optionalString(column.ShortURL),
-	}
-	result := r.db.WithContext(ctx).
-		Model(&model.MomentColumn{}).
-		Where("id = ?", column.ID).
-		Updates(updates)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return content.ErrColumnNotFound
-	}
-	return nil
+	return NewMomentColumnRepository(r.db).Update(ctx, column)
 }
 
 func (r *ContentRepository) DeleteColumn(ctx context.Context, id int64) error {
-	result := r.db.WithContext(ctx).Where("id = ?", id).Delete(&model.MomentColumn{})
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return content.ErrColumnNotFound
-	}
-	return nil
+	return NewMomentColumnRepository(r.db).Delete(ctx, id)
 }
 
 func (r *ContentRepository) CreateTag(ctx context.Context, tag *content.Tag) error {
@@ -588,7 +557,12 @@ func (r *ContentRepository) ListPublicMoments(ctx context.Context, options conte
 	query = filterContentKind(query, options.ContentKind)
 
 	if options.ColumnID != nil {
-		query = query.Where("column_id = ?", *options.ColumnID)
+		if options.IncludeChildren {
+			children := r.db.WithContext(ctx).Model(&model.MomentColumn{}).Select("id").Where("parent_id = ?", *options.ColumnID)
+			query = query.Where("(column_id = ? OR column_id IN (?))", *options.ColumnID, children)
+		} else {
+			query = query.Where("column_id = ?", *options.ColumnID)
+		}
 	}
 	if options.AuthorID != nil {
 		query = query.Where("author_id = ?", *options.AuthorID)
