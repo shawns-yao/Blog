@@ -33,7 +33,7 @@
 	}
 </script>
 
-<nav class="shelf-scene" aria-label="主导航">
+<nav class="shelf-scene" class:home-shelf-scene={page.url.pathname === '/'} aria-label="主导航">
 	<div class="window-light" aria-hidden="true"></div>
 	<p class="wall-note" aria-hidden="true">
 		<span>Good books,</span>
@@ -41,6 +41,10 @@
 	</p>
 
 	<div class="shelf-stage">
+		{#if page.url.pathname === '/'}
+			<img class="shelf-plant" src="/shelf-plant.svg?v=4" alt="" aria-hidden="true" />
+		{/if}
+
 		<div class="shelf-books">
 			{#each books as book, index (book.url)}
 				{@const active = isActive(book.url)}
@@ -74,7 +78,7 @@
 					style="--support-width:{aboutBook.width}px; --support-top:{aboutBook.height +
 						(aboutBook.lift ?? 0)}px;"
 				>
-					<ThemeIcon compact />
+					<ThemeIcon compact interactive={page.url.pathname !== '/'} />
 				</div>
 			{/if}
 		</div>
@@ -109,6 +113,10 @@
 		z-index: -1;
 		background: transparent;
 		pointer-events: none;
+	}
+
+	.shelf-scene.home-shelf-scene {
+		overflow: visible;
 	}
 
 	.shelf-scene::after {
@@ -161,11 +169,25 @@
 		position: absolute;
 		bottom: 64px;
 		left: 145px;
+		z-index: 2;
 		display: flex;
 		align-items: flex-end;
 		gap: 0.45rem;
 		width: auto;
 		height: 150px;
+	}
+
+	.shelf-plant {
+		position: absolute;
+		top: 0;
+		left: -27px;
+		z-index: 4;
+		width: 247.5px;
+		height: 300px;
+		object-fit: contain;
+		object-position: center bottom;
+		pointer-events: none;
+		filter: drop-shadow(3px 7px 6px rgb(43 27 17 / 0.22));
 	}
 
 	.book {
@@ -556,6 +578,10 @@
 		color: rgb(222 207 188 / 0.44);
 	}
 
+	:global(.dark) .shelf-plant {
+		filter: brightness(0.68) saturate(0.82) sepia(0.1) drop-shadow(3px 7px 6px rgb(20 13 10 / 0.36));
+	}
+
 	@keyframes scene-enter {
 		from {
 			opacity: 0;
@@ -584,6 +610,13 @@
 
 		.book {
 			transition-duration: 0.01ms;
+		}
+	}
+
+	@media (min-width: 768px) and (max-width: 1919px) {
+		.shelf-scene.home-shelf-scene {
+			transform: scale(clamp(0.4, calc(100vw / 1920px), 1));
+			transform-origin: top right;
 		}
 	}
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Tooltip as BitsTooltip } from 'bits-ui';
 	import type { HomeActivityPulsePoint } from './types';
 
 	let { points, label }: { points: HomeActivityPulsePoint[]; label: string } = $props();
@@ -51,31 +52,48 @@
 	{#if total === 0}
 		<p class="py-4 text-sm text-ink-700 dark:text-ink-200">这段时间还没有公开的创作记录。</p>
 	{:else}
-		<div class="calendar" style:--weeks={weeks} role="group" aria-label={`${label}每日发布数量`}>
-			{#each Array(leadingDays) as _, index (index)}
-				<span aria-hidden="true"></span>
-			{/each}
-			{#each points as point, index (point.date)}
-				<button
-					type="button"
-					class="day"
-					data-level={level(point.moments)}
-					aria-label={`${point.date}，发布 ${point.moments} 条`}
-					title={`${point.date} · 发布 ${point.moments} 条`}
-					tabindex={index === (focusIndex ?? points.length - 1) ? 0 : -1}
-					onmouseenter={() => (activeDate = point.date)}
-					onfocus={() => {
-						activeDate = point.date;
-						focusIndex = index;
-					}}
-					onclick={() => {
-						activeDate = point.date;
-						focusIndex = index;
-					}}
-					onkeydown={(event) => moveFocus(event, index)}
-				></button>
-			{/each}
-		</div>
+		<BitsTooltip.Provider delayDuration={80} skipDelayDuration={120}>
+			<div class="calendar" style:--weeks={weeks} role="group" aria-label={`${label}每日发布数量`}>
+				{#each Array(leadingDays) as _, index (index)}
+					<span aria-hidden="true"></span>
+				{/each}
+				{#each points as point, index (point.date)}
+					<BitsTooltip.Root disableCloseOnTriggerClick={true}>
+						<BitsTooltip.Trigger
+							type="button"
+							class="day"
+							data-level={level(point.moments)}
+							aria-label={`${point.date}，发布 ${point.moments} 条`}
+							tabindex={index === (focusIndex ?? points.length - 1) ? 0 : -1}
+							onmouseenter={() => (activeDate = point.date)}
+							onfocus={() => {
+								activeDate = point.date;
+								focusIndex = index;
+							}}
+							onclick={() => {
+								activeDate = point.date;
+								focusIndex = index;
+							}}
+							onkeydown={(event) => moveFocus(event, index)}
+						></BitsTooltip.Trigger>
+						<BitsTooltip.Portal>
+							<BitsTooltip.Content side="top" sideOffset={7} class="activity-tip">
+								<span class="activity-tip-date">{point.date}</span>
+								<span class="activity-tip-count">
+									<span
+										class="activity-tip-dot"
+										data-level={level(point.moments)}
+										aria-hidden="true"
+									></span>
+									{point.moments === 0 ? '没有发布' : `发布 ${point.moments} 条`}
+								</span>
+								<BitsTooltip.Arrow class="activity-tip-arrow" />
+							</BitsTooltip.Content>
+						</BitsTooltip.Portal>
+					</BitsTooltip.Root>
+				{/each}
+			</div>
+		</BitsTooltip.Provider>
 		<div
 			class="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs text-ink-600 dark:text-ink-300"
 		>
@@ -88,11 +106,7 @@
 				<span>多</span>
 			</div>
 		</div>
-		<p
-			class="mt-3 min-h-5 text-xs text-ink-700 dark:text-ink-200"
-			aria-live="polite"
-			aria-atomic="true"
-		>
+		<p class="sr-only" aria-live="polite" aria-atomic="true">
 			{active ? `${active.date} · 发布 ${active.moments} 条` : '\u00a0'}
 		</p>
 	{/if}
@@ -106,14 +120,14 @@
 		grid-auto-flow: column;
 		gap: 3px;
 	}
-	.day,
+	.calendar :global(.day),
 	.legend-cell {
 		display: block;
 		border-radius: 2px;
 		background: rgb(87 100 93 / 0.18);
 		border: 1px solid rgb(87 100 93 / 0.2);
 	}
-	.day {
+	.calendar :global(.day) {
 		width: 100%;
 		aspect-ratio: 1;
 		max-height: 18px;
@@ -124,41 +138,109 @@
 		width: 10px;
 		height: 10px;
 	}
-	[data-level='1'] {
+	.calendar :global(.day[data-level='1']),
+	.legend-cell[data-level='1'],
+	:global(.activity-tip-dot[data-level='1']) {
 		background: #aad4bc;
 	}
-	[data-level='2'] {
+	.calendar :global(.day[data-level='2']),
+	.legend-cell[data-level='2'],
+	:global(.activity-tip-dot[data-level='2']) {
 		background: #6ab492;
 	}
-	[data-level='3'] {
+	.calendar :global(.day[data-level='3']),
+	.legend-cell[data-level='3'],
+	:global(.activity-tip-dot[data-level='3']) {
 		background: #32856a;
 	}
-	[data-level='4'] {
+	.calendar :global(.day[data-level='4']),
+	.legend-cell[data-level='4'],
+	:global(.activity-tip-dot[data-level='4']) {
 		background: #14533f;
 	}
-	:global(.dark) [data-level='0'] {
+	:global(.dark) .calendar :global(.day[data-level='0']),
+	:global(.dark) .legend-cell[data-level='0'] {
 		background: rgb(200 215 205 / 0.15);
 		border-color: rgb(200 215 205 / 0.2);
 	}
-	:global(.dark) [data-level='1'] {
+	:global(.dark) .calendar :global(.day[data-level='1']),
+	:global(.dark) .legend-cell[data-level='1'],
+	:global(.dark .activity-tip-dot[data-level='1']) {
 		background: #2e6550;
 	}
-	:global(.dark) [data-level='2'] {
+	:global(.dark) .calendar :global(.day[data-level='2']),
+	:global(.dark) .legend-cell[data-level='2'],
+	:global(.dark .activity-tip-dot[data-level='2']) {
 		background: #428b68;
 	}
-	:global(.dark) [data-level='3'] {
+	:global(.dark) .calendar :global(.day[data-level='3']),
+	:global(.dark) .legend-cell[data-level='3'],
+	:global(.dark .activity-tip-dot[data-level='3']) {
 		background: #6cbd8b;
 	}
-	:global(.dark) [data-level='4'] {
+	:global(.dark) .calendar :global(.day[data-level='4']),
+	:global(.dark) .legend-cell[data-level='4'],
+	:global(.dark .activity-tip-dot[data-level='4']) {
 		background: #ace4b8;
 	}
-	.day:hover,
-	.day:focus-visible {
+	.calendar :global(.day:hover),
+	.calendar :global(.day:focus-visible) {
 		outline: 2px solid var(--color-ink-900);
 		outline-offset: 1px;
 	}
-	:global(.dark) .day:hover,
-	:global(.dark) .day:focus-visible {
+	:global(.dark) .calendar :global(.day:hover),
+	:global(.dark) .calendar :global(.day:focus-visible) {
 		outline-color: var(--color-ink-100);
+	}
+	:global(.activity-tip) {
+		z-index: 60;
+		display: grid;
+		gap: 2px;
+		min-width: 116px;
+		padding: 8px 10px;
+		border: 1px solid rgb(255 255 255 / 0.28);
+		border-radius: 7px;
+		background: rgb(37 34 29 / 0.94);
+		box-shadow: 0 8px 24px rgb(19 16 12 / 0.28);
+		color: #f5efe3;
+		font-family: var(--font-serif);
+		backdrop-filter: blur(8px);
+		animation: activity-tip-in 120ms ease-out;
+	}
+	:global(.activity-tip-date) {
+		font-size: 11px;
+		color: rgb(245 239 227 / 0.72);
+		letter-spacing: 0.02em;
+	}
+	:global(.activity-tip-count) {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12px;
+		font-weight: 500;
+	}
+	:global(.activity-tip-dot) {
+		width: 7px;
+		height: 7px;
+		border-radius: 2px;
+		border: 1px solid rgb(255 255 255 / 0.24);
+	}
+	:global(.activity-tip-arrow) {
+		fill: rgb(37 34 29 / 0.94);
+	}
+	@keyframes activity-tip-in {
+		from {
+			opacity: 0;
+			transform: translateY(2px) scale(0.98);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		:global(.activity-tip) {
+			animation: none;
+		}
 	}
 </style>

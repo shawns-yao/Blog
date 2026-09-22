@@ -7,17 +7,95 @@
 	import { SlideIn, StaggerList } from '$lib/ui/animation';
 	import { scrollFade } from '$lib/shared/actions/scroll-fade';
 	import { ArrowRight } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 
 	let { data } = $props<{ data: PageData }>();
+
+	type HomeScene = {
+		startHour: number;
+		src: string;
+		label: string;
+	};
+
+	const HOME_SCENES: readonly HomeScene[] = [
+		{ startHour: 0, src: '/home-scenes/00.webp', label: '凌晨' },
+		{ startHour: 6, src: '/home-scenes/06.webp', label: '清晨' },
+		{ startHour: 8, src: '/home-scenes/08.webp', label: '上午' },
+		{ startHour: 11, src: '/home-scenes/11.webp', label: '中午' },
+		{ startHour: 14, src: '/home-scenes/14.webp', label: '下午' },
+		{ startHour: 17, src: '/home-scenes/17.webp', label: '黄昏' },
+		{ startHour: 20, src: '/home-scenes/20.webp', label: '夜间' },
+		{ startHour: 23, src: '/home-scenes/23.webp', label: '深夜' }
+	];
+
+	const resolveSceneIndex = (hour: number) => {
+		for (let index = HOME_SCENES.length - 1; index >= 0; index -= 1) {
+			if (hour >= HOME_SCENES[index].startHour) return index;
+		}
+		return 0;
+	};
+
+	let currentScene = $state(HOME_SCENES[2]);
+	let previousScene = $state<HomeScene | null>(null);
+
+	onMount(() => {
+		let transitionTimer: ReturnType<typeof setTimeout> | undefined;
+
+		const syncScene = () => {
+			const sceneIndex = resolveSceneIndex(new Date().getHours());
+			const nextScene = HOME_SCENES[sceneIndex];
+
+			if (nextScene.src !== currentScene.src) {
+				previousScene = currentScene;
+				currentScene = nextScene;
+				clearTimeout(transitionTimer);
+				transitionTimer = setTimeout(() => {
+					previousScene = null;
+				}, 900);
+			}
+
+			const preload = new Image();
+			preload.src = HOME_SCENES[(sceneIndex + 1) % HOME_SCENES.length].src;
+		};
+
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === 'visible') syncScene();
+		};
+
+		syncScene();
+		const interval = window.setInterval(syncScene, 60_000);
+		window.addEventListener('focus', syncScene);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		return () => {
+			clearTimeout(transitionTimer);
+			window.clearInterval(interval);
+			window.removeEventListener('focus', syncScene);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	});
 </script>
 
 <div class="homepage-container">
-	<div class="home-visual" use:scrollFade={{ distance: 420 }}>
-		<div class="home-hero">
-			<Hero config={data.homeTheme?.hero} />
-		</div>
+	<div class="home-backdrop" data-scene={currentScene.label} aria-hidden="true">
+		{#if previousScene}
+			<div
+				class="home-backdrop-image home-backdrop-previous"
+				style:background-image={`url('${previousScene.src}')`}
+			></div>
+		{/if}
+		<div
+			class="home-backdrop-image home-backdrop-current"
+			style:background-image={`url('${currentScene.src}')`}
+		></div>
 	</div>
+
+		<div class="home-visual" use:scrollFade={{ distance: 420 }}>
+			<div class="home-hero">
+				<Hero config={data.homeTheme?.hero} />
+			</div>
+		</div>
 
 	<div class="home-content max-w-300 mx-auto px-6 py-12 md:py-20">
 		<!-- Recent Moments -->
@@ -75,7 +153,6 @@
 		background: transparent;
 	}
 
-	.homepage-container::before,
 	.homepage-container::after {
 		content: '';
 		position: fixed;
@@ -83,13 +160,29 @@
 		pointer-events: none;
 	}
 
-	.homepage-container::before {
+	.home-backdrop {
+		position: fixed;
+		inset: 0;
 		z-index: -2;
-		background: url('/bg.png') center top / cover no-repeat;
+		overflow: hidden;
+		pointer-events: none;
 	}
 
-	:global(.dark) .homepage-container::before {
-		background-image: url('/bg-night.png');
+	.home-backdrop-image {
+		position: absolute;
+		inset: 0;
+		background-position: center top;
+		background-size: cover;
+		background-repeat: no-repeat;
+	}
+
+	.home-backdrop-previous {
+		z-index: 0;
+	}
+
+	.home-backdrop-current {
+		z-index: 1;
+		animation: scene-crossfade 900ms ease-out both;
 	}
 
 	.homepage-container::after {
@@ -150,8 +243,17 @@
 			linear-gradient(180deg, transparent 0%, rgb(17 13 10 / 0.14) 72%, rgb(17 13 10 / 0.38) 100%);
 	}
 
+	@keyframes scene-crossfade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
 	@media (max-width: 767px) {
-		.homepage-container::before {
+		.home-backdrop-image {
 			background-position: 57% center;
 		}
 
@@ -161,6 +263,12 @@
 
 		.home-hero {
 			padding: 0 1rem;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.home-backdrop-current {
+			animation: none;
 		}
 	}
 </style>

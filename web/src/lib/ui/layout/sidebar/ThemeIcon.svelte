@@ -4,7 +4,8 @@
 	import { Moon, Sun } from 'lucide-svelte';
 	import AlarmClock from './AlarmClock.svelte';
 
-	let { compact = false }: { compact?: boolean } = $props();
+	let { compact = false, interactive = true }: { compact?: boolean; interactive?: boolean } =
+		$props();
 	const theme = themeManager;
 	const resolved = $derived.by(() => resolveTheme(theme.current));
 	let clockElement: HTMLSpanElement | undefined;
@@ -85,11 +86,12 @@
 
 <button
 	type="button"
+	disabled={!interactive}
 	class:theme-toggle-compact={compact}
 	data-theme={theme.current}
-	aria-label={labelMap[theme.current]}
-	title={labelMap[theme.current]}
-	onclick={toggleTheme}
+	aria-label={interactive ? labelMap[theme.current] : '当前本地时间'}
+	title={interactive ? labelMap[theme.current] : '当前本地时间'}
+	onclick={interactive ? toggleTheme : undefined}
 	class="flex h-10 w-10 items-center justify-center rounded-default text-ink-400 hover:bg-ink-100 hover:text-ink-900 dark:hover:bg-ink-800 dark:hover:text-ink-100"
 >
 	{#if compact}
@@ -120,15 +122,19 @@
 		transition: filter 160ms ease;
 	}
 
-	.theme-toggle-compact:hover,
-	.theme-toggle-compact:focus-visible {
+	.theme-toggle-compact:not(:disabled):hover,
+	.theme-toggle-compact:not(:disabled):focus-visible {
 		background: transparent;
 		filter: brightness(1.08);
 	}
 
-	.theme-toggle-compact:focus-visible {
+	.theme-toggle-compact:not(:disabled):focus-visible {
 		outline: 2px solid #d7c295;
 		outline-offset: 3px;
+	}
+
+	.theme-toggle-compact:disabled {
+		cursor: default;
 	}
 
 	@media (prefers-reduced-motion: reduce) {
