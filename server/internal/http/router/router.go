@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/adminnotification"
 	appai "github.com/shawns-yao/shawn-blog/server/internal/app/ai"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/analytics"
@@ -40,7 +41,6 @@ import (
 	"github.com/shawns-yao/shawn-blog/server/internal/security/jwt"
 	"github.com/shawns-yao/shawn-blog/server/internal/security/turnstile"
 	"github.com/shawns-yao/shawn-blog/server/internal/ws"
-	"github.com/redis/go-redis/v9"
 )
 
 // Dependencies collects the shared instances that handlers require.
@@ -65,6 +65,7 @@ type Dependencies struct {
 	FederationHTTPClient *http.Client
 	Backup               *backupapp.Service
 	MediaGate            *mediaapp.MutationGate
+	Media                *mediaapp.Service
 }
 
 // Register wires up all HTTP endpoints with middlewares.
@@ -79,7 +80,7 @@ func Register(app *fiber.App, deps Dependencies) {
 
 	app.Get("/health/liveness", healthHandler.Liveness)
 	app.Get("/health/readiness", healthHandler.Readiness)
-	app.Static("/uploads", filepath.Join("storage", "uploads"))
+	registerMediaDelivery(app, deps)
 
 	api := app.Group("/api")
 	v2 := api.Group("/v2")
@@ -242,6 +243,32 @@ func Register(app *fiber.App, deps Dependencies) {
 	registerFederationRoutes(app, deps)
 	registerInternalRoutes(app, deps)
 	registerAdminSPA(app)
+}
+
+func registerMediaDelivery(app *fiber.App, deps Dependencies) {
+	mediaSvc := deps.Media
+	if mediaSvc == nil {
+		mediaSvc = mediaapp.NewService(
+			persistence.NewUploadFileRepository(deps.DB),
+			deps.Config.Backup.UploadDir,
+			deps.EventBus,
+			deps.MediaGate,
+		)
+	}
+	serve := func(c *fiber.Ctx) error {
+		delivery, err := mediaSvc.ResolveDelivery(c.UserContext(), "/"+c.Params("*"))
+		if err != nil {
+			return fiber.ErrNotFound
+		}
+		if delivery.RemoteURL != "" {
+			c.Set(fiber.HeaderCacheControl, "private, max-age=300")
+			return c.Redirect(delivery.RemoteURL, fiber.StatusTemporaryRedirect)
+		}
+		c.Set(fiber.HeaderCacheControl, "public, max-age=31536000, immutable")
+		return c.SendFile(delivery.LocalPath)
+	}
+	app.Get("/uploads/*", serve)
+	app.Head("/uploads/*", serve)
 }
 
 func federationHTTPClient(deps Dependencies) *http.Client {

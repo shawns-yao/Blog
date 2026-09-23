@@ -65,6 +65,7 @@ type Server struct {
 	healthChecker *health.Checker
 	telemetrySvc  *telemetry.Service
 	backupSvc     *backupapp.Service
+	mediaSvc      *mediaapp.Service
 	version       string
 }
 
@@ -292,6 +293,18 @@ func NewWithOptions(cfg config.Config, db *gorm.DB, opts Options) *Server {
 
 	telemetrySvc := telemetry.NewService(errorCollector, db, httpStats, htmlSnapshotSvc, nil, sysCfgSvc, cfg.App.TelemetryDefaultEndpoint)
 	mediaGate := mediaapp.NewMutationGate()
+	mediaSvc := mediaapp.NewService(persistence.NewUploadFileRepository(db), cfg.Backup.UploadDir, eventBus, mediaGate)
+	r2Storage, err := mediaapp.NewR2Storage(cfg.Media)
+	if err != nil {
+		log.Printf("[media] R2 disabled, using local storage only: %v", err)
+	} else if r2Storage != nil {
+		mediaSvc.SetRemoteStorage(r2Storage)
+		log.Printf("[media] R2 mirror enabled prefix=%q", cfg.Media.R2Prefix)
+	}
+	mediaSvc.StartBackground(ctx)
+	if err := mediaSvc.EnqueueExisting(ctx); err != nil {
+		log.Printf("[media-worker] recovery scan failed: %v", err)
+	}
 	backupSvc := backupapp.NewService(
 		ctx,
 		cfg.Backup,
@@ -325,6 +338,7 @@ func NewWithOptions(cfg config.Config, db *gorm.DB, opts Options) *Server {
 		FederationHTTPClient: fedHTTPClient,
 		Backup:               backupSvc,
 		MediaGate:            mediaGate,
+		Media:                mediaSvc,
 	})
 
 	return &Server{
@@ -344,6 +358,7 @@ func NewWithOptions(cfg config.Config, db *gorm.DB, opts Options) *Server {
 		healthChecker: healthChecker,
 		telemetrySvc:  telemetrySvc,
 		backupSvc:     backupSvc,
+		mediaSvc:      mediaSvc,
 		version:       buildinfo.Version(),
 	}
 }

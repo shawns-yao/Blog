@@ -74,6 +74,14 @@ services:
       # 指向宿主机的 SSR/renderer（make preview-isr 会在宿主 3000 端口启动）
       HTMLSNAPSHOT_BASE_URL: "http://host.docker.internal:3000"
       APP_UPDATE_CHECK_ENABLED: "false"
+      MEDIA_R2_ENDPOINT: "${MEDIA_R2_ENDPOINT:-${S3_API_Endpoint:-}}"
+      MEDIA_R2_BUCKET: "${MEDIA_R2_BUCKET:-${LEOSTUDIO_R2_BUCKET:-}}"
+      MEDIA_R2_ACCESS_KEY_ID: "${MEDIA_R2_ACCESS_KEY_ID:-${Access_Key_ID:-}}"
+      MEDIA_R2_SECRET_ACCESS_KEY: "${MEDIA_R2_SECRET_ACCESS_KEY:-${Secret_Access_Key:-}}"
+      MEDIA_R2_PREFIX: "${MEDIA_R2_PREFIX:-blog/}"
+      MEDIA_R2_READ_URL_TTL: "${MEDIA_R2_READ_URL_TTL:-15m}"
+      MEDIA_R2_REQUEST_TIMEOUT: "${MEDIA_R2_REQUEST_TIMEOUT:-4s}"
+      MEDIA_R2_UPLOAD_TIMEOUT: "${MEDIA_R2_UPLOAD_TIMEOUT:-2m}"
     volumes:
       - ../server:/src
       - go_mod_cache:/go/pkg/mod

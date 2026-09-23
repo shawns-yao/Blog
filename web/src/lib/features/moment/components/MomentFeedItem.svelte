@@ -67,9 +67,9 @@
 <style>
 	.book-entry {
 		display: grid;
-		grid-template-columns: clamp(4.7rem, 8vw, 6.7rem) minmax(0, 1fr);
-		gap: clamp(1.1rem, 2.8vw, 2.8rem);
-		padding: clamp(1.55rem, 3vw, 2.5rem) 0;
+		grid-template-columns: clamp(4.2rem, 6.5vw, 5.6rem) minmax(0, 1fr);
+		gap: clamp(1rem, 2.2vw, 2rem);
+		padding: clamp(1.15rem, 2.2vh, 1.8rem) 0;
 		border-bottom: 1px solid var(--book-rule);
 	}
 
@@ -86,7 +86,7 @@
 
 	.entry-date strong {
 		font-family: var(--font-serif);
-		font-size: clamp(1.7rem, 3vw, 2.35rem);
+		font-size: clamp(1.55rem, 2.4vw, 2.05rem);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.04em;
@@ -112,8 +112,8 @@
 
 	.entry-copy-grid.entry-copy-with-cover {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) clamp(7rem, 11vw, 9.5rem);
-		gap: clamp(1.4rem, 3vw, 3rem);
+		grid-template-columns: minmax(0, 1fr) clamp(5.5rem, 8vw, 7.2rem);
+		gap: clamp(1.1rem, 2vw, 2rem);
 		align-items: start;
 	}
 
@@ -123,7 +123,7 @@
 
 	h2 {
 		font-family: var(--font-serif);
-		font-size: clamp(1.28rem, 2vw, 1.75rem);
+		font-size: clamp(1.08rem, 1.55vw, 1.42rem);
 		font-weight: 500;
 		line-height: 1.45;
 		letter-spacing: 0.035em;
@@ -148,10 +148,10 @@
 
 	.entry-summary {
 		max-width: 48rem;
-		margin-top: 1rem;
+		margin-top: 0.58rem;
 		font-family: var(--font-serif);
-		font-size: clamp(0.84rem, 1vw, 0.94rem);
-		line-height: 1.9;
+		font-size: clamp(0.78rem, 0.92vw, 0.88rem);
+		line-height: 1.72;
 		letter-spacing: 0.025em;
 		white-space: pre-line;
 		color: var(--book-muted);
@@ -161,7 +161,7 @@
 		display: block;
 		overflow: hidden;
 		aspect-ratio: 4 / 3;
-		border: 0.35rem solid rgba(255, 250, 235, 0.52);
+		border: 0.28rem solid rgba(255, 250, 235, 0.52);
 		box-shadow: 0 0.7rem 1.6rem rgba(65, 43, 28, 0.16);
 		transform: rotate(0.7deg);
 	}
@@ -183,7 +183,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin-top: 1rem;
+		margin-top: 0.7rem;
 	}
 
 	.entry-topics {

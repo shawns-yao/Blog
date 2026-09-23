@@ -299,8 +299,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-top: 2.5rem;
-		padding: 0.8rem 0;
+		margin-top: 1.8rem;
+		padding: 0.72rem 0;
 		font-size: 0.82rem;
 		letter-spacing: 0.06em;
 		border-top: 1px solid var(--book-rule);
@@ -318,7 +318,7 @@
 	}
 
 	.directory-section {
-		margin-top: 2.2rem;
+		margin-top: 1.65rem;
 	}
 
 	.directory-section-head {
@@ -348,7 +348,7 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 1rem;
-		padding: 0.58rem 0;
+		padding: 0.48rem 0;
 		font-size: 0.71rem;
 		letter-spacing: 0.04em;
 		border-bottom: 1px solid rgba(76, 58, 43, 0.1);
@@ -362,7 +362,7 @@
 	}
 
 	.archive-section {
-		margin-top: 2.7rem;
+		margin-top: 2rem;
 	}
 
 	.directory-empty {
@@ -377,14 +377,14 @@
 		align-items: flex-end;
 		justify-content: space-between;
 		gap: 2rem;
-		padding-bottom: clamp(2rem, 4vw, 3.6rem);
+		padding-bottom: clamp(1.35rem, 2.8vh, 2.4rem);
 		border-bottom: 1px solid var(--book-rule);
 	}
 
 	.index-header h1 {
-		margin-top: 0.9rem;
+		margin-top: 0.7rem;
 		font-family: var(--font-serif);
-		font-size: clamp(3.1rem, 7vw, 6.6rem);
+		font-size: clamp(3rem, 5vw, 5.2rem);
 		font-weight: 500;
 		line-height: 0.98;
 		letter-spacing: 0.08em;
@@ -392,10 +392,10 @@
 
 	.index-subtitle {
 		max-width: 34rem;
-		margin-top: 1.35rem;
+		margin-top: 0.9rem;
 		font-family: var(--font-serif);
 		font-size: clamp(0.86rem, 1.2vw, 1rem);
-		line-height: 1.9;
+		line-height: 1.75;
 		letter-spacing: 0.05em;
 		color: var(--book-muted);
 	}
@@ -428,7 +428,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 2rem;
-		padding: 1.35rem 0;
+		padding: 0.95rem 0;
 		border-bottom: 1px solid var(--book-rule);
 	}
 
@@ -505,11 +505,11 @@
 	}
 
 	.month-index {
-		padding-top: clamp(2.2rem, 4vw, 3.8rem);
+		padding-top: clamp(1.45rem, 2.8vh, 2.25rem);
 	}
 
 	.month-group + .month-group {
-		margin-top: clamp(3rem, 6vw, 5.2rem);
+		margin-top: clamp(2.2rem, 4vh, 3.5rem);
 	}
 
 	.month-heading {

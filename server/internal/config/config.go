@@ -17,6 +17,7 @@ type Config struct {
 	GeoIP     GeoIPConfig
 	Backup    BackupConfig
 	Export    ExportConfig
+	Media     MediaConfig
 }
 
 // AppConfig contains Fiber specific settings.
@@ -97,6 +98,19 @@ type ExportConfig struct {
 	MaxExternalBytes int64
 }
 
+// MediaConfig controls optional R2 mirroring and signed delivery. Local files
+// remain the durable fallback when R2 is disabled or temporarily unavailable.
+type MediaConfig struct {
+	R2Endpoint        string
+	R2Bucket          string
+	R2AccessKeyID     string
+	R2SecretAccessKey string
+	R2Prefix          string
+	R2ReadURLTTL      time.Duration
+	R2RequestTimeout  time.Duration
+	R2UploadTimeout   time.Duration
+}
+
 // Load builds a Config struct with sane defaults overridden by environment variables.
 func Load() Config {
 	return Config{
@@ -168,6 +182,16 @@ func Load() Config {
 			ExternalWorkers:  int(getEnvAsInt64("EXPORT_EXTERNAL_WORKERS", 4)),
 			ExternalTimeout:  getEnvAsDuration("EXPORT_EXTERNAL_TIMEOUT", 15*time.Second),
 			MaxExternalBytes: getEnvAsInt64("EXPORT_MAX_EXTERNAL_BYTES", 25<<20),
+		},
+		Media: MediaConfig{
+			R2Endpoint:        strings.TrimRight(strings.TrimSpace(getEnv("MEDIA_R2_ENDPOINT", "")), "/"),
+			R2Bucket:          strings.TrimSpace(getEnv("MEDIA_R2_BUCKET", "")),
+			R2AccessKeyID:     strings.TrimSpace(getEnv("MEDIA_R2_ACCESS_KEY_ID", "")),
+			R2SecretAccessKey: strings.TrimSpace(getEnv("MEDIA_R2_SECRET_ACCESS_KEY", "")),
+			R2Prefix:          strings.Trim(strings.TrimSpace(getEnv("MEDIA_R2_PREFIX", "blog/")), "/"),
+			R2ReadURLTTL:      getEnvAsDuration("MEDIA_R2_READ_URL_TTL", 15*time.Minute),
+			R2RequestTimeout:  getEnvAsDuration("MEDIA_R2_REQUEST_TIMEOUT", 4*time.Second),
+			R2UploadTimeout:   getEnvAsDuration("MEDIA_R2_UPLOAD_TIMEOUT", 2*time.Minute),
 		},
 	}
 }

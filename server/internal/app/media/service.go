@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/disintegration/imaging"
@@ -30,10 +31,13 @@ import (
 )
 
 type Service struct {
-	repo      media.Repository
-	uploadDir string
-	events    appEvent.Bus
-	gate      *MutationGate
+	repo       media.Repository
+	uploadDir  string
+	events     appEvent.Bus
+	gate       *MutationGate
+	remote     remoteStorage
+	queue      *mediaJobQueue
+	workerOnce sync.Once
 }
 
 func NewService(repo media.Repository, uploadDir string, events appEvent.Bus, gates ...*MutationGate) *Service {
@@ -53,7 +57,12 @@ func NewService(repo media.Repository, uploadDir string, events appEvent.Bus, ga
 		uploadDir: trimmed,
 		events:    events,
 		gate:      gate,
+		queue:     newMediaJobQueue(),
 	}
+}
+
+func (s *Service) SetRemoteStorage(storage remoteStorage) {
+	s.remote = storage
 }
 
 const thumbnailMaxWidth = 1200
@@ -122,20 +131,21 @@ func (s *Service) Upload(ctx context.Context, file *multipart.FileHeader, fileTy
 	if existing != nil {
 		existingDisk := s.diskPathFromStored(existing.Path)
 		if fileExists(existingDisk) {
-			thumbURL, meta := s.processImage(existingDisk, existing.Path, dir)
-			return &UploadResult{File: *existing, Created: false, ThumbnailURL: thumbURL, ImageMeta: meta}, nil
+			s.enqueueMedia(existing.Path, existing.Type)
+			return &UploadResult{File: *existing, Created: false, ThumbnailURL: s.ThumbnailURLFor("/uploads" + existing.Path)}, nil
 		}
 		if err := s.saveFile(file, diskPath); err != nil {
 			return nil, err
 		}
 		if existing.Path != storedPath {
 			if err := s.repo.UpdatePath(ctx, existing.ID, storedPath); err != nil {
+				_ = removeFile(diskPath)
 				return nil, err
 			}
 			existing.Path = storedPath
 		}
-		thumbURL, meta := s.processImage(diskPath, storedPath, dir)
-		return &UploadResult{File: *existing, Created: false, ThumbnailURL: thumbURL, ImageMeta: meta}, nil
+		s.enqueueMedia(storedPath, existing.Type)
+		return &UploadResult{File: *existing, Created: false, ThumbnailURL: s.ThumbnailURLFor("/uploads" + storedPath)}, nil
 	}
 
 	if err := s.saveFile(file, diskPath); err != nil {
@@ -150,6 +160,7 @@ func (s *Service) Upload(ctx context.Context, file *multipart.FileHeader, fileTy
 		Hash: hash,
 	}
 	if err := s.repo.Create(ctx, record); err != nil {
+		_ = removeFile(diskPath)
 		return nil, err
 	}
 	_ = s.events.Publish(ctx, appEvent.Generic{
@@ -163,8 +174,8 @@ func (s *Service) Upload(ctx context.Context, file *multipart.FileHeader, fileTy
 			"Size": record.Size,
 		},
 	})
-	thumbURL, meta := s.processImage(diskPath, storedPath, dir)
-	return &UploadResult{File: *record, Created: true, ThumbnailURL: thumbURL, ImageMeta: meta}, nil
+	s.enqueueMedia(storedPath, record.Type)
+	return &UploadResult{File: *record, Created: true}, nil
 }
 
 type ListResult struct {
@@ -287,6 +298,9 @@ func (s *Service) SyncIndex(ctx context.Context) (*SyncResult, error) {
 		}
 		result.Deleted++
 	}
+	for _, diskFile := range diskFiles {
+		s.enqueueMedia(diskFile.Path, diskFile.Type)
+	}
 
 	return result, nil
 }
@@ -322,6 +336,29 @@ func (s *Service) Delete(ctx context.Context, id int64) (*media.UploadFile, erro
 	if err := removeFile(diskPath); err != nil {
 		return nil, err
 	}
+	thumbStoredPath := thumbnailStoredPath(file.Path)
+	if err := removeFile(s.diskPathFromStored(thumbStoredPath)); err != nil {
+		return nil, err
+	}
+	legacyThumbStoredPath := "/" + thumbnailDir + file.Path
+	if legacyThumbStoredPath != thumbStoredPath {
+		if err := removeFile(s.diskPathFromStored(legacyThumbStoredPath)); err != nil {
+			return nil, err
+		}
+	}
+	if s.remote != nil {
+		if err := s.remote.Delete(ctx, file.Path); err != nil {
+			log.Printf("[media] delete remote original failed path=%s: %v", file.Path, err)
+		}
+		if err := s.remote.Delete(ctx, thumbStoredPath); err != nil {
+			log.Printf("[media] delete remote thumbnail failed path=%s: %v", thumbStoredPath, err)
+		}
+		if legacyThumbStoredPath != thumbStoredPath {
+			if err := s.remote.Delete(ctx, legacyThumbStoredPath); err != nil {
+				log.Printf("[media] delete legacy remote thumbnail failed path=%s: %v", legacyThumbStoredPath, err)
+			}
+		}
+	}
 	if err := s.repo.DeleteByID(ctx, id); err != nil {
 		return nil, err
 	}
@@ -344,11 +381,47 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*media.UploadFile, err
 }
 
 func (s *Service) ResolveDiskPath(storedPath string) (string, error) {
-	diskPath := s.diskPathFromStored(storedPath)
+	normalized, err := normalizeStoredPath(storedPath)
+	if err != nil {
+		return "", err
+	}
+	diskPath := s.diskPathFromStored(normalized)
 	if diskPath == "" {
 		return "", errors.New("empty stored path")
 	}
 	return diskPath, nil
+}
+
+type Delivery struct {
+	LocalPath string
+	RemoteURL string
+}
+
+// ResolveDelivery prefers R2 after confirming the object exists. The local
+// file is checked first and remains the authoritative fallback.
+func (s *Service) ResolveDelivery(ctx context.Context, storedPath string) (Delivery, error) {
+	normalized, err := normalizeStoredPath(storedPath)
+	if err != nil {
+		return Delivery{}, err
+	}
+	localPath := s.diskPathFromStored(normalized)
+	if !fileExists(localPath) {
+		return Delivery{}, media.ErrUploadFileNotFound
+	}
+	result := Delivery{LocalPath: localPath}
+	if s.remote == nil {
+		return result, nil
+	}
+	exists, err := s.remote.Exists(ctx, normalized)
+	if err != nil || !exists {
+		return result, nil
+	}
+	remoteURL, err := s.remote.ReadURL(ctx, normalized)
+	if err != nil {
+		return result, nil
+	}
+	result.RemoteURL = remoteURL
+	return result, nil
 }
 
 // processImage 为图片生成缩略图并提取元信息（尺寸 + 主色调）。
@@ -378,7 +451,7 @@ func (s *Service) processImage(diskPath string, storedPath string, dir string) (
 	}
 
 	// Generate thumbnail
-	thumbStoredPath := "/" + thumbnailDir + storedPath
+	thumbStoredPath := thumbnailStoredPath(storedPath)
 	thumbDiskPath := s.diskPathFromStored(thumbStoredPath)
 
 	if !fileExists(thumbDiskPath) {
@@ -400,6 +473,27 @@ func (s *Service) processImage(diskPath string, storedPath string, dir string) (
 	}
 
 	return "/uploads" + thumbStoredPath, meta
+}
+
+func (s *Service) inspectImage(diskPath string) *ImageMeta {
+	f, err := os.Open(diskPath)
+	if err != nil {
+		log.Printf("[image] open failed for %s: %v", diskPath, err)
+		return nil
+	}
+	defer f.Close()
+
+	src, _, err := image.Decode(f)
+	if err != nil {
+		log.Printf("[image] decode failed for %s: %v", diskPath, err)
+		return nil
+	}
+	bounds := src.Bounds()
+	return &ImageMeta{
+		Width:         bounds.Dx(),
+		Height:        bounds.Dy(),
+		DominantColor: calcDominantColor(src),
+	}
 }
 
 // calcDominantColor 采样缩小后取平均色。
@@ -435,15 +529,25 @@ func (s *Service) ThumbnailURLFor(publicURL string) string {
 		return ""
 	}
 	storedPath := strings.TrimPrefix(publicURL, prefix) // /pictures/2026-...
-	thumbStoredPath := "/" + thumbnailDir + storedPath
+	thumbStoredPath := thumbnailStoredPath(storedPath)
 	thumbDiskPath := s.diskPathFromStored(thumbStoredPath)
 	if fileExists(thumbDiskPath) {
 		return prefix + thumbStoredPath
 	}
+	legacyThumbStoredPath := "/" + thumbnailDir + storedPath
+	if legacyThumbStoredPath != thumbStoredPath && fileExists(s.diskPathFromStored(legacyThumbStoredPath)) {
+		return prefix + legacyThumbStoredPath
+	}
 	return ""
 }
 
-// ExtractImageMetaFromURL 根据本站公开 URL 提取图片元信息（尺寸+主色调）并确保缩略图存在。
+func thumbnailStoredPath(storedPath string) string {
+	ext := filepath.Ext(storedPath)
+	base := strings.TrimSuffix(storedPath, ext)
+	return "/" + thumbnailDir + base + ".jpg"
+}
+
+// ExtractImageMetaFromURL 根据本站公开 URL 提取图片元信息（尺寸+主色调）。
 // 外链返回 nil。
 func (s *Service) ExtractImageMetaFromURL(publicURL string) (thumbURL string, meta *ImageMeta) {
 	thumbURL, meta, _ = s.ExtractPhotoMetadataFromURL(publicURL)
@@ -462,7 +566,9 @@ func (s *Service) ExtractPhotoMetadataFromURL(publicURL string) (thumbURL string
 	if !fileExists(diskPath) {
 		return "", nil, nil
 	}
-	thumbURL, meta = s.processImage(diskPath, storedPath, "pictures")
+	meta = s.inspectImage(diskPath)
+	s.enqueueMedia(storedPath, "picture")
+	thumbURL = s.ThumbnailURLFor(publicURL)
 	exifData = extractExifSummary(diskPath)
 	return thumbURL, meta, exifData
 }
@@ -619,8 +725,24 @@ func (s *Service) diskPathFromStored(storedPath string) string {
 	return filepath.Join(uploadDir, clean)
 }
 
+func normalizeStoredPath(storedPath string) (string, error) {
+	clean := strings.TrimSpace(filepath.ToSlash(storedPath))
+	clean = strings.TrimPrefix(clean, "/uploads/")
+	clean = strings.TrimLeft(clean, "/")
+	if clean == "" {
+		return "", errors.New("empty stored path")
+	}
+	parts := strings.Split(clean, "/")
+	for _, part := range parts {
+		if part == "" || part == "." || part == ".." {
+			return "", errors.New("invalid stored path")
+		}
+	}
+	return "/" + strings.Join(parts, "/"), nil
+}
+
 func (s *Service) buildFilename(dir string, ext string) string {
-	base := time.Now().Format("2006-01-02-15:04:05")
+	base := time.Now().Format("2006-01-02-15-04-05")
 	ext = strings.TrimSpace(ext)
 	if ext != "" && !strings.HasPrefix(ext, ".") {
 		ext = "." + ext

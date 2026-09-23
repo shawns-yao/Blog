@@ -34,8 +34,11 @@ func registerAlbumAuthRoutes(v2 fiber.Router, deps Dependencies) {
 func newAlbumHandler(deps Dependencies) *handler.AlbumHandler {
 	albumRepo := persistence.NewAlbumRepository(deps.DB)
 	commentRepo := persistence.NewCommentRepository(deps.DB)
-	uploadRepo := persistence.NewUploadFileRepository(deps.DB)
 	albumSvc := appalbum.NewService(albumRepo, commentRepo, deps.EventBus)
-	mediaSvc := mediaapp.NewService(uploadRepo, deps.Config.Backup.UploadDir, deps.EventBus, deps.MediaGate)
+	mediaSvc := deps.Media
+	if mediaSvc == nil {
+		uploadRepo := persistence.NewUploadFileRepository(deps.DB)
+		mediaSvc = mediaapp.NewService(uploadRepo, deps.Config.Backup.UploadDir, deps.EventBus, deps.MediaGate)
+	}
 	return handler.NewAlbumHandler(albumSvc, albumRepo, commentRepo, mediaSvc)
 }
