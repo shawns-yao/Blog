@@ -29,10 +29,13 @@
 		const albumPhotoNavigation =
 			(from && to && /^\/albums\/[^/]+$/.test(from) && to.startsWith(`${from}/photo/`)) ||
 			(from && to && /^\/albums\/[^/]+$/.test(to) && from.startsWith(`${to}/photo/`));
+		const momentPaperReturn =
+			from && to && /(?:^|\/)moments\/\d{4}\/\d{2}\/\d{2}\/[^/]+\/?$/.test(from);
 		if (
 			from === to ||
 			navigation.type === 'popstate' ||
 			albumPhotoNavigation ||
+			momentPaperReturn ||
 			window.matchMedia('(prefers-reduced-motion: reduce)').matches
 		)
 			return;

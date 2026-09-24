@@ -1,5 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { getMomentDetail, getMomentSamePeriodMoments } from '$lib/features/moment/api';
+import {
+	getMomentDetail,
+	getMomentList,
+	getMomentSamePeriodMoments
+} from '$lib/features/moment/api';
 import type { MomentRelatedMoment } from '$lib/features/moment/types';
 import { trackISRDeps } from '$lib/server/isr-deps';
 import type { PageServerLoad } from './$types';
@@ -26,12 +30,19 @@ export const load: PageServerLoad = async (event) => {
 	}
 	trackISRDeps(event, `moment:detail:${detail.id}`);
 
-	const relatedMoments: MomentRelatedMoment[] = await getMomentSamePeriodMoments(
-		fetch,
-		detail.id
-	).catch(() => []);
+	const [relatedMoments, underlayMoments] = await Promise.all([
+		getMomentSamePeriodMoments(fetch, detail.id).catch(() => [] as MomentRelatedMoment[]),
+		getMomentList(fetch, { page: 1, pageSize: 20 }).catch(() => ({
+			items: [],
+			total: 0,
+			page: 1,
+			size: 20
+		}))
+	]);
+	trackISRDeps(event, 'moment:list:page:1');
 
 	return {
+		underlayMoments,
 		moment: {
 			...detail,
 			relatedMoments

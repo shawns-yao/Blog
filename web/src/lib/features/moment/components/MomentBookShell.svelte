@@ -1,21 +1,19 @@
 <script lang="ts">
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
 	import { goto, preloadData } from '$app/navigation';
-	import { BookOpenText, List, X } from 'lucide-svelte';
-	import { cubicOut } from 'svelte/easing';
+	import { BookOpenText } from 'lucide-svelte';
 	import { onMount } from 'svelte';
-	import { fade, fly } from 'svelte/transition';
 	import { type Snippet } from 'svelte';
 	import OpenBookFrame from './OpenBookFrame.svelte';
 
 	interface Props {
 		directory: Snippet;
 		children: Snippet;
+		overlay?: Snippet;
 		pageLabel?: string;
 	}
 
-	let { directory, children, pageLabel = '手记' }: Props = $props();
-	let isDirectoryOpen = $state(false);
+	let { directory, children, overlay, pageLabel = '手记' }: Props = $props();
 	let isReturningHome = $state(false);
 	const homePath = resolvePath('/');
 
@@ -53,25 +51,17 @@
 	let currentScene = $state(MOMENT_SCENES[2]);
 	let previousScene = $state<MomentScene | null>(null);
 
-	function closeDirectory() {
-		isDirectoryOpen = false;
-	}
-
 	function returnToShelf(event: MouseEvent) {
-		if (
-			event.button !== 0 ||
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey
-		) {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
 			return;
 		}
 		event.preventDefault();
 		if (isReturningHome) return;
 		isReturningHome = true;
 		void preloadData(homePath).catch(() => undefined);
-		const navigationDelay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 1150;
+		const navigationDelay = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+			? 0
+			: 1150;
 		window.setTimeout(() => void goto(homePath), navigationDelay);
 	}
 
@@ -137,7 +127,7 @@
 	{#if currentScene.key === 'late-night'}
 		<img class="cat-paw" src="/moments/scenes/cat-paw.png" alt="" aria-hidden="true" />
 	{/if}
-	<header class="moment-book-topbar">
+	<header class="moment-book-topbar" inert={!!overlay}>
 		<a
 			class:ladybug-is-flying={isReturningHome}
 			class="back-to-shelf"
@@ -156,13 +146,19 @@
 					</g>
 					<ellipse class="ladybug-body" cx="24" cy="21" rx="13" ry="10" />
 					<g class="ladybug-shell-half ladybug-shell-left">
-						<path class="ladybug-shell" d="M23.6 11.2C16.5 11.4 11 15.4 11 21c0 5.5 5.4 9.5 12.6 9.8Z" />
+						<path
+							class="ladybug-shell"
+							d="M23.6 11.2C16.5 11.4 11 15.4 11 21c0 5.5 5.4 9.5 12.6 9.8Z"
+						/>
 						<circle class="ladybug-spot" cx="18.3" cy="17" r="1.8" />
 						<circle class="ladybug-spot" cx="17.2" cy="24.7" r="1.55" />
 						<path class="ladybug-shell-shine" d="M15.2 16.2c1.4-1.8 3.1-2.6 5.1-2.9" />
 					</g>
 					<g class="ladybug-shell-half ladybug-shell-right">
-						<path class="ladybug-shell" d="M24.4 11.2C31.5 11.4 37 15.4 37 21c0 5.5-5.4 9.5-12.6 9.8Z" />
+						<path
+							class="ladybug-shell"
+							d="M24.4 11.2C31.5 11.4 37 15.4 37 21c0 5.5-5.4 9.5-12.6 9.8Z"
+						/>
 						<circle class="ladybug-spot" cx="29.7" cy="17" r="1.8" />
 						<circle class="ladybug-spot" cx="30.8" cy="24.7" r="1.55" />
 						<path class="ladybug-shell-shine" d="M27.7 13.3c2 0.3 3.7 1.1 5.1 2.9" />
@@ -187,23 +183,12 @@
 		</div>
 	</header>
 
-	<button
-		type="button"
-		class="directory-tab"
-		aria-expanded={isDirectoryOpen}
-		aria-controls="moment-mobile-directory"
-		onclick={() => (isDirectoryOpen = true)}
-	>
-		<List size={15} strokeWidth={1.7} aria-hidden="true" />
-		<span>目录</span>
-	</button>
-
-	<div class="moment-book-spread">
+	<div class:under-overlay={!!overlay} class="moment-book-spread" inert={!!overlay}>
 		<OpenBookFrame />
-		<aside class="moment-book-directory" aria-label="手记目录" role="region">
+		<aside class="moment-book-directory" aria-label="左侧书页" role="region">
 			<div class="directory-sticky">{@render directory()}</div>
 		</aside>
-		<div class="moment-book-page" aria-label={`${pageLabel}内容`} role="region">
+		<div class="moment-book-page" aria-label="右侧书页" role="region">
 			{@render children()}
 		</div>
 		<div class="book-ribbon" aria-hidden="true">
@@ -212,33 +197,8 @@
 		</div>
 	</div>
 
-	{#if isDirectoryOpen}
-		<button
-			type="button"
-			class="directory-overlay"
-			aria-label="关闭目录"
-			onclick={closeDirectory}
-			transition:fade={{ duration: 180 }}
-		></button>
-		<aside
-			id="moment-mobile-directory"
-			class="mobile-directory"
-			aria-label="手记目录"
-			transition:fly={{ x: -24, duration: 260, easing: cubicOut, opacity: 0 }}
-		>
-			<div class="mobile-directory-head">
-				<div>
-					<span>CONTENTS</span>
-					<strong>手记目录</strong>
-				</div>
-				<button type="button" aria-label="关闭目录" onclick={closeDirectory}>
-					<X size={18} strokeWidth={1.5} aria-hidden="true" />
-				</button>
-			</div>
-			<div class="mobile-directory-body">
-				{@render directory()}
-			</div>
-		</aside>
+	{#if overlay}
+		<div class="moment-book-overlay" role="presentation">{@render overlay()}</div>
 	{/if}
 </section>
 
@@ -318,17 +278,6 @@
 	.moment-room-image-current {
 		z-index: 1;
 		animation: scene-crossfade 900ms ease-out both;
-	}
-
-	.moment-book-room::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		z-index: 1;
-		pointer-events: none;
-		opacity: 0.035;
-		background-image: var(--texture-noise);
-		mix-blend-mode: soft-light;
 	}
 
 	.moment-book-room::after {
@@ -539,9 +488,7 @@
 		transform: translateX(-0.16rem);
 	}
 
-	.back-to-shelf:focus-visible,
-	.directory-tab:focus-visible,
-	.mobile-directory button:focus-visible {
+	.back-to-shelf:focus-visible {
 		outline: 2px solid #cba874;
 		outline-offset: 3px;
 	}
@@ -571,7 +518,7 @@
 		left: 50%;
 		z-index: 2;
 		display: grid;
-		grid-template-columns: minmax(15rem, 37fr) minmax(0, 63fr);
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		width: min(92vw, 106rem);
 		height: 90vh;
 		min-height: 31rem;
@@ -579,17 +526,6 @@
 		transform: translateX(-50%) perspective(1900px) rotateX(3.2deg);
 		transform-origin: center bottom;
 		animation: book-arrive 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
-	}
-
-	.moment-book-spread::after {
-		content: '';
-		position: absolute;
-		inset: 1.2rem 1rem 0.8rem;
-		z-index: 2;
-		pointer-events: none;
-		opacity: 0.045;
-		background-image: var(--texture-noise);
-		mix-blend-mode: multiply;
 	}
 
 	.moment-book-directory,
@@ -615,19 +551,20 @@
 	}
 
 	.moment-book-directory {
-		padding: clamp(3.3rem, 5.2vh, 4.4rem) clamp(2rem, 3vw, 3.35rem) 4.3rem;
+		padding: clamp(3.3rem, 5.2vh, 4.4rem) clamp(2rem, 3.2vw, 4rem) 3.6rem;
 		background:
 			linear-gradient(90deg, rgba(92, 62, 35, 0.08), transparent 9%),
-			linear-gradient(90deg, transparent 83%, rgba(74, 49, 29, 0.1));
+			linear-gradient(90deg, transparent 84%, rgba(74, 49, 29, 0.13));
 		box-shadow: inset -1.2rem 0 1.7rem -1.5rem rgba(49, 30, 17, 0.5);
 	}
 
 	.directory-sticky {
 		position: relative;
+		height: 100%;
 	}
 
 	.moment-book-page {
-		padding: clamp(3.35rem, 5.4vh, 4.8rem) clamp(3.3rem, 5vw, 6rem) 4.5rem;
+		padding: clamp(3.3rem, 5.2vh, 4.4rem) clamp(2rem, 3.2vw, 4rem) 3.6rem;
 		background:
 			linear-gradient(90deg, rgba(81, 54, 31, 0.11), transparent 2.8rem),
 			radial-gradient(circle at 82% 8%, rgba(255, 250, 230, 0.2), transparent 28rem);
@@ -685,12 +622,6 @@
 		letter-spacing: 0.06em;
 	}
 
-	.directory-tab,
-	.directory-overlay,
-	.mobile-directory {
-		display: none;
-	}
-
 	.moment-book-room :global(.moment-book-copy) {
 		color: var(--book-ink);
 	}
@@ -705,6 +636,20 @@
 
 	.moment-book-room :global(.moment-book-accent) {
 		color: var(--book-accent);
+	}
+
+	.moment-book-spread.under-overlay {
+		filter: brightness(0.55) saturate(0.72) blur(2px);
+		transform: translateX(-50%) perspective(1900px) rotateX(3.2deg) scale(0.992);
+		transition:
+			filter 320ms ease,
+			transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.moment-book-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
 	}
 
 	@keyframes book-arrive {
@@ -875,18 +820,14 @@
 
 	@media (min-width: 768px) and (max-width: 1180px) {
 		.moment-book-spread {
-			grid-template-columns: minmax(13.5rem, 35fr) minmax(0, 65fr);
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 			width: 95vw;
 		}
 
-		.moment-book-directory {
-			padding-right: 1.8rem;
-			padding-left: 1.8rem;
-		}
-
+		.moment-book-directory,
 		.moment-book-page {
-			padding-right: 3rem;
-			padding-left: 2.7rem;
+			padding-right: 2rem;
+			padding-left: 2rem;
 		}
 
 		.book-ribbon {
@@ -915,12 +856,6 @@
 			overflow: visible;
 			background-color: var(--paper);
 			background-image: none;
-		}
-
-		.moment-book-room::before {
-			position: absolute;
-			opacity: 0.025;
-			mix-blend-mode: multiply;
 		}
 
 		.moment-book-room::after {
@@ -986,113 +921,24 @@
 			animation: none;
 		}
 
-		.moment-book-directory {
-			display: none;
-		}
-
+		.moment-book-directory,
 		.moment-book-page {
+			display: block;
 			height: auto;
 			min-height: calc(100dvh - 3.6rem);
 			overflow: visible;
-			padding: 2.5rem 1.25rem 4.5rem 2.15rem;
+			padding: 2.5rem 1.25rem 3.5rem 2.15rem;
 			box-shadow: none;
 			background: linear-gradient(90deg, rgba(112, 72, 42, 0.1), transparent 1.2rem), var(--paper);
+		}
+
+		.moment-book-directory {
+			border-bottom: 1px solid var(--paper-edge);
 		}
 
 		.moment-book-page::after,
 		.book-ribbon {
 			display: none;
-		}
-
-		.directory-tab {
-			position: fixed;
-			top: 42%;
-			left: 0;
-			z-index: 30;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: 0.3rem;
-			padding: 0.65rem 0.42rem 0.7rem;
-			color: #efe3c9;
-			border: 1px solid rgba(219, 195, 157, 0.34);
-			border-left: 0;
-			border-radius: 0 5px 5px 0;
-			background: #5b4030;
-			box-shadow: 0 0.45rem 1.1rem rgba(43, 27, 17, 0.26);
-		}
-
-		.directory-tab span {
-			font-family: var(--font-serif);
-			font-size: 0.68rem;
-			letter-spacing: 0.12em;
-			writing-mode: vertical-rl;
-		}
-
-		.directory-overlay {
-			position: fixed;
-			inset: 0;
-			z-index: 70;
-			display: block;
-			border: 0;
-			background: rgba(24, 18, 14, 0.58);
-			backdrop-filter: blur(2px);
-		}
-
-		.mobile-directory {
-			position: fixed;
-			inset: 0 auto 0 0;
-			z-index: 80;
-			display: flex;
-			width: min(84vw, 22rem);
-			flex-direction: column;
-			color: var(--book-ink);
-			border-right: 1px solid var(--paper-edge);
-			background:
-				linear-gradient(90deg, rgba(103, 69, 39, 0.08), transparent 1.2rem), var(--paper-deep);
-			box-shadow: 1.4rem 0 3.2rem rgba(0, 0, 0, 0.36);
-		}
-
-		.mobile-directory-head {
-			display: flex;
-			min-height: 4.8rem;
-			align-items: center;
-			justify-content: space-between;
-			padding: 0.8rem 1.1rem 0.75rem 1.35rem;
-			border-bottom: 1px solid var(--book-rule);
-		}
-
-		.mobile-directory-head div {
-			display: flex;
-			flex-direction: column;
-			gap: 0.22rem;
-		}
-
-		.mobile-directory-head span {
-			font-family: var(--font-mono);
-			font-size: 0.55rem;
-			letter-spacing: 0.24em;
-			color: var(--book-faint);
-		}
-
-		.mobile-directory-head strong {
-			font-family: var(--font-serif);
-			font-size: 1.05rem;
-			font-weight: 600;
-		}
-
-		.mobile-directory-head button {
-			display: grid;
-			width: 2.4rem;
-			height: 2.4rem;
-			place-items: center;
-			border-radius: 50%;
-			color: var(--book-muted);
-		}
-
-		.mobile-directory-body {
-			overflow-y: auto;
-			padding: 1.5rem 1.35rem 3rem;
 		}
 	}
 

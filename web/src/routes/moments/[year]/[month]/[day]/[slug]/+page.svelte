@@ -38,7 +38,5 @@
 	});
 </script>
 
-<div class="w-full min-h-screen pt-2 md:pt-4 pb-12">
-	<MomentDetail moment={$momentStore ?? data.moment} />
-</div>
+<MomentDetail moment={$momentStore ?? data.moment} underlayMoments={data.underlayMoments} />
 <ContentViewTracker contentType="moment" contentId={$momentIdStore ?? data.moment.id} />

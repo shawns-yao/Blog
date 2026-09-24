@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { navigating } from '$app/state';
 	import { dev } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { navigating, page } from '$app/state';
+	import { buildMomentBookSpreads, formatLeafPageLabel } from '$lib/features/moment/book-pages';
 	import { momentListCtx } from '$lib/features/moment/context';
 	import type { MomentListResponse, MomentSummary } from '$lib/features/moment/types';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
-	import StaggerList from '$lib/ui/animation/StaggerList.svelte';
-	import Pagination from '$lib/ui/primitives/pagination/Pagination.svelte';
-	import { ArrowRight, NotebookPen, Search, X } from 'lucide-svelte';
 	import MomentBookShell from './MomentBookShell.svelte';
-	import MomentFeedItem from './MomentFeedItem.svelte';
+	import MomentDatePage from './MomentDatePage.svelte';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		moments: MomentListResponse;
@@ -32,9 +31,9 @@
 			isTop: true,
 			isHot: false,
 			isOriginal: true,
-			contentUpdatedAt: '2026-09-21T09:30:00+08:00',
-			createdAt: '2026-09-21T09:30:00+08:00',
-			updatedAt: '2026-09-21T09:30:00+08:00'
+			contentUpdatedAt: '2026-09-22T09:30:00+08:00',
+			createdAt: '2026-09-22T09:30:00+08:00',
+			updatedAt: '2026-09-22T09:30:00+08:00'
 		},
 		{
 			id: -2,
@@ -48,16 +47,15 @@
 			isTop: false,
 			isHot: false,
 			isOriginal: true,
-			contentUpdatedAt: '2026-09-18T15:20:00+08:00',
-			createdAt: '2026-09-18T15:20:00+08:00',
-			updatedAt: '2026-09-18T15:20:00+08:00'
+			contentUpdatedAt: '2026-09-22T15:20:00+08:00',
+			createdAt: '2026-09-22T15:20:00+08:00',
+			updatedAt: '2026-09-22T15:20:00+08:00'
 		},
 		{
 			id: -3,
-			title: '夜里十一点，猫先睡着了',
-			shortUrl: 'layout-preview-night',
-			summary:
-				'台灯把桌面照成一小块温暖的岛。计划还剩两行，猫已经在椅子旁蜷成一团，提醒今天可以到这里。',
+			title: '台灯亮起以后',
+			shortUrl: 'layout-preview-evening',
+			summary: '天色暗得很慢，笔尖停在纸面上，刚好听见窗外第一声晚风。',
 			views: 73,
 			topics: ['夜晚', '随想'],
 			likes: 9,
@@ -65,551 +63,344 @@
 			isTop: false,
 			isHot: false,
 			isOriginal: true,
-			contentUpdatedAt: '2026-09-14T23:10:00+08:00',
-			createdAt: '2026-09-14T23:10:00+08:00',
-			updatedAt: '2026-09-14T23:10:00+08:00'
+			contentUpdatedAt: '2026-09-22T20:10:00+08:00',
+			createdAt: '2026-09-22T20:10:00+08:00',
+			updatedAt: '2026-09-22T20:10:00+08:00'
+		},
+		{
+			id: -4,
+			title: '月亮越过窗框',
+			shortUrl: 'layout-preview-moon',
+			summary: '写下今天最后一句话，把书页轻轻压平。',
+			views: 51,
+			topics: ['夜晚'],
+			likes: 7,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-22T23:06:00+08:00',
+			createdAt: '2026-09-22T23:06:00+08:00',
+			updatedAt: '2026-09-22T23:06:00+08:00'
+		},
+		{
+			id: -5,
+			title: '秋天好像真的来了',
+			shortUrl: 'layout-preview-autumn',
+			summary: '傍晚的风开始有了凉意，楼下的梧桐叶也变黄了。',
+			views: 81,
+			topics: ['日常'],
+			likes: 11,
+			comments: 2,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T08:45:00+08:00',
+			createdAt: '2026-09-23T08:45:00+08:00',
+			updatedAt: '2026-09-23T08:45:00+08:00'
+		},
+		{
+			id: -6,
+			title: '午后的一小段空白',
+			shortUrl: 'layout-preview-blank',
+			summary: '没有安排的十分钟，也值得被单独留下。',
+			views: 42,
+			topics: ['片刻'],
+			likes: 6,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T13:20:00+08:00',
+			createdAt: '2026-09-23T13:20:00+08:00',
+			updatedAt: '2026-09-23T13:20:00+08:00'
+		},
+		{
+			id: -7,
+			title: '钢笔应该放在右手边',
+			shortUrl: 'layout-preview-pen',
+			summary: '整理桌面时突然发现，熟悉的位置也有自己的秩序。',
+			views: 39,
+			topics: ['日常', '书房'],
+			likes: 5,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T16:10:00+08:00',
+			createdAt: '2026-09-23T16:10:00+08:00',
+			updatedAt: '2026-09-23T16:10:00+08:00'
+		},
+		{
+			id: -8,
+			title: '晚饭后的短散步',
+			shortUrl: 'layout-preview-walk',
+			summary: '绕着街角走了一圈，风里已经有桂花的味道。',
+			views: 31,
+			topics: ['日常'],
+			likes: 4,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T18:35:00+08:00',
+			createdAt: '2026-09-23T18:35:00+08:00',
+			updatedAt: '2026-09-23T18:35:00+08:00'
+		},
+		{
+			id: -9,
+			title: '给明天留一张便签',
+			shortUrl: 'layout-preview-note',
+			summary: '先写下最重要的一件事，其他的等太阳升起来再说。',
+			views: 28,
+			topics: ['计划'],
+			likes: 3,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T20:40:00+08:00',
+			createdAt: '2026-09-23T20:40:00+08:00',
+			updatedAt: '2026-09-23T20:40:00+08:00'
+		},
+		{
+			id: -10,
+			title: '听完一首旧歌',
+			shortUrl: 'layout-preview-song',
+			summary: '熟悉的旋律经过很多年，还是会把人带回同一扇窗前。',
+			views: 24,
+			topics: ['片刻', '音乐'],
+			likes: 3,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T22:05:00+08:00',
+			createdAt: '2026-09-23T22:05:00+08:00',
+			updatedAt: '2026-09-23T22:05:00+08:00'
+		},
+		{
+			id: -11,
+			title: '今天写到这里',
+			shortUrl: 'layout-preview-goodnight',
+			summary: '合上电脑之前，再看一眼窗外安静的月亮。',
+			views: 19,
+			topics: ['夜晚'],
+			likes: 2,
+			comments: 0,
+			isTop: false,
+			isHot: false,
+			isOriginal: true,
+			contentUpdatedAt: '2026-09-23T23:18:00+08:00',
+			createdAt: '2026-09-23T23:18:00+08:00',
+			updatedAt: '2026-09-23T23:18:00+08:00'
 		}
 	];
-	const monthNames = [
-		'JANUARY',
-		'FEBRUARY',
-		'MARCH',
-		'APRIL',
-		'MAY',
-		'JUNE',
-		'JULY',
-		'AUGUST',
-		'SEPTEMBER',
-		'OCTOBER',
-		'NOVEMBER',
-		'DECEMBER'
-	] as const;
 
 	let { moments, search = '', basePath = '/moments', staggerKey = 'moments' }: Props = $props();
 	momentListCtx.mountModelData(() => moments);
 	const isLayoutPreview = $derived(dev && !search && moments.items.length === 0);
 	const visibleMoments = $derived(isLayoutPreview ? layoutPreviewMoments : moments.items);
-	const visibleTotal = $derived(isLayoutPreview ? visibleMoments.length : moments.total);
-	const monthGroups = $derived.by(() => {
-		const groups = new Map<
-			string,
-			{ key: string; year: string; month: string; shortMonth: string; items: MomentSummary[] }
-		>();
-
-		for (const moment of visibleMoments) {
-			const [year = '', month = '01'] = moment.createdAt.slice(0, 10).split('-');
-			const key = `${year}-${month}`;
-			const monthIndex = Math.max(0, Math.min(11, Number(month) - 1));
-			const current = groups.get(key) ?? {
-				key,
-				year,
-				month: monthNames[monthIndex],
-				shortMonth: monthNames[monthIndex].slice(0, 3),
-				items: []
-			};
-			current.items.push(moment);
-			groups.set(key, current);
-		}
-
-		return [...groups.values()];
-	});
-	const topicIndex = $derived.by(() => {
-		const counts = new Map<string, number>();
-		for (const moment of visibleMoments) {
-			for (const topic of moment.topics ?? []) counts.set(topic, (counts.get(topic) ?? 0) + 1);
-		}
-		return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-	});
-	const archiveIndex = $derived.by(() => {
-		const counts = new Map<string, number>();
-		for (const moment of visibleMoments) {
-			const year = moment.createdAt.slice(0, 4);
-			counts.set(year, (counts.get(year) ?? 0) + 1);
-		}
-		return [...counts.entries()].sort((a, b) => b[0].localeCompare(a[0]));
-	});
-	const totalPages = $derived(
+	const spreads = $derived(buildMomentBookSpreads(visibleMoments));
+	const totalServerPages = $derived(
 		moments.size > 0 ? Math.max(1, Math.ceil(moments.total / moments.size)) : 1
 	);
+	let spreadIndex = $state(0);
+	let turnDirection = $state<'older' | 'newer' | null>(null);
+	let currentDatasetKey = $state('');
+	let touchStartX: number | null = null;
+	let touchStartY: number | null = null;
 
-	function onPageChange(nextPage: number) {
-		const safePage = Number.isFinite(nextPage) && nextPage > 1 ? nextPage : 1;
+	$effect(() => {
+		const nextKey = `${staggerKey}-${search}-${visibleMoments.map((item) => item.id).join(',')}`;
+		if (nextKey !== currentDatasetKey) {
+			currentDatasetKey = nextKey;
+			spreadIndex = Math.max(0, spreads.length - 1);
+		}
+	});
+
+	const currentSpread = $derived(
+		spreads[Math.min(spreadIndex, spreads.length - 1)] ?? { left: null, right: null }
+	);
+	const openContext = $derived({
+		spread: currentSpread,
+		spreadIndex,
+		returnPath: page.url.pathname + page.url.search
+	});
+
+	onMount(() => {
+		try {
+			const raw = sessionStorage.getItem('moment:return-spread');
+			if (!raw) return;
+			sessionStorage.removeItem('moment:return-spread');
+			const saved = JSON.parse(raw) as { returnPath: string; spreadIndex: number; at: number };
+			if (
+				saved.returnPath === page.url.pathname + page.url.search &&
+				Date.now() - saved.at < 60_000 &&
+				Number.isInteger(saved.spreadIndex) &&
+				saved.spreadIndex >= 0 &&
+				saved.spreadIndex < spreads.length
+			) {
+				spreadIndex = saved.spreadIndex;
+			}
+		} catch {
+			sessionStorage.removeItem('moment:return-spread');
+		}
+	});
+	const canTurnOlder = $derived(spreadIndex > 0 || moments.page < totalServerPages);
+	const canTurnNewer = $derived(spreadIndex < spreads.length - 1 || moments.page > 1);
+	const olderLeaf = $derived(spreads[spreadIndex - 1]?.right ?? spreads[spreadIndex - 1]?.left);
+	const newerLeaf = $derived(spreads[spreadIndex + 1]?.left ?? spreads[spreadIndex + 1]?.right);
+
+	function pageHref(page: number) {
+		const safePage = Math.max(1, page);
 		const path = resolvePath(safePage === 1 ? `${basePath}/` : `${basePath}/page/${safePage}/`);
-		goto(`${path}${search ? `?${new URLSearchParams({ q: search })}` : ''}`);
+		return `${path}${search ? `?${new URLSearchParams({ q: search })}` : ''}`;
+	}
+
+	function animateTurn(direction: 'older' | 'newer') {
+		turnDirection = direction;
+		window.setTimeout(() => (turnDirection = null), 520);
+	}
+
+	function turnOlder() {
+		if (spreadIndex > 0) {
+			animateTurn('older');
+			spreadIndex -= 1;
+			return;
+		}
+		if (moments.page < totalServerPages) void goto(pageHref(moments.page + 1));
+	}
+
+	function turnNewer() {
+		if (spreadIndex < spreads.length - 1) {
+			animateTurn('newer');
+			spreadIndex += 1;
+			return;
+		}
+		if (moments.page > 1) void goto(pageHref(moments.page - 1));
+	}
+
+	function rememberTouch(event: TouchEvent) {
+		touchStartX = event.changedTouches[0]?.clientX ?? null;
+		touchStartY = event.changedTouches[0]?.clientY ?? null;
+	}
+
+	function turnFromSwipe(event: TouchEvent) {
+		if (touchStartX === null || touchStartY === null) return;
+		const deltaX = (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
+		const deltaY = (event.changedTouches[0]?.clientY ?? touchStartY) - touchStartY;
+		touchStartX = null;
+		touchStartY = null;
+		if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.3) return;
+		if (deltaX < 0) turnOlder();
+		else turnNewer();
 	}
 </script>
 
 <MomentBookShell pageLabel="手记列表">
 	{#snippet directory()}
-		<nav class="book-directory" aria-label="手记目录">
-			<p class="directory-kicker">CONTENTS</p>
-			<h2>手记</h2>
-			<p class="directory-intro">日常、片刻与随想</p>
-
-			<a class="directory-overview active" href={resolvePath(`${basePath}/`)}>
-				<span>全部手记</span>
-				<strong>{visibleTotal}</strong>
-			</a>
-
-			{#if visibleMoments.length > 0}
-				<div class="directory-section">
-					<div class="directory-section-head">
-						<span>分类索引</span>
-						<small>本页</small>
-					</div>
-					<ul class="directory-count-list">
-						{#each topicIndex as [topic, count] (topic)}
-							<li><span>{topic}</span><strong>{count}</strong></li>
-						{/each}
-					</ul>
-				</div>
-				<div class="directory-section archive-section">
-					<div class="directory-section-head">
-						<span>ARCHIVE</span>
-					</div>
-					<ul class="directory-count-list">
-						{#each archiveIndex as [year, count] (year)}
-							<li><span>{year}</span><strong>{count}</strong></li>
-						{/each}
-					</ul>
-				</div>
-			{:else}
-				<p class="directory-empty">这一页暂时留白，等待下一篇手记。</p>
-			{/if}
-		</nav>
+		<div
+			class="leaf-motion"
+			class:turn-older={turnDirection === 'older'}
+			class:turn-newer={turnDirection === 'newer'}
+			role="region"
+			aria-label="左侧日期书页"
+			aria-busy={!!navigating.to}
+			ontouchstart={rememberTouch}
+			ontouchend={turnFromSwipe}
+		>
+			{#key `${currentSpread.left?.dateKey ?? 'blank'}-${currentSpread.left?.part ?? 0}`}
+				<MomentDatePage
+					leaf={currentSpread.left}
+					side="left"
+					{search}
+					{basePath}
+					preview={isLayoutPreview}
+					{openContext}
+					kicker={currentSpread.left?.dateKey &&
+					currentSpread.left.dateKey === currentSpread.right?.dateKey
+						? `SAME DAY / ${String(currentSpread.left.part).padStart(2, '0')}`
+						: 'YESTERDAY / NOTES'}
+					canTurn={canTurnOlder}
+					turnLabel="翻到更早的手记"
+					turnPageLabel={olderLeaf ? formatLeafPageLabel(olderLeaf) : '更早的手记'}
+					onTurn={turnOlder}
+				/>
+			{/key}
+		</div>
 	{/snippet}
 
-	<section class="moment-index" aria-labelledby="moments-heading">
-		<header class="index-header">
-			<div>
-				<p class="index-kicker">
-					{isLayoutPreview
-						? 'LAYOUT PREVIEW'
-						: `NOTEBOOK / ${String(moments.page).padStart(2, '0')}`}
-				</p>
-				<h1 id="moments-heading">手记</h1>
-				<p class="index-subtitle">把普通日子里值得记住的片刻，夹进这一册书页。</p>
-			</div>
-			<div class="entry-count" aria-label={`共 ${visibleTotal} 篇手记`}>
-				<strong>{String(visibleTotal).padStart(2, '0')}</strong>
-				<span>ENTRIES</span>
-			</div>
-		</header>
-
-		<div class="index-tools">
-			<p>
-				{isLayoutPreview ? '版式预览' : search ? '搜索结果' : '全部手记'}
-				<span>{visibleTotal}</span>
-			</p>
-			<form action={resolvePath(`${basePath}/`)} method="GET" role="search">
-				<label for="moment-query" class="sr-only">搜索手记</label>
-				<input
-					id="moment-query"
-					name="q"
-					value={search}
-					type="search"
-					placeholder="在手记中寻找……"
-				/>
-				<button type="submit" aria-label="搜索手记" title="搜索手记">
-					<Search size={17} strokeWidth={1.6} aria-hidden="true" />
-				</button>
-			</form>
-		</div>
-
-		{#if search}
-			<div class="search-state">
-				<span>“{search}”</span>
-				<a href={resolvePath(`${basePath}/`)}><X size={13} />清除搜索</a>
-			</div>
-		{/if}
-
-		<div aria-busy={!!navigating.to}>
-			{#if visibleMoments.length > 0}
-				<div class="month-index">
-					{#each monthGroups as group (group.key)}
-						<section class="month-group" aria-labelledby={`month-${group.key}`}>
-							<header class="month-heading">
-								<h2 id={`month-${group.key}`}>{group.month}</h2>
-								<span>{group.shortMonth}. {group.year}</span>
-							</header>
-							<StaggerList
-								class="moment-entry-list"
-								staggerDelay={40}
-								duration={250}
-								y={8}
-								key={`${staggerKey}-${search}-${group.key}`}
-							>
-								{#each group.items as moment (moment.id)}
-									<MomentFeedItem {moment} preview={isLayoutPreview} />
-								{/each}
-							</StaggerList>
-						</section>
-					{/each}
-				</div>
-
-				{#if totalPages > 1}
-					<div class="index-pagination">
-						<Pagination current={moments.page} total={totalPages} {onPageChange} />
-					</div>
-				{/if}
-			{:else}
-				<div class="empty-page" role="status">
-					<div class="empty-mark"><NotebookPen size={30} strokeWidth={1.15} /></div>
-					<p>{search ? '没有找到相关手记' : '还没有公开的手记'}</p>
-					<span>{search ? '换一个词，也许会翻到另一页。' : '第一行文字，会从这里开始。'}</span>
-					{#if search}
-						<a href={resolvePath(`${basePath}/`)}>
-							查看全部手记 <ArrowRight size={14} aria-hidden="true" />
-						</a>
-					{/if}
-				</div>
-			{/if}
-		</div>
-	</section>
+	<div
+		class="leaf-motion"
+		class:turn-older={turnDirection === 'older'}
+		class:turn-newer={turnDirection === 'newer'}
+		role="region"
+		aria-label="右侧日期书页"
+		aria-busy={!!navigating.to}
+		ontouchstart={rememberTouch}
+		ontouchend={turnFromSwipe}
+	>
+		{#key `${currentSpread.right?.dateKey ?? 'blank'}-${currentSpread.right?.part ?? 0}`}
+			<MomentDatePage
+				leaf={currentSpread.right}
+				side="right"
+				{search}
+				{basePath}
+				preview={isLayoutPreview}
+				{openContext}
+				kicker={currentSpread.right?.dateKey &&
+				currentSpread.right.dateKey === currentSpread.left?.dateKey
+					? `SAME DAY / ${String(currentSpread.right.part).padStart(2, '0')}`
+					: 'TODAY / NOTES'}
+				canTurn={canTurnNewer}
+				turnLabel="翻到更新的手记"
+				turnPageLabel={newerLeaf ? formatLeafPageLabel(newerLeaf) : '更新的手记'}
+				onTurn={turnNewer}
+			/>
+		{/key}
+	</div>
 </MomentBookShell>
 
 <style>
-	.book-directory {
-		font-family: var(--font-serif);
+	.leaf-motion {
+		height: 100%;
+		transform-origin: center;
 	}
-
-	.directory-kicker,
-	.index-kicker {
-		font-family: var(--font-mono);
-		font-size: 0.58rem;
-		letter-spacing: 0.28em;
-		color: var(--book-faint);
+	.leaf-motion.turn-older {
+		animation: turn-to-older 500ms cubic-bezier(0.2, 0.72, 0.2, 1);
 	}
-
-	.book-directory h2 {
-		margin-top: 0.8rem;
-		font-size: clamp(1.8rem, 3vw, 2.6rem);
-		font-weight: 500;
-		letter-spacing: 0.08em;
+	.leaf-motion.turn-newer {
+		animation: turn-to-newer 500ms cubic-bezier(0.2, 0.72, 0.2, 1);
 	}
-
-	.directory-intro {
-		margin-top: 0.7rem;
-		font-size: 0.75rem;
-		letter-spacing: 0.08em;
-		color: var(--book-muted);
-	}
-
-	.directory-overview {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-top: 1.8rem;
-		padding: 0.72rem 0;
-		font-size: 0.82rem;
-		letter-spacing: 0.06em;
-		border-top: 1px solid var(--book-rule);
-		border-bottom: 1px solid var(--book-rule);
-	}
-
-	.directory-overview.active {
-		color: var(--book-accent);
-	}
-
-	.directory-overview strong {
-		font-family: var(--font-mono);
-		font-size: 0.62rem;
-		font-weight: 500;
-	}
-
-	.directory-section {
-		margin-top: 1.65rem;
-	}
-
-	.directory-section-head {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		margin-bottom: 0.7rem;
-		color: var(--book-faint);
-	}
-
-	.directory-section-head span {
-		font-size: 0.65rem;
-		letter-spacing: 0.18em;
-	}
-
-	.directory-section-head small {
-		font-family: var(--font-mono);
-		font-size: 0.55rem;
-	}
-
-	.directory-count-list {
-		border-top: 1px solid var(--book-rule);
-	}
-
-	.directory-count-list li {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-		padding: 0.48rem 0;
-		font-size: 0.71rem;
-		letter-spacing: 0.04em;
-		border-bottom: 1px solid rgba(76, 58, 43, 0.1);
-	}
-
-	.directory-count-list strong {
-		font-family: var(--font-mono);
-		font-size: 0.52rem;
-		font-weight: 500;
-		color: var(--book-faint);
-	}
-
-	.archive-section {
-		margin-top: 2rem;
-	}
-
-	.directory-empty {
-		margin-top: 2rem;
-		font-size: 0.72rem;
-		line-height: 1.9;
-		color: var(--book-muted);
-	}
-
-	.index-header {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 2rem;
-		padding-bottom: clamp(1.35rem, 2.8vh, 2.4rem);
-		border-bottom: 1px solid var(--book-rule);
-	}
-
-	.index-header h1 {
-		margin-top: 0.7rem;
-		font-family: var(--font-serif);
-		font-size: clamp(3rem, 5vw, 5.2rem);
-		font-weight: 500;
-		line-height: 0.98;
-		letter-spacing: 0.08em;
-	}
-
-	.index-subtitle {
-		max-width: 34rem;
-		margin-top: 0.9rem;
-		font-family: var(--font-serif);
-		font-size: clamp(0.86rem, 1.2vw, 1rem);
-		line-height: 1.75;
-		letter-spacing: 0.05em;
-		color: var(--book-muted);
-	}
-
-	.entry-count {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		padding-bottom: 0.35rem;
-	}
-
-	.entry-count strong {
-		font-family: var(--font-serif);
-		font-size: clamp(1.8rem, 3.2vw, 3rem);
-		font-weight: 400;
-		line-height: 1;
-		color: var(--book-accent);
-	}
-
-	.entry-count span {
-		margin-top: 0.45rem;
-		font-family: var(--font-mono);
-		font-size: 0.54rem;
-		letter-spacing: 0.2em;
-		color: var(--book-faint);
-	}
-
-	.index-tools {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 2rem;
-		padding: 0.95rem 0;
-		border-bottom: 1px solid var(--book-rule);
-	}
-
-	.index-tools > p {
-		font-family: var(--font-serif);
-		font-size: 0.78rem;
-		letter-spacing: 0.08em;
-		color: var(--book-muted);
-	}
-
-	.index-tools > p span {
-		margin-left: 0.5rem;
-		font-family: var(--font-mono);
-		font-size: 0.62rem;
-	}
-
-	.index-tools form {
-		display: flex;
-		width: min(100%, 20rem);
-		align-items: center;
-		border-bottom: 1px solid rgba(56, 47, 40, 0.38);
-	}
-
-	.index-tools input {
-		min-width: 0;
-		flex: 1;
-		padding: 0.55rem 0;
-		font-family: var(--font-serif);
-		font-size: 0.78rem;
-		color: var(--book-ink);
-		background: transparent;
-	}
-
-	.index-tools input::placeholder {
-		color: var(--book-faint);
-	}
-
-	.index-tools button {
-		display: grid;
-		width: 2.35rem;
-		height: 2.35rem;
-		place-items: center;
-		color: var(--book-muted);
-	}
-
-	.index-tools input:focus-visible,
-	.index-tools button:focus-visible {
-		outline: 2px solid rgba(141, 56, 45, 0.55);
-		outline-offset: 2px;
-	}
-
-	.search-state {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding-top: 1.2rem;
-		font-family: var(--font-serif);
-		font-size: 0.76rem;
-		color: var(--book-muted);
-	}
-
-	.search-state a,
-	.empty-page a {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.32rem;
-		color: var(--book-accent);
-	}
-
-	.index-pagination {
-		display: flex;
-		justify-content: center;
-		padding: 3rem 0 0.5rem;
-	}
-
-	.month-index {
-		padding-top: clamp(1.45rem, 2.8vh, 2.25rem);
-	}
-
-	.month-group + .month-group {
-		margin-top: clamp(2.2rem, 4vh, 3.5rem);
-	}
-
-	.month-heading {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-		padding-bottom: 0.8rem;
-		border-bottom: 1px solid rgba(56, 47, 40, 0.32);
-	}
-
-	.month-heading h2 {
-		font-family: var(--font-serif);
-		font-size: clamp(1.05rem, 1.8vw, 1.45rem);
-		font-weight: 500;
-		letter-spacing: 0.14em;
-	}
-
-	.month-heading span {
-		font-family: var(--font-mono);
-		font-size: 0.55rem;
-		letter-spacing: 0.18em;
-		color: var(--book-faint);
-	}
-
-	.empty-page {
-		display: flex;
-		min-height: 22rem;
-		flex-direction: column;
-		align-items: center;
-		justify-content: flex-start;
-		padding-top: clamp(5.5rem, 10vw, 8rem);
-		text-align: center;
-		color: var(--book-muted);
-	}
-
-	.empty-mark {
-		display: grid;
-		width: 4.8rem;
-		height: 4.8rem;
-		margin-bottom: 1.3rem;
-		place-items: center;
-		border: 1px solid var(--book-rule);
-		border-radius: 50%;
-		color: var(--book-accent);
-	}
-
-	.empty-page p {
-		font-family: var(--font-serif);
-		font-size: 1.05rem;
-		letter-spacing: 0.08em;
-		color: var(--book-ink);
-	}
-
-	.empty-page > span {
-		margin-top: 0.65rem;
-		font-family: var(--font-serif);
-		font-size: 0.76rem;
-	}
-
-	.empty-page a {
-		margin-top: 1.5rem;
-		font-family: var(--font-serif);
-		font-size: 0.76rem;
-	}
-
-	:global(.moment-entry-list) {
-		display: flex;
-		flex-direction: column;
-	}
-
-	@media (max-width: 767px) {
-		.index-header {
-			align-items: flex-start;
+	@keyframes turn-to-older {
+		0% {
+			opacity: 0.15;
+			transform: perspective(1000px) rotateY(-8deg) translateX(0.8rem);
+			filter: blur(2px);
 		}
-
-		.index-header h1 {
-			font-size: clamp(3.2rem, 19vw, 5rem);
+		100% {
+			opacity: 1;
+			transform: none;
+			filter: none;
 		}
-
-		.index-subtitle {
-			max-width: 15rem;
+	}
+	@keyframes turn-to-newer {
+		0% {
+			opacity: 0.15;
+			transform: perspective(1000px) rotateY(8deg) translateX(-0.8rem);
+			filter: blur(2px);
 		}
-
-		.entry-count {
-			padding-top: 1.7rem;
+		100% {
+			opacity: 1;
+			transform: none;
+			filter: none;
 		}
-
-		.entry-count strong {
-			font-size: 2.2rem;
-		}
-
-		.index-tools {
-			align-items: flex-start;
-			flex-direction: column;
-			gap: 0.8rem;
-		}
-
-		.index-tools form {
-			width: 100%;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.leaf-motion.turn-older,
+		.leaf-motion.turn-newer {
+			animation: none;
 		}
 	}
 </style>

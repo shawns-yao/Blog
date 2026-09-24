@@ -30,7 +30,7 @@
 				<i aria-hidden="true"></i>
 				<strong>{moment.contentKind === 'article' ? '图书馆' : '手记'}</strong>
 				<i aria-hidden="true"></i>
-				<time datetime={moment.createdAt}>{dateStr}</time>
+				<time datetime={moment.createdAt}>{dateStr} · {moment.createdAt.slice(11, 16)}</time>
 				{#if showUpdated}
 					<small>更新于 {formatDateCN(moment.contentUpdatedAt)}</small>
 				{/if}
@@ -58,8 +58,6 @@
 			<i aria-hidden="true"></i>
 			<span>评论 <RollingNumber value={moment.metrics?.comments ?? 0} /></span>
 		</div>
-
-		<div class="article-tags"><TagList tags={moment.topics ?? []} /></div>
 	</header>
 
 	{#if moment.aiSummary}
@@ -75,6 +73,10 @@
 			{onActiveAnchorChange}
 		/>
 	</div>
+
+	{#if moment.topics?.length}
+		<div class="article-tags"><TagList tags={moment.topics} /></div>
+	{/if}
 
 	<div class="article-actions">
 		<DetailActionBar
@@ -111,7 +113,9 @@
 <style>
 	.moment-detail-paper {
 		position: relative;
+		max-width: 37rem;
 		min-height: 70vh;
+		margin-inline: auto;
 		color: var(--book-ink);
 	}
 
@@ -162,7 +166,7 @@
 		max-width: 55rem;
 		margin-top: clamp(2.4rem, 5vw, 4.6rem);
 		font-family: var(--font-serif);
-		font-size: clamp(2.1rem, 4.7vw, 4.7rem);
+		font-size: clamp(2.1rem, 4vw, 3.4rem);
 		font-weight: 600;
 		line-height: 1.32;
 		letter-spacing: 0.045em;
@@ -191,7 +195,7 @@
 	}
 
 	.article-tags {
-		margin-top: 1rem;
+		margin: 3rem 0 1rem;
 	}
 
 	.article-tags :global(*) {

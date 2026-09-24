@@ -1,227 +1,456 @@
 <script lang="ts">
-	import type { MomentDetail } from '$lib/features/moment/types';
+	import { goto, onNavigate } from '$app/navigation';
+	import { buildMomentBookSpreads, type MomentBookVisit } from '$lib/features/moment/book-pages';
+	import type { MomentDetail, MomentListResponse } from '$lib/features/moment/types';
 	import { detailHeroBgSrc } from '$lib/shared/stores/detailHeroBg';
+	import { buildMomentPath } from '$lib/shared/utils/content-path';
 	import { formatDateCompact, formatDateDotted } from '$lib/shared/utils/date';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
-	import DetailTocNavList from '$lib/ui/detail/DetailTocNavList.svelte';
-	import { ArrowLeft } from 'lucide-svelte';
-	import { onDestroy } from 'svelte';
+	import { ArrowLeft, ArrowRight, Paperclip, X } from 'lucide-svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import MomentBookShell from './MomentBookShell.svelte';
+	import MomentDatePage from './MomentDatePage.svelte';
 	import MomentDetailPaper from './moment-detail/MomentDetailPaper.svelte';
-	import MomentDetailRelatedMoments from './moment-detail/MomentDetailRelatedMoments.svelte';
 
-	let { moment }: { moment: MomentDetail } = $props();
-
+	let {
+		moment,
+		underlayMoments = { items: [], total: 0, page: 1, size: 20 }
+	}: { moment: MomentDetail; underlayMoments?: MomentListResponse } = $props();
 	const dateStr = $derived(formatDateDotted(moment.createdAt));
 	const dateNo = $derived(formatDateCompact(moment.createdAt));
-	const columnLabel = $derived((moment.columnName || '').trim() || '未分类手记');
-	const toc = $derived(moment.toc ?? []);
-
-	$effect(() => {
-		detailHeroBgSrc.set(moment.cover ?? '');
-	});
-	onDestroy(() => detailHeroBgSrc.set(''));
-
+	const related = $derived(moment.relatedMoments ?? []);
+	const previousMoment = $derived(related[0] ?? null);
+	const nextMoment = $derived(related[1] ?? null);
 	let contentRoot: HTMLElement | null = $state(null);
 	let activeAnchor: string | null = $state(null);
+	let sheetElement: HTMLElement | null = $state(null);
+	let dialogElement: HTMLElement | null = $state(null);
+	let enteringFromCard = $state(false);
+	let isClosing = $state(false);
+	let visit = $state<MomentBookVisit | null>(null);
+	const fallbackSpread = $derived.by(() => {
+		const spreads = buildMomentBookSpreads(underlayMoments.items);
+		return (
+			spreads.find((spread) =>
+				[spread.left, spread.right].some((leaf) =>
+					leaf?.items.some((item) => item.id === moment.id)
+				)
+			) ?? spreads[spreads.length - 1]
+		);
+	});
+	const underlaySpread = $derived(visit?.spread ?? fallbackSpread);
+	const returnPath = $derived(visit?.returnPath ?? resolvePath('/moments'));
 
-	const handleContentRootChange = (node: HTMLElement | null) => {
-		contentRoot = node;
-	};
+	$effect(() => detailHeroBgSrc.set(moment.cover ?? ''));
+	onDestroy(() => detailHeroBgSrc.set(''));
 
-	const handleActiveAnchorChange = (anchor: string | null) => {
-		activeAnchor = anchor;
-	};
+	function closeDetail() {
+		if (!isClosing) void goto(returnPath);
+	}
+
+	function relatedHref(item: NonNullable<typeof previousMoment>) {
+		return resolvePath(buildMomentPath(item.shortUrl, item.createdAt));
+	}
+
+	onNavigate(async (navigation) => {
+		const destination = navigation.to?.url.pathname;
+		if (!destination || /(?:^|\/)moments\/\d{4}\/\d{2}\/\d{2}\/[^/]+\/?$/.test(destination)) return;
+
+		if (visit && destination === new URL(returnPath, window.location.origin).pathname) {
+			try {
+				sessionStorage.setItem(
+					'moment:return-spread',
+					JSON.stringify({
+						returnPath: visit.returnPath,
+						spreadIndex: visit.spreadIndex,
+						at: Date.now()
+					})
+				);
+			} catch {
+				// Navigation remains available when browser storage is disabled.
+			}
+		}
+		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		isClosing = true;
+		await new Promise<void>((resolve) => window.setTimeout(resolve, 430));
+	});
+
+	onMount(() => {
+		dialogElement?.focus();
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') closeDetail();
+		};
+		window.addEventListener('keydown', handleKeyDown);
+
+		try {
+			const raw = sessionStorage.getItem('moment:open-origin');
+			sessionStorage.removeItem('moment:open-origin');
+			if (raw && sheetElement) {
+				const origin = JSON.parse(raw) as MomentBookVisit & {
+					x: number;
+					y: number;
+					width: number;
+					height: number;
+					at: number;
+				};
+				if (
+					Date.now() - origin.at < 5000 &&
+					(!origin.momentId || origin.momentId === moment.id) &&
+					origin.width > 0 &&
+					origin.height > 0
+				) {
+					const sheetRect = sheetElement.getBoundingClientRect();
+					const centerX = origin.x + origin.width / 2;
+					const centerY = origin.y + origin.height / 2;
+					sheetElement.style.setProperty(
+						'--open-x',
+						`${centerX - sheetRect.left - sheetRect.width / 2}px`
+					);
+					sheetElement.style.setProperty(
+						'--open-y',
+						`${centerY - sheetRect.top - sheetRect.height / 2}px`
+					);
+					sheetElement.style.setProperty('--open-scale-x', `${origin.width / sheetRect.width}`);
+					sheetElement.style.setProperty('--open-scale-y', `${origin.height / sheetRect.height}`);
+					enteringFromCard = true;
+					if (
+						origin.momentId === moment.id &&
+						origin.returnPath?.startsWith(resolvePath('/moments')) &&
+						origin.spread
+					) {
+						visit = origin;
+					}
+				}
+			}
+		} catch {
+			sessionStorage.removeItem('moment:open-origin');
+		}
+
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	});
 </script>
 
 <MomentBookShell pageLabel={moment.title || '手记详情'}>
 	{#snippet directory()}
-		<nav class="detail-directory" aria-label="本篇手记目录">
-			<p class="directory-kicker">CONTENTS</p>
-			<h2>目录</h2>
-
-			<a class="back-to-index" href={resolvePath('/moments')}>
-				<ArrowLeft size={14} strokeWidth={1.6} aria-hidden="true" />
-				<span>返回全部手记</span>
-			</a>
-
-			<div class="current-entry">
-				<span>正在阅读</span>
-				<strong>{moment.title || '无题手记'}</strong>
-				<small>{dateStr} · {columnLabel}</small>
-			</div>
-
-			{#if toc.length > 0}
-				<section class="toc-section" aria-labelledby="moment-toc-heading">
-					<h3 id="moment-toc-heading">本页段落</h3>
-					<DetailTocNavList
-						{toc}
-						{contentRoot}
-						{activeAnchor}
-						onAnchorChange={handleActiveAnchorChange}
-						tone="ink"
-						size="md"
-					/>
-				</section>
-			{/if}
-
-			<div class="related-section">
-				<MomentDetailRelatedMoments />
-			</div>
-		</nav>
+		<div class="underlay-date-page" aria-hidden="true">
+			<MomentDatePage
+				leaf={underlaySpread.left}
+				side="left"
+				showBlankNote={!!visit || underlayMoments.items.length > 0}
+			/>
+		</div>
 	{/snippet}
 
-	<article class="moment-detail-sheet" style="view-transition-name: moment-sheet">
-		<div class="page-ribbon" aria-label={`所属栏目：${columnLabel}`}>
-			<span>{columnLabel}</span>
-		</div>
-		<MomentDetailPaper
-			{moment}
-			{dateStr}
-			{dateNo}
-			onContentRootChange={handleContentRootChange}
-			onActiveAnchorChange={handleActiveAnchorChange}
+	<div class="underlay-date-page" aria-hidden="true">
+		<MomentDatePage
+			leaf={underlaySpread.right}
+			side="right"
+			showBlankNote={!!visit || underlayMoments.items.length > 0}
 		/>
-	</article>
+	</div>
+
+	{#snippet overlay()}
+		<button
+			class="detail-backdrop"
+			class:closing={isClosing}
+			type="button"
+			aria-label="关闭手记正文"
+			onclick={closeDetail}
+		></button>
+		<div
+			class="kraft-stage"
+			bind:this={dialogElement}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="moment-detail-title"
+			tabindex="-1"
+		>
+			<article
+				bind:this={sheetElement}
+				class:from-card={enteringFromCard}
+				class:closing={isClosing}
+				class="kraft-sheet"
+			>
+				<div class="paperclip" aria-hidden="true"><Paperclip size={44} strokeWidth={1.35} /></div>
+				<a class="close-sheet" href={returnPath} aria-label="放回手记" title="放回手记"
+					><X size={18} strokeWidth={1.5} /></a
+				>
+				<div class="kraft-scroll">
+					<div id="moment-detail-title" class="sr-only">{moment.title || '无题手记'}</div>
+					<MomentDetailPaper
+						{moment}
+						{dateStr}
+						{dateNo}
+						onContentRootChange={(node) => (contentRoot = node)}
+						onActiveAnchorChange={(anchor) => (activeAnchor = anchor)}
+					/>
+
+					<nav class="sheet-navigation" aria-label="手记前后篇">
+						<a class="return-index" href={returnPath}
+							><ArrowLeft size={15} /><span>放回手记</span></a
+						>
+						<div>
+							{#if previousMoment}<a
+									href={relatedHref(previousMoment)}
+									aria-label={`上一篇：${previousMoment.title}`}
+									><ArrowLeft size={14} /><span>上一篇</span></a
+								>{/if}
+							{#if nextMoment}<a
+									href={relatedHref(nextMoment)}
+									aria-label={`下一篇：${nextMoment.title}`}
+									><span>下一篇</span><ArrowRight size={14} /></a
+								>{/if}
+						</div>
+					</nav>
+				</div>
+			</article>
+		</div>
+	{/snippet}
 </MomentBookShell>
 
 <style>
-	.detail-directory {
-		font-family: var(--font-serif);
+	.underlay-date-page {
+		min-height: 100%;
 	}
-
-	.directory-kicker {
-		font-family: var(--font-mono);
-		font-size: 0.58rem;
-		letter-spacing: 0.28em;
-		color: var(--book-faint);
-	}
-
-	.detail-directory h2 {
-		margin-top: 0.8rem;
-		font-size: clamp(1.8rem, 3vw, 2.45rem);
-		font-weight: 500;
-		letter-spacing: 0.08em;
-	}
-
-	.back-to-index {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		margin-top: 2rem;
-		padding: 0.8rem 0;
-		font-size: 0.72rem;
-		letter-spacing: 0.08em;
-		color: var(--book-accent);
-		border-top: 1px solid var(--book-rule);
-		border-bottom: 1px solid var(--book-rule);
-	}
-
-	.back-to-index:hover :global(svg) {
-		transform: translateX(-0.18rem);
-	}
-
-	.back-to-index :global(svg) {
-		transition: transform 160ms ease;
-	}
-
-	.current-entry {
-		display: flex;
-		flex-direction: column;
-		gap: 0.55rem;
-		margin-top: 2rem;
-		padding-left: 0.85rem;
-		border-left: 2px solid var(--book-accent);
-	}
-
-	.current-entry span,
-	.toc-section h3 {
-		font-size: 0.62rem;
-		letter-spacing: 0.17em;
-		color: var(--book-faint);
-	}
-
-	.current-entry strong {
-		font-size: 0.84rem;
-		font-weight: 600;
-		line-height: 1.7;
-		color: var(--book-ink);
-	}
-
-	.current-entry small {
-		font-family: var(--font-mono);
-		font-size: 0.52rem;
-		line-height: 1.7;
-		color: var(--book-faint);
-	}
-
-	.toc-section,
-	.related-section {
-		margin-top: 2.25rem;
-		padding-top: 1.2rem;
-		border-top: 1px solid var(--book-rule);
-	}
-
-	.toc-section h3 {
-		margin-bottom: 1rem;
-	}
-
-	.detail-directory :global(.custom-scrollbar) {
-		max-height: 19rem;
-	}
-
-	.detail-directory :global(.custom-scrollbar a) {
-		font-family: var(--font-serif);
-		color: var(--book-muted) !important;
-	}
-
-	.detail-directory :global(.custom-scrollbar a:hover),
-	.detail-directory :global(.custom-scrollbar a.font-bold) {
-		color: var(--book-accent) !important;
-	}
-
-	.moment-detail-sheet {
-		position: relative;
-		min-width: 0;
-	}
-
-	.page-ribbon {
+	.detail-backdrop {
 		position: absolute;
-		top: calc(clamp(2.4rem, 5vw, 4.2rem) * -1);
-		right: clamp(0.5rem, 2vw, 2rem);
-		z-index: 4;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border: 0;
+		background: rgba(24, 15, 10, 0.43);
+		backdrop-filter: blur(2.2px);
+		animation: backdrop-arrive 280ms ease-out both;
+	}
+	.detail-backdrop.closing {
+		animation: backdrop-leave 430ms ease-in both;
+	}
+	.kraft-stage {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+		padding: clamp(3.5rem, 6vh, 5rem) 1.2rem 1.4rem;
+		pointer-events: none;
+	}
+	.kraft-sheet {
+		--open-x: 0px;
+		--open-y: 0px;
+		--open-scale-x: 0.24;
+		--open-scale-y: 0.24;
+		position: relative;
+		width: min(47rem, 88vw);
+		height: min(83vh, 58rem);
+		pointer-events: auto;
+		color: #3e3025;
+		filter: drop-shadow(0 1.8rem 2.2rem rgba(26, 15, 9, 0.52));
+		animation: paper-unfold 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+	}
+	.kraft-sheet.from-card {
+		animation-name: paper-from-card;
+	}
+	.kraft-sheet.closing {
+		animation: paper-to-spine 430ms cubic-bezier(0.65, 0, 0.84, 0.2) both;
+	}
+	.kraft-sheet.closing.from-card {
+		animation-name: paper-to-card;
+	}
+	.kraft-sheet::before,
+	.kraft-sheet::after {
+		content: '';
+		position: absolute;
+		right: 0.6rem;
+		left: 0.6rem;
+		z-index: 3;
+		height: 0.95rem;
+		pointer-events: none;
+	}
+	.kraft-sheet::before {
+		top: -0.43rem;
+		border-radius: 60% 54% 35% 40% / 80% 74% 28% 35%;
+		background: linear-gradient(180deg, #bc8e59 0%, #d5a975 48%, #c4945e 100%);
+		box-shadow:
+			0 -0.1rem 0.22rem rgba(67, 40, 20, 0.12),
+			0 0.18rem 0.3rem rgba(63, 38, 19, 0.18);
+		transform: rotate(-0.25deg) perspective(260px) rotateX(-16deg);
+	}
+	.kraft-sheet::after {
+		bottom: -0.45rem;
+		border-radius: 34% 38% 65% 58% / 28% 30% 78% 74%;
+		background: linear-gradient(180deg, #d4a670 0%, #be8e58 78%, #a97645 100%);
+		box-shadow:
+			0 0.42rem 0.46rem rgba(43, 25, 14, 0.28),
+			inset 0 0.12rem 0.18rem rgba(255, 231, 183, 0.3);
+		transform: rotate(0.2deg) perspective(260px) rotateX(14deg);
+	}
+	.kraft-scroll {
+		position: absolute;
+		inset: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding: clamp(4.6rem, 7vh, 6rem) clamp(3.1rem, 6vw, 5.6rem) 3.4rem;
+		border: 1px solid rgba(98, 62, 32, 0.36);
+		background-color: #d9bb8d;
+		background-image:
+			linear-gradient(
+				90deg,
+				rgba(85, 48, 21, 0.055),
+				transparent 8%,
+				transparent 92%,
+				rgba(85, 48, 21, 0.055)
+			),
+			radial-gradient(circle at 24% 11%, rgba(255, 235, 196, 0.24), transparent 32%);
+		box-shadow: inset 0 0 2.3rem rgba(91, 52, 25, 0.08);
+		clip-path: polygon(
+			0.3% 0.4%,
+			25% 0.2%,
+			60% 0.5%,
+			99.6% 0.3%,
+			99.7% 45%,
+			99.5% 99.7%,
+			50% 99.5%,
+			0.3% 99.7%,
+			0.4% 55%
+		);
+		scrollbar-width: thin;
+		scrollbar-color: rgba(103, 64, 34, 0.35) transparent;
+	}
+	.paperclip {
+		position: absolute;
+		top: -0.4rem;
+		left: 2.4rem;
+		z-index: 6;
+		color: #6e5945;
+		filter: drop-shadow(0 0.18rem 0.12rem rgba(61, 40, 24, 0.3));
+		transform: rotate(9deg);
+	}
+	.close-sheet {
+		position: absolute;
+		top: 1.35rem;
+		right: 1.45rem;
+		z-index: 7;
+		display: grid;
+		width: 2.35rem;
+		height: 2.35rem;
+		place-items: center;
+		border: 1px solid rgba(74, 49, 30, 0.22);
+		border-radius: 50%;
+		color: rgba(62, 48, 37, 0.64);
+		background: rgba(225, 187, 125, 0.62);
+		backdrop-filter: blur(4px);
+	}
+	.close-sheet:hover,
+	.close-sheet:focus-visible {
+		color: #843c31;
+		border-color: rgba(132, 60, 49, 0.4);
+	}
+	.close-sheet:focus-visible,
+	.sheet-navigation a:focus-visible {
+		outline: 2px solid rgba(132, 60, 49, 0.55);
+		outline-offset: 3px;
+	}
+	.sheet-navigation {
 		display: flex;
-		width: 2.6rem;
-		min-height: 6.7rem;
+		max-width: 37rem;
 		align-items: center;
-		justify-content: center;
-		padding: 0.8rem 0.4rem 1rem;
-		color: #efe2c8;
-		background: #7c332c;
-		box-shadow: 0 0.55rem 1.2rem rgba(69, 36, 27, 0.2);
-		clip-path: polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%);
-	}
-
-	.page-ribbon span {
+		justify-content: space-between;
+		gap: 1rem;
+		margin: 4.5rem auto 0;
+		padding-top: 1rem;
+		border-top: 1px solid rgba(75, 51, 32, 0.22);
 		font-family: var(--font-serif);
-		font-size: 0.64rem;
-		line-height: 1.4;
-		letter-spacing: 0.16em;
-		writing-mode: vertical-rl;
+		font-size: 0.74rem;
+		letter-spacing: 0.08em;
+		color: rgba(76, 52, 35, 0.74);
 	}
-
-	@media (max-width: 767px) {
-		.page-ribbon {
-			top: -2.5rem;
-			right: 0;
-			width: 2.25rem;
-			min-height: 5.8rem;
+	.sheet-navigation a,
+	.sheet-navigation div {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.sheet-navigation div {
+		gap: 1.25rem;
+	}
+	.sheet-navigation a:hover {
+		color: #843c31;
+	}
+	@keyframes backdrop-arrive {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
 		}
 	}
-
+	@keyframes backdrop-leave {
+		to {
+			opacity: 0;
+		}
+	}
+	@keyframes paper-unfold {
+		from {
+			opacity: 0;
+			transform: translateY(1.2rem) scale(0.94);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+	@keyframes paper-from-card {
+		from {
+			opacity: 0.25;
+			transform: translate(var(--open-x), var(--open-y))
+				scale(var(--open-scale-x), var(--open-scale-y)) rotate(-1.5deg);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+	@keyframes paper-to-card {
+		to {
+			opacity: 0.12;
+			transform: translate(var(--open-x), var(--open-y))
+				scale(var(--open-scale-x), var(--open-scale-y)) rotate(-1.5deg);
+		}
+	}
+	@keyframes paper-to-spine {
+		to {
+			opacity: 0;
+			transform: translateY(0.8rem) scale(0.76);
+		}
+	}
+	@media (max-width: 767px) {
+		.kraft-stage {
+			padding: 4.35rem 0.45rem 0.55rem;
+		}
+		.kraft-sheet {
+			width: 100%;
+			height: calc(100dvh - 5rem);
+			filter: drop-shadow(0 0.8rem 1.2rem rgba(26, 15, 9, 0.3));
+		}
+		.kraft-scroll {
+			padding: 4.3rem 1.45rem 2.7rem;
+		}
+		.paperclip {
+			left: 1.35rem;
+		}
+		.close-sheet {
+			top: 1rem;
+			right: 1rem;
+		}
+		.sheet-navigation {
+			align-items: flex-start;
+			flex-direction: column;
+		}
+	}
 	@media (prefers-reduced-motion: reduce) {
-		.back-to-index :global(svg) {
-			transition: none;
+		.detail-backdrop,
+		.kraft-sheet,
+		.kraft-sheet.from-card {
+			animation: none;
 		}
 	}
 </style>
