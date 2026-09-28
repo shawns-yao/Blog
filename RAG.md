@@ -1,10 +1,10 @@
 # RAG 接入设计
 
-> 状态：右侧面板与后台 RAG 模块已完成接入；WeKnora 的分块、加权融合、嵌入和重排序协议已裁剪合并到博客服务端。独立测试库的迁移、入库、检索、官方兜底、重排序及前后台页面已通过定向测试。OpenCode Go 的实际调用和公开题集效果尚未验证，日常配置仍保持关闭。更新日期：2026-09-28。本文的默认数值是实验起点，不代表效果指标。
+> 状态：右侧面板与后台 RAG 模块已完成接入；WeKnora 的分块、加权融合、嵌入和重排序协议已裁剪合并到博客服务端。日常环境已按用户要求完成 RAG 迁移并启用问答，支持一般交流、文档查找和多轮聊天。独立测试库与日常入口的定向测试已通过，公开题集效果尚未验证。更新日期：2026-09-29。本文的默认数值是实验起点，不代表效果指标；完整意图识别、独立问题改写和 token 预算仍待实现。
 
 ## 1. 目标与现状
 
-目标是让读者用自然语言查询站内**已发布**的文章和手记，并获得能回到原文位置的引用。首期只处理本站内容；未来若接入 PDF、Word 等资料，应先转换为可检查的 Markdown 与资源清单，再进入同一索引链路。
+目标是让读者用自然语言查询站内**已发布**的文章和手记，并获得能回到原文位置的引用。问候、一般交流可以自然回应，站内事实必须来自当前有效来源。首期索引只处理本站内容；未来若接入 PDF、Word 等资料，应先转换为可检查的 Markdown 与资源清单，再进入同一索引链路。
 
 当前项目中，文章和手记共用 `moment`：`content` 是 PostgreSQL 中的 Markdown 原文，`ext_info.contentKind` 区分 `article` 与 `note`。前端按 Markdown 渲染；后台提供 `.md` 导出，其中结构化导出为 `content.md` 加 `meta.json`，扁平导出使用项目自定义的 `---meta` / `---content` 格式。导出包含未发布内容，因此**在线 RAG 不直接扫描导出目录**。数据库是唯一内容来源，`.md` 是可移植的导出物。历史 `unclassified` 内容需要先确认归属，不能默默当作文章或手记索引。
 
@@ -22,6 +22,8 @@ flowchart LR
     S[传统搜索输入] --> T[现有关键词搜索]
     T --> U[文档命中、摘要与原文链接]
     Q[独立右侧问答面板] --> G[权限与范围过滤]
+    G --> V[文档查找：关键词与标题匹配]
+    V --> L
     G --> H[关键词召回]
     G --> I[语义召回]
     E --> H
@@ -60,7 +62,7 @@ flowchart LR
 
 面板不依赖动画才能理解或操作，减少动态效果的系统偏好必须生效。问答面板打开后保留当前页面背景；切换到搜索时关闭问答面板，避免两个弹层重叠。
 
-前端打开面板时查询服务状态，只有服务配置完整且存在当前版本的有效索引才允许发送。输入不触发问答请求；关闭面板会取消当前请求并清除回答。问题草稿与匿名会话 UUID 只保存在当前页面内存，关闭后重新打开仍保留，刷新后清空。服务不可用时显示真实状态、禁用发送，并提供重新检查和站内搜索入口，不展示示例回答或虚构引用。
+前端打开面板时查询服务状态，只有服务配置完整且存在当前版本的有效索引才允许发送。输入不触发问答请求；Enter 发送，Shift+Enter 换行，输入法组词期间的 Enter 不发送。用户气泡靠右，助手气泡靠左，完整保留当前页面的历次问答。关闭面板取消未完成请求并标记中止，保留已有记录、草稿与匿名会话 UUID；重新打开仍保留，刷新后清空。服务不可用时显示真实状态、禁用发送，并提供重新检查和站内搜索入口，不展示虚构回答或引用。
 
 提问只在用户提交时触发请求，发布状态与内容类型由服务端校验。当前接口使用项目统一响应封装，接口路径如下；日期过滤尚未实现：
 
@@ -71,13 +73,17 @@ POST /api/v2/public/ask
 {
   "question": "...",
   "contentKind": "article",
-  "sessionId": "客户端当前页面内存中的 UUID"
+  "sessionId": "客户端当前页面内存中的 UUID",
+  "history": [
+    { "role": "user", "content": "上一轮问题" },
+    { "role": "assistant", "content": "上一轮回答" }
+  ]
 }
 ```
 
-`contentKind` 可选，省略时同时检索公开文章和手记；仅接受 `article` 或 `note`。`sessionId` 可选，省略时服务端生成单次会话 UUID；侧边栏会在同一页面使用稳定 UUID。当前不保存对话历史，也不把前次回答作为下次问题的上下文。
+`contentKind` 可选，省略时同时检索公开文章和手记；仅接受 `article` 或 `note`。`sessionId` 可选，省略时服务端生成单次会话 UUID；侧边栏会在同一页面使用稳定 UUID。`history` 可选，最多为最近五轮成功回答、十条交替的 user／assistant 消息；单条问题最多 1000 字符，回答最多 6000 字符，历史合计最多 20000 个 Unicode 字符，保留完整问答对。服务端校验角色、顺序与长度，不接受 system 角色。页面展示记录与模型上下文窗口分别管理：页面记录全部保留，模型只接收预算内的近期历史。当前不写数据库、localStorage 或服务端会话存储。
 
-RAG 失败时必须返回明确状态，并提供“改用搜索”的动作；不能把搜索命中直接放进“回答”字段。没有足够证据时显示“站内现有内容未找到依据”，同时可给出相关搜索入口。超时、模型不可用和索引暂不可用分别记录，便于区分内容问题与基础设施问题。
+RAG 失败时必须返回明确状态，并提供“改用搜索”的动作；不能把普通搜索命中伪装成生成答案。站内事实问题没有足够证据时显示“站内现有内容未找到依据”，同时可给出相关搜索入口；问候与一般交流不因此拒答。超时、模型不可用和索引暂不可用分别记录，便于区分内容问题与基础设施问题。
 
 ### 索引同步与边界
 
@@ -120,6 +126,8 @@ RAG 失败时必须返回明确状态，并提供“改用搜索”的动作；�
 
 当前 embedding 输入由 `contextHeader` 和原文 `content` 组成；日期在生成时提供。重叠不跨章节，不合并不同文档。无法安全拆分的过长原子块标记 `oversized_atomic_block`，不截断后继续入库。首轮不启用父子分块，只有出现稳定缺少上下文的问题时再评估。
 
+配置大小是分块目标与普通文本上限，实际块长随标题、段落及保护区域变化，并非每块固定 1200 字符。当前没有按内容类型分别配置大小或按 tokenizer 计算预算。下一步调参应保持同一内容快照和标注问题集，先比较 600／1200／1800 字符，再对胜出配置比较 0／10%／20% 的同章节重叠；这些是待测组合，不能标作最优参数。代码、表格和短手记分别检查结构完整性，不用增加重叠掩盖切断结构的问题。
+
 分块验收先看原文覆盖、空洞、重复比例、长度分布与引用定位，再看检索效果。两份参考项目都强调结构边界、预览和回归；[MimirQ 分块手册](https://github.com/skygazer42/MimirQ/blob/main/docs/guides/chunking_playbook.md)、[WeKnora 分块文档](https://github.com/Tencent/WeKnora/blob/main/website-docs/03-features/04-chunking.md)的默认字符值不能直接照搬到本站的 token 配置。
 
 ## 5. 检索、TopK、RRF 与重排
@@ -138,24 +146,36 @@ RAG 失败时必须返回明确状态，并提供“改用搜索”的动作；�
 
 RRF 是**名次融合**，不是 rerank 模型：`score(d) = vectorWeight / (K + vectorRank(d)) + keywordWeight / (K + keywordRank(d))`，名次从 1 开始，没有命中的通道不计分。它避免混合不可比的原始分数；默认值需要实际评测，不代表本站最优值。[RRF 原始论文](https://research.google/pubs/reciprocal-rank-fusion-outperforms-condorcet-and-individual-rank-learning-methods/)与 [pgvector 的混合检索说明](https://github.com/pgvector/pgvector/blob/master/README.md#hybrid-search)可作为实现依据。Cross-encoder 对“问题、候选块”逐对评分，不能找回初始召回中不存在的证据；见 [Sentence Transformers 官方说明](https://www.sbert.net/examples/cross_encoder/applications/README.html)。
 
-查询前先限定公开范围与内容类型，时间问题尽量利用日期元数据；命中后再复核实时发布状态。标题、准确名称、代码、公式和数字问题应保留关键词通道。融合后按同篇／同章节去重，避免 6 个名额被同一段的大量重叠块占满。没有足够证据时明确说“站内现有内容未找到依据”，不拿低相关块凑答案；生成失败时仍可返回普通站内搜索结果。
+查询前先限定公开范围与内容类型，时间问题尽量利用日期元数据；命中后再复核实时发布状态。标题、准确名称、代码、公式和数字问题应保留关键词通道。融合后按同篇／同章节去重，避免 6 个名额被同一段的大量重叠块占满。站内事实没有足够证据时明确说明，不拿低相关块凑答案；生成失败时提供普通站内搜索入口。
+
+“有 Go 相关的内容吗”等文档查找问题，先提取主题并走现有关键词召回，标题按大小写不敏感匹配，英文名称遵守词边界，同篇只保留一个来源。已找到的有效标题足以证明文档存在，不要求正文同时回答技术问题，也不经过正文重排序阈值。精确标题命中无需问题 embedding；没有标题命中时仍执行混合检索。查找结果正常给出原始标题与引用，不增加文档用途说明。这条路径仍复核公开状态、版本和指纹，不改变普通搜索接口。
+
+融合和重排应分阶段比较关键词、向量、RRF、RRF 加重排的结果：先看候选召回，再看最终证据排序、引用正确性、拒答、延迟和调用成本。重排无法补回未召回的文档，阈值也不是通用置信度。当前后台保存的是可调起点，尚无公开题集证明默认权重、候选数、阈值和最终 TopK 最优。
 
 ## 6. 回答、引用与接口约定
 
 传统搜索接口继续返回文档命中，不新增生成式字段作为搜索结果的必要条件。现有 `GET /public/search` 的查询参数和排序应保持兼容；若未来增加内容类型或日期过滤，应以可选参数扩展，并继续过滤未发布和已删除记录。
 
-当前 `POST /api/v2/public/ask` 返回回答状态、正文、引用和索引版本；引用包含原文标题、URL、路径、片段、字符偏移和日期。生成模型仅返回证据编号，服务端校验编号、正文标记与引用列表一致，再映射到真实来源。生成前后复核公开状态、来源指纹和日期。当前链接进入阅读页，原文片段可在面板展开查看；段落定位与 OCR 来源仍待实现。
+当前 `POST /api/v2/public/ask` 返回回答状态、模式、正文、引用和索引版本。`mode=conversation` 用于一般交流，没有引用；`mode=grounded` 用于有据的站内回答，引用包含原文标题、URL、路径、片段、字符偏移和日期。生成模型仅返回证据编号，服务端校验编号、正文标记与引用列表一致，再映射到真实来源。生成前后复核公开状态、来源指纹和日期。当前链接进入阅读页，原文片段可在面板展开查看；段落定位与 OCR 来源仍待实现。
 
 提问结果应使用可区分的状态，而不是用空字符串猜测失败原因：
 
 | 状态 | 含义 | 前端动作 |
 | --- | --- | --- |
-| `answered` | 证据通过校验并生成回答 | 显示回答、引用和“查看原文” |
-| `no_evidence` | 检索未找到足够依据 | 明确拒答，并提供“改用搜索” |
+| `answered` | 自然交流，或证据通过校验的站内回答 | 显示回答；有引用时显示原文来源 |
+| `no_evidence` | 站内事实问题未找到足够依据 | 说明依据不足，并提供“改用搜索” |
 | `temporarily_unavailable` | 索引、模型或服务暂时不可用 | 显示重试和传统搜索入口 |
 | `invalid_scope` | 请求范围不允许或参数无效 | 提示调整范围，不调用生成模型 |
 
-生成模型只接收通过权限检查的证据。提示词明确将正文视为数据，忽略正文里要求改变角色、泄露信息或执行操作的指令。对数值计算、排序或汇总问题，优先使用可验证的结构化数据和程序计算；若只有自然语言段落，则展示原文数值和计算依据。保留“无法回答”路径，不允许无证据时补写事实。
+生成模型只接收通过权限检查的证据。提示词将问题、历史和正文均视为数据，忽略其中要求改变角色、泄露信息或执行操作的指令。历史回答只用于连续交流和指代理解，不能充当已核实的站内证据。对数值计算、排序或汇总问题，优先使用可验证的结构化数据和程序计算；若只有自然语言段落，则展示原文数值和计算依据。保留站内事实“无法回答”的路径，不允许无证据时补写站内事实。
+
+### 意图与问题改写的实现边界
+
+当前通过有限的文档查找表达式提取主题，并由回答提示词区分一般交流与有据回答。其他有历史的问题只把上一轮问题附到检索输入，尚未迁入 WeKnora 的完整 `query_understand` 阶段，不能称为独立问题改写。一般交流仍可能执行检索，嵌入故障会影响它；这项依赖尚未解除。
+
+后续应在检索前输出受校验的 `intent`、`query` 和 `needsClarification`：问候／一般交流直接生成，文档查找走文档召回，站内事实走混合检索，含指代的追问先改写成独立问题再选择路径。例如上一轮查找 Go 文章，下一轮“它的目录怎么分工？”应补全文章名称；换成 Java 问题时不能继续拼接 Go。保留原问题用于回答，只让改写问题参与召回，不增添用户没有表达的实体或事实。明显意图走规则，歧义问题再用结构化模型判断；改写失败保留原问题，不阻断可直接理解的问题。
+
+当前模型窗口固定最多五轮且按字符预算截取。后续应按模型 token 预算分别分配历史、证据与回答，优先保留相关近期完整问答对，再评估旧对话摘要；长期记忆、摘要与刷新后保存均未实现，不默认把完整历史存入数据库。
 
 ## 7. 评测与上线门槛
 
@@ -190,7 +210,7 @@ RRF 是**名次融合**，不是 rerank 模型：`score(d) = vectorWeight / (K +
 
 问答、向量和重排序模型统一使用服务端 `.env`，模板见 [Config/rag.env.example](Config/rag.env.example)。主通道为 OpenCode Go `deepseek-v4.1-flash`，兜底为 DeepSeek 官方 `deepseek-flash`，均走 OpenAI 兼容 Chat Completions。主通道配置无效时跳过；超时、HTTP 错误、空结果或引用校验失败时尝试兜底。正确返回无依据时不调用兜底；每次调用聊天通道前复核公开证据。每个聊天通道最多尝试一次、超时最多 30 秒，问答整体 90 秒，其中问题 embedding 最多 15 秒，重排序默认最多 10 秒。
 
-Go 请求使用自身 `User-Agent: grtblog-rag/1.0` 与当前会话 UUID 的 `x-opencode-session`，不冒用参考项目身份。已查阅本机 `deepseek-harness` 的请求头合并、应用身份和 pi-ai 会话传递实现，并以 [Go 官方当前要求](https://opencode.ai/docs/go/#where-can-i-use-it)补齐会话头。官方要求编程代理流量，博客问答用途仍待确认，故 `RAG_ENABLED=false`。两条聊天通道的密钥由用户在本地配置，不能写入文档或模板；已核实本机三项供应商密钥均非空，独立测试中已使用官方 DeepSeek 真实生成回答，未验证 Go 密钥。
+Go 请求使用自身 `User-Agent: grtblog-rag/1.0` 与当前会话 UUID 的 `x-opencode-session`，不冒用参考项目身份。已查阅本机 `deepseek-harness` 的请求头合并、应用身份和 pi-ai 会话传递实现，并以 [Go 官方要求](https://opencode.ai/docs/go/#where-can-i-use-it)补齐会话头。用户已明确要求启用日常问答并以 OpenCode Go 为主，日常 `RAG_ENABLED=true`，主通道实际请求已验证；独立定向测试另验证了官方 DeepSeek 真实兜底。两条聊天通道的密钥由用户在本地配置，不能写入文档或模板。一次本机请求成功不等同于长期服务可用性或供应商用途保证。
 
 向量服务模型列表已通过用户授权的 `GET /v1/models` 查询，选用列表中的 `BAAI/bge-m3`。其[官方模型卡](https://huggingface.co/BAAI/bge-m3)说明原生输出为 1024 维并支持多语言；作为中文与中英混排基线，不宣称是本站最佳模型。`RAG_EMBEDDING_DIMENSIONS` 留空，不向不支持缩维的模型发送 `dimensions`。查询与索引维度不一致时拒绝回答，变更模型或版本后重建索引。
 
@@ -230,7 +250,7 @@ GET  /api/v2/admin/rag/metrics     近七个 UTC 日的运行聚合
 
 分块预览只读取分块配置，不写入索引、不调用模型；当前输出原文、标题路径、类型及码点偏移，不包含 token 估算或覆盖率评分。
 
-迁移 `0076_add_rag_index.sql` 与 `0077_add_rag_management.sql` 已经项目 Goose 入口在独立 PostgreSQL 17 测试库执行：前者新增派生索引表、触发器、指纹函数和四个配置项；后者补充成功索引元数据、按日运行聚合表及十个检索配置项。未主动迁移用户原有数据库。核心 `moment` 内容不被修改，派生块外键使用 `ON DELETE RESTRICT`。运行聚合独立于来源生命周期，不级联删除，也不自动清理历史；回滚 `0077` 会移除这张 RAG 运行聚合表，回滚过程尚未验证。
+迁移 `0076_add_rag_index.sql` 与 `0077_add_rag_management.sql` 已经项目 Goose 入口在独立 PostgreSQL 17 测试库执行，并在用户明确批准后应用到日常数据库：前者新增派生索引表、触发器、指纹函数和四个配置项；后者补充成功索引元数据、按日运行聚合表及十个检索配置项。日常八篇公开文档已生成四十个有效分块。核心 `moment` 内容不被修改，派生块外键使用 `ON DELETE RESTRICT`。运行聚合独立于来源生命周期，不级联删除，也不自动清理历史；回滚 `0077` 会移除这张 RAG 运行聚合表，回滚过程尚未验证。
 
 `C:\Document\Desktop\GitHub\RAG` 下的两个项目可以作为实现参考和部分组件来源，但不应把它们的知识库、租户、文档上传和 Agent 平台整套搬进本站。本站的核心数据仍是 `moment` 中的已发布 Markdown，现有普通搜索和文章／手记 URL 也应保持不变。
 
@@ -265,9 +285,9 @@ GET  /api/v2/admin/rag/metrics     近七个 UTC 日的运行聚合
 | 模型与分块 | `server/internal/infra/ai/{embedding,rag_chat,rerank}.go`、`server/internal/infra/rag/{chunker,fusion}.go` |
 | 持久化与入口 | `server/internal/infra/persistence/{rag_repository,rag_admin_repository}.go`、`server/internal/http/handler/rag_handler.go`、`server/internal/http/router/{rag_routes,router}.go`、`server/internal/server/server.go` |
 | 迁移与许可证 | `server/migrations/{0076_add_rag_index,0077_add_rag_management}.sql`、`server/licenses/WeKnora-MIT.txt` |
-| 前端 | `web/src/lib/features/rag/{api,types}.ts`、`web/src/lib/features/rag/components/{RagSidebar,RagChatClient}.svelte`、`web/src/lib/ui/primitives/textarea/Textarea.svelte`、`web/src/routes/+layout.svelte`、`web/src/routes/layout.css` |
+| 前端 | `web/src/lib/features/rag/{api,types,conversation}.ts`、`web/src/lib/features/rag/components/{RagSidebar,RagChatClient,RagTranscript}.svelte`、`web/src/lib/ui/primitives/textarea/Textarea.svelte`、`web/src/routes/+layout.svelte`、`web/src/routes/layout.css` |
 | 后台 | `admin/src/services/rag.ts`、`admin/src/router/record.ts`、`admin/src/views/rag/{index,IndexDocuments,DocumentDrawer,SettingsPanel,MetricsPanel}.vue`、`admin/src/views/rag/format.ts` |
-| 定向验证 | `Test/{rag-sidebar,rag-integration,rag-degradation}.mjs`、`Test/start-rag-test.ps1`、`Test/rag-{integration,degradation}_result_20260928.json`、`Image/figures/rag-*.png` |
+| 定向验证 | `Test/{rag-sidebar,rag-integration,rag-degradation,rag-chat,rag-discovery}.mjs`、`Test/start-rag-test.ps1`、`Test/rag-{integration,degradation}_result_20260928.json`、`Test/rag-{chat,discovery}-results_20260928.json`、`Image/figures/rag-*.png` |
 | 文档 | `RAG.md`、`TODO.md`、`web/AGENTS.md` |
 
 2026-09-28 的静态检查：Go 构建与相关包 `go vet` 通过；新增后台的 Vue 类型检查、ESLint、Prettier 和生产构建通过。构建保留现有 `advancedChunks` 废弃、`VITE_APP_NAME` 未配置及较大分包告警，本次未修改这些配置。已有侧边栏的 Svelte 类型检查为零错误，保留现有 `ThemeIcon.svelte` 非响应变量警告。环境配置已通过项目所用 `godotenv` 的解析及 JSON 格式检查，确认重排序密钥引用可展开，未输出密钥。未运行全量测试。
@@ -282,4 +302,8 @@ GET  /api/v2/admin/rag/metrics     近七个 UTC 日的运行聚合
 
 前后台页面截图见 `Image/figures/rag-admin-*_20260928.png`、`rag-answer-*_20260928.png` 和 `rag-integration-*_20260928.png`，均由本机 Edge 通过项目真实入口生成并检查。测试入口脚本为 `Test/rag-integration.mjs` 与 `Test/rag-degradation.mjs`；后者需要用 `Test/start-rag-test.ps1 -RerankUnavailable` 启动独立测试配置。启动脚本读取由项目 `godotenv` 传入的环境，在子进程中覆盖独立数据库和测试端口，不修改日常 `.env`；日志与可执行文件只放入 `Temp/`。两组测试均要求空的独立测试库，不能对日常数据库运行。
 
-尚未验证 OpenCode Go 实际请求、迁移回滚、大规模语料延迟与公开权威题集效果；没有检索／问答准确率或召回率分数。合成场景不能代表真实知识库效果，分块与阈值仍需按真实题集调整。日常配置保留关闭，启用前需确认 Go 用途并按部署流程迁移与配置。改动按服务端、前台面板、后台管理、定向测试和文档分组提交，未推送 Git。
+2026-09-28 至 2026-09-29 的[聊天定向测试](Test/rag-chat-results_20260928.json)从实际首页经本机 Edge 操作：六个接口样本全部通过，排除零、外部失败零；另验证 Enter 发送、Shift+Enter 换行、三轮追问与关闭重开保留、左右气泡以及桌面／移动端布局。截图为 `Image/figures/rag-chat-{desktop,mobile}_20260928.png`，已检查实际渲染。
+
+[文档查找定向测试](Test/rag-discovery-results_20260928.json)从同一个前端代理入口提问 Go、Java、Python：三个有效样本中，Go、Java 返回各自文章引用，话题切换没有混入上一轮来源；缺失的 Python 文档返回依据不足。最终完整运行原始数三、排除零、外部失败零、核心通过三。此前一次排查运行因嵌入服务不可用被阻断，未作为功能通过记录；修复后精确标题查找不再依赖问题 embedding。验证不要求额外标注文档用途。
+
+尚未验证迁移回滚、大规模语料延迟与公开权威题集效果；没有检索／问答准确率或召回率分数。定向功能验证不能代表知识库效果，分块与阈值仍需按真实题集调整。结构化意图分类、独立问题改写、内容类型分块参数、token 预算及持久化对话仍未实现。改动按功能分组提交，未推送 Git。
