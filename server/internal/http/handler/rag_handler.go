@@ -31,13 +31,14 @@ func (h *RAGHandler) Status(c *fiber.Ctx) error {
 func (h *RAGHandler) Ask(c *fiber.Ctx) error {
 	c.Set("Cache-Control", "no-store")
 	var request struct {
-		Question    string `json:"question"`
-		ContentKind string `json:"contentKind,omitempty"`
-		SessionID   string `json:"sessionId,omitempty"`
+		Question    string           `json:"question"`
+		ContentKind string           `json:"contentKind,omitempty"`
+		SessionID   string           `json:"sessionId,omitempty"`
+		History     []domain.Message `json:"history,omitempty"`
 	}
 	decoder := json.NewDecoder(bytes.NewReader(c.Body()))
 	decoder.DisallowUnknownFields()
-	if len(c.Body()) > 8000 || decoder.Decode(&request) != nil || decoder.Decode(new(any)) != io.EOF {
+	if len(c.Body()) > 128000 || decoder.Decode(&request) != nil || decoder.Decode(new(any)) != io.EOF {
 		return response.Success(c, domain.Answer{Status: "invalid_scope",
 			Reason: "请求格式无效，请调整问题后重试。", Citations: []domain.Citation{}})
 	}
@@ -51,7 +52,7 @@ func (h *RAGHandler) Ask(c *fiber.Ctx) error {
 	}
 	ctx, cancel := context.WithTimeout(c.UserContext(), 90*time.Second)
 	defer cancel()
-	return response.Success(c, h.service.Ask(ctx, request.Question, request.ContentKind, request.SessionID))
+	return response.Success(c, h.service.Ask(ctx, request.Question, request.ContentKind, request.SessionID, request.History))
 }
 
 func (h *RAGHandler) IndexStats(c *fiber.Ctx) error {

@@ -49,10 +49,17 @@ type Citation struct {
 
 type Answer struct {
 	Status       string     `json:"status"`
+	Mode         string     `json:"mode,omitempty"`
 	Answer       string     `json:"answer"`
 	Reason       string     `json:"reason,omitempty"`
 	Citations    []Citation `json:"citations"`
 	IndexVersion string     `json:"indexVersion,omitempty"`
+}
+
+// Conversation messages supply context, never independently verified evidence.
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 type IndexStats struct {
