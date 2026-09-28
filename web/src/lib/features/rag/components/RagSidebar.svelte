@@ -4,10 +4,12 @@
 	import { MessageSquare, X } from 'lucide-svelte';
 	import { uiState } from '$lib/shared/stores/ui.svelte';
 	import QueryRoot from '$lib/ui/common/QueryRoot.svelte';
+	import type { RagTurn } from '../types';
 
 	let open = $state(false);
 	let question = $state('');
 	let sessionId = $state('');
+	let turns = $state<RagTurn[]>([]);
 	let searchAfterClose = false;
 	onMount(() => {
 		sessionId = crypto.randomUUID();
@@ -57,7 +59,7 @@
 				<div>
 					<Dialog.Title class="font-serif text-xl font-medium">站内问答</Dialog.Title>
 					<Dialog.Description class="mt-2 text-sm text-ink-600 dark:text-ink-300">
-						依据本站已发布的文章与手记
+						与你交流，查找本站文章与手记
 					</Dialog.Description>
 				</div>
 				<Dialog.Close
@@ -74,6 +76,10 @@
 				loaderProps={{
 					question,
 					sessionId,
+					turns,
+					onTurnsChange: (value: RagTurn[]) => {
+						turns = value;
+					},
 					onQuestionChange: (value: string) => {
 						question = value;
 					},

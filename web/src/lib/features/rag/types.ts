@@ -22,8 +22,20 @@ export type RagCitation = {
 
 export type RagAnswer = {
 	status: 'answered' | 'no_evidence' | 'temporarily_unavailable' | 'invalid_scope';
+	mode?: 'grounded' | 'conversation';
 	answer: string;
 	reason?: string;
 	citations: RagCitation[];
 	indexVersion?: string;
+};
+
+export type RagMessage = {
+	role: 'user' | 'assistant';
+	content: string;
+};
+
+export type RagTurn = {
+	id: string;
+	question: string;
+	answer: RagAnswer | null;
 };

@@ -1,23 +1,28 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { base } from '$app/paths';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { ArrowUp, BookOpen, LoaderCircle, RotateCw, Search } from 'lucide-svelte';
+	import { ArrowUp, BookOpen, RotateCw, Search } from 'lucide-svelte';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import Textarea from '$lib/ui/primitives/textarea/Textarea.svelte';
 	import { askRag, getRagAvailability } from '../api';
-	import type { RagAnswer } from '../types';
+	import { conversationHistory } from '../conversation';
+	import type { RagAnswer, RagMessage, RagTurn } from '../types';
+	import RagTranscript from './RagTranscript.svelte';
 
-	let { question, sessionId, onQuestionChange, onSearch } = $props<{
+	type Submission = { id: string; question: string; history: RagMessage[] };
+
+	let { question, sessionId, turns, onQuestionChange, onTurnsChange, onSearch } = $props<{
 		question: string;
 		sessionId: string;
+		turns: RagTurn[];
 		onQuestionChange: (value: string) => void;
+		onTurnsChange: (value: RagTurn[]) => void;
 		onSearch: () => void;
 	}>();
 	let input: HTMLTextAreaElement | undefined = $state();
-	let answer = $state<RagAnswer | null>(null);
-	let askedQuestion = $state('');
 	let controller: AbortController | undefined;
+	let pendingTurnId: string | undefined;
+	let disposed = false;
 
 	const availability = createQuery(() => ({
 		queryKey: ['rag-availability'],
@@ -28,23 +33,28 @@
 		refetchOnWindowFocus: false
 	}));
 	const mutation = createMutation(() => ({
-		mutationFn: (value: string) => {
+		mutationFn: (value: Submission) => {
 			controller = new AbortController();
-			return askRag(value, sessionId, controller.signal);
+			if (disposed) controller.abort();
+			return askRag(value.question, sessionId, controller.signal, value.history);
 		},
 		retry: false,
 		gcTime: 0,
-		onSuccess: (result: RagAnswer) => {
-			answer = result;
+		onSuccess: (result: RagAnswer, value: Submission) => {
+			if (disposed || controller?.signal.aborted) return;
+			completeTurn(value.id, result);
 		},
-		onError: () => {
-			if (controller?.signal.aborted) return;
-			answer = {
+		onError: (_error: unknown, value: Submission) => {
+			if (disposed || controller?.signal.aborted) return;
+			completeTurn(value.id, {
 				status: 'temporarily_unavailable',
 				answer: '',
 				reason: '请求暂时未能完成，请稍后重试或使用站内搜索。',
 				citations: []
-			};
+			});
+		},
+		onSettled: () => {
+			if (!disposed) void tick().then(() => input?.focus());
 		}
 	}));
 	let ready = $derived(availability.data?.available === true);
@@ -54,82 +64,68 @@
 			: availability.isError
 				? '暂时无法连接问答服务，可以先用搜索查找文章与手记。'
 				: ready
-					? '仅依据本站已发布的文章与手记回答。'
+					? '可以与我交流，也可以提问本站文章与手记。'
 					: availability.data?.reason === 'index_not_ready'
 						? '公开内容正在准备中，请稍后重试。'
 						: '问答服务尚未开放，可以先用搜索查找文章与手记。'
 	);
+	let offerSearch = $derived(
+		!ready || (turns.at(-1)?.answer && turns.at(-1)?.answer?.status !== 'answered')
+	);
 
 	onMount(() => input?.focus());
-	onDestroy(() => controller?.abort());
+	onDestroy(() => {
+		disposed = true;
+		controller?.abort();
+		if (pendingTurnId) {
+			completeTurn(pendingTurnId, {
+				status: 'temporarily_unavailable',
+				answer: '',
+				citations: [],
+				reason: '回答已中止，可以重新发送问题。'
+			});
+		}
+	});
+
+	function completeTurn(id: string, answer: RagAnswer) {
+		onTurnsChange(turns.map((turn: RagTurn) => (turn.id === id ? { ...turn, answer } : turn)));
+		pendingTurnId = undefined;
+	}
+
+	function send() {
+		const value = question.trim();
+		if (!ready || !value || mutation.isPending) return;
+		const history = conversationHistory(turns);
+		const id = crypto.randomUUID();
+		pendingTurnId = id;
+		onTurnsChange([...turns, { id, question: value, answer: null }]);
+		onQuestionChange('');
+		mutation.mutate({ id, question: value, history });
+	}
 
 	function submit(event: SubmitEvent) {
 		event.preventDefault();
-		const value = question.trim();
-		if (!ready || !value || mutation.isPending) return;
-		askedQuestion = value;
-		answer = null;
-		mutation.mutate(value);
+		send();
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter' || event.shiftKey || event.isComposing || event.keyCode === 229)
+			return;
+		event.preventDefault();
+		send();
 	}
 </script>
 
-<div
-	class="min-h-0 flex-1 overflow-y-auto px-6 py-6"
-	aria-live="polite"
-	aria-busy={mutation.isPending}
->
-	{#if mutation.isPending}
-		<p class="mb-5 whitespace-pre-wrap text-sm leading-7 text-ink-700 dark:text-ink-200">
-			{askedQuestion}
-		</p>
-		<p class="flex items-center gap-2 text-sm text-ink-600 dark:text-ink-300">
-			<LoaderCircle class="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-			正在检索原文并整理回答…
-		</p>
-	{:else if answer}
-		<p class="mb-5 whitespace-pre-wrap text-sm leading-7 text-ink-600 dark:text-ink-300">
-			{askedQuestion}
-		</p>
-		{#if answer.status === 'answered'}
-			<p class="whitespace-pre-wrap break-words font-serif text-base leading-8">{answer.answer}</p>
-			<h2 class="mb-2 mt-8 font-serif text-sm font-medium">原文依据</h2>
-			<ol class="divide-y divide-ink-200 dark:divide-ink-700">
-				{#each answer.citations as citation (citation.chunkId)}
-					<li class="py-4">
-						<a
-							href={`${base}${citation.url}`}
-							class="block rounded-sm font-serif text-sm leading-6 text-jade-800 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 dark:text-jade-200 dark:focus-visible:outline-jade-400"
-						>
-							[{citation.number}] {citation.title}
-						</a>
-						{#if citation.contextHeader}
-							<p class="mt-2 break-words text-xs leading-5 text-ink-600 dark:text-ink-300">
-								{citation.contextHeader}
-							</p>
-						{/if}
-						<details class="mt-3 text-xs leading-6 text-ink-600 dark:text-ink-300">
-							<summary
-								class="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
-								>查看原文片段</summary
-							>
-							<p class="mt-2 whitespace-pre-wrap break-words">{citation.content}</p>
-						</details>
-					</li>
-				{/each}
-			</ol>
-		{:else}
-			<p
-				role={answer.status === 'temporarily_unavailable' ? 'alert' : 'status'}
-				class="text-sm leading-7 text-ink-700 dark:text-ink-200"
-			>
-				{answer.reason}
-			</p>
-		{/if}
+<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
+	{#if turns.length > 0}
+		<RagTranscript {turns} />
 	{:else}
 		<div class="py-6">
 			<BookOpen class="mb-6 size-8 text-jade-800 dark:text-jade-300" aria-hidden="true" />
 			<h2 class="font-serif text-2xl leading-relaxed">{ready ? '向书房提问' : '站内问答'}</h2>
-			<p class="mt-3 text-sm leading-7 text-ink-600 dark:text-ink-300">{availabilityText}</p>
+			<p class="mt-3 text-sm leading-7 text-ink-600 dark:text-ink-300" role="status">
+				{availabilityText}
+			</p>
 		</div>
 	{/if}
 	{#if !ready && !availability.isPending}
@@ -142,7 +138,7 @@
 			<RotateCw class="size-4" aria-hidden="true" />重新检查
 		</Button>
 	{/if}
-	{#if !mutation.isPending}
+	{#if offerSearch && !mutation.isPending}
 		<Button
 			variant="secondary"
 			type="button"
@@ -179,22 +175,26 @@
 		bind:ref={input}
 		value={question}
 		oninput={() => onQuestionChange(input?.value ?? '')}
-		rows={3}
+		onkeydown={handleKeydown}
+		rows={2}
 		maxLength={1000}
 		resize="none"
 		disabled={mutation.isPending}
-		aria-describedby="rag-availability"
+		aria-describedby="rag-availability rag-keyboard-help"
 		placeholder="输入你的问题…"
 		textareaClass="block text-sm leading-6 disabled:opacity-60"
 	/>
 	<p id="rag-availability" class="sr-only">{availabilityText}</p>
-	<div class="mt-3 flex justify-end">
+	<div class="mt-3 flex items-center justify-between gap-3">
+		<p id="rag-keyboard-help" class="text-xs leading-5 text-ink-600 dark:text-ink-400">
+			Enter 发送 · Shift+Enter 换行
+		</p>
 		<Button
 			type="submit"
 			loading={mutation.isPending}
 			disabled={!ready || !question.trim() || mutation.isPending}
 			aria-describedby="rag-availability"
-			class="min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
+			class="min-h-10 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
 		>
 			{mutation.isPending ? '正在回答' : '发送问题'}<ArrowUp class="size-4" aria-hidden="true" />
 		</Button>
