@@ -29,6 +29,7 @@ import (
 	mediaapp "github.com/shawns-yao/shawn-blog/server/internal/app/media"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/observability"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/ownerstatus"
+	apprag "github.com/shawns-yao/shawn-blog/server/internal/app/rag"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/telemetry"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/webhook"
@@ -66,6 +67,7 @@ type Dependencies struct {
 	Backup               *backupapp.Service
 	MediaGate            *mediaapp.MutationGate
 	Media                *mediaapp.Service
+	RAG                  *apprag.Service
 }
 
 // Register wires up all HTTP endpoints with middlewares.
@@ -94,6 +96,10 @@ func Register(app *fiber.App, deps Dependencies) {
 		sysCfgRepo := persistence.NewSysConfigRepository(deps.DB)
 		sysCfgSvc = sysconfig.NewService(sysCfgRepo, deps.Config.Turnstile, eventBus)
 	}
+	if deps.RAG == nil {
+		deps.RAG = apprag.NewService(persistence.NewRAGRepository(deps.DB), sysCfgSvc, deps.Config.RAG)
+	}
+	registerRAGRoutes(v2, deps)
 	deps.SysConfig = sysCfgSvc
 	wsManager := ws.NewManager(ws.Config{
 		CacheSize:       3,

@@ -29,6 +29,7 @@ import (
 	"github.com/shawns-yao/shawn-blog/server/internal/app/isr"
 	mediaapp "github.com/shawns-yao/shawn-blog/server/internal/app/media"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/moment"
+	apprag "github.com/shawns-yao/shawn-blog/server/internal/app/rag"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
 	"github.com/shawns-yao/shawn-blog/server/internal/app/telemetry"
 	"github.com/shawns-yao/shawn-blog/server/internal/buildinfo"
@@ -66,6 +67,7 @@ type Server struct {
 	telemetrySvc  *telemetry.Service
 	backupSvc     *backupapp.Service
 	mediaSvc      *mediaapp.Service
+	ragSvc        *apprag.Service
 	version       string
 }
 
@@ -97,6 +99,7 @@ func NewWithOptions(cfg config.Config, db *gorm.DB, opts Options) *Server {
 	albumRepo := persistence.NewAlbumRepository(db)
 	commentRepo := persistence.NewCommentRepository(db)
 	momentSvc := moment.NewService(contentRepo, commentRepo, eventBus)
+	ragSvc := apprag.NewService(persistence.NewRAGRepository(db), sysCfgSvc, cfg.RAG)
 	errorCollector := telemetry.NewCollector(24 * time.Hour)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -339,6 +342,7 @@ func NewWithOptions(cfg config.Config, db *gorm.DB, opts Options) *Server {
 		Backup:               backupSvc,
 		MediaGate:            mediaGate,
 		Media:                mediaSvc,
+		RAG:                  ragSvc,
 	})
 
 	return &Server{
@@ -359,6 +363,7 @@ func NewWithOptions(cfg config.Config, db *gorm.DB, opts Options) *Server {
 		telemetrySvc:  telemetrySvc,
 		backupSvc:     backupSvc,
 		mediaSvc:      mediaSvc,
+		ragSvc:        ragSvc,
 		version:       buildinfo.Version(),
 	}
 }
@@ -381,6 +386,9 @@ func validateSecurityConfig(cfg config.Config) error {
 
 // Start launches the Fiber HTTP server and background workers.
 func (s *Server) Start() error {
+	if s.ragSvc != nil {
+		go s.ragSvc.Run(s.ctx)
+	}
 	// 启动健康状态检查
 	if s.healthChecker != nil {
 		go s.healthChecker.Run(s.ctx)

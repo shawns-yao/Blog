@@ -18,6 +18,7 @@ type Config struct {
 	Backup    BackupConfig
 	Export    ExportConfig
 	Media     MediaConfig
+	RAG       RAGConfig
 }
 
 // AppConfig contains Fiber specific settings.
@@ -114,6 +115,7 @@ type MediaConfig struct {
 // Load builds a Config struct with sane defaults overridden by environment variables.
 func Load() Config {
 	return Config{
+		RAG: loadRAG(),
 		App: AppConfig{
 			Name:                getEnv("APP_NAME", "shawn-blog-server"),
 			Port:                getEnv("APP_PORT", "8080"),
