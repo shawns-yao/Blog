@@ -93,6 +93,11 @@
 	--radius-default: 3px;
 	--radius-4xl: 2rem;
 	--radius-5xl: 2.5rem;
+
+	/* RAG sidebar */
+	--container-rag: 26rem;
+	--z-index-rag-overlay: 1990;
+	--z-index-rag-panel: 1991;
 }
 
 /* Base Styles */

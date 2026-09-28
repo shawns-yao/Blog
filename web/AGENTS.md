@@ -142,3 +142,12 @@ const store = ctx.selectModelData((model) => model?.part ?? null, {
 - 跨组件共享的数据（如 `relatedMoments`、`relatedPosts`）应并入 detail model，由 context 统一分发，避免 prop drilling 和重复请求。
 
 如需扩展本规范，请先解释原因与改动范围，再调整本文件。
+
+## 19. 站内问答入口
+
+- 问答组件放在 `src/lib/features/rag/components/`，由全局布局挂载右侧问答面板；沿用现有设计变量与组件库，不改变书架导航。
+- 操作按钮与输入框复用 `Button` 和 `Textarea`；元素引用与无障碍属性通过共享组件透传，不在业务模块重写基础控件。
+- 传统搜索与问答保持独立。切换到搜索时关闭问答面板；弹层必须支持焦点管理、Escape 和移动端布局。
+- 问答使用 `QueryRoot` 与 TanStack Query 调用项目状态和问答接口；只有状态就绪时允许发送，输入不触发请求。服务不可用时提供重新检查和搜索，不展示虚构回答或引用。
+- 草稿与匿名会话 UUID 仅保存在页面内存；关闭时取消请求、丢弃回答。引用只使用服务端返回的公开来源，正文与片段按文本显示，不执行返回的 HTML。
+- 模型地址、请求头与密钥通过服务端 `.env` 配置，浏览器不得携带供应商密钥；修改后端契约时同步 `RAG.md`。

@@ -1,6 +1,9 @@
 <script lang="ts">
-	interface Props {
+	import type { HTMLTextareaAttributes } from 'svelte/elements';
+
+	interface Props extends Omit<HTMLTextareaAttributes, 'value' | 'class' | 'oninput'> {
 		value?: string;
+		ref?: HTMLTextAreaElement;
 		placeholder?: string;
 		rows?: number;
 		maxLength?: number;
@@ -13,6 +16,7 @@
 
 	let {
 		value = $bindable(''),
+		ref = $bindable(),
 		placeholder = '',
 		rows = 4,
 		maxLength,
@@ -20,7 +24,8 @@
 		resize = 'vertical',
 		textareaClass: textareaClassName = '',
 		class: className = '',
-		oninput
+		oninput,
+		...restProps
 	}: Props = $props();
 
 	const baseTextareaClasses =
@@ -53,8 +58,15 @@
 </script>
 
 <div class={wrapperClasses}>
-	<textarea bind:value {rows} maxlength={maxLength} {placeholder} {oninput} class={textareaClasses}
-	></textarea>
+	<textarea
+		bind:this={ref}
+		bind:value
+		{rows}
+		maxlength={maxLength}
+		{placeholder}
+		{oninput}
+		class={textareaClasses}
+		{...restProps}></textarea>
 </div>
 
 <style>

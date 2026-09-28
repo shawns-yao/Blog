@@ -33,6 +33,7 @@
 	import { userStore } from '$lib/shared/stores/userStore';
 	import { get } from 'svelte/store';
 	import { brand } from '$lib/shared/brand/brand';
+	import RagSidebar from '$lib/features/rag/components/RagSidebar.svelte';
 
 	function logClientRuntimeError(
 		kind: 'error' | 'unhandledrejection',
@@ -427,6 +428,7 @@
 {/if}
 
 <SearchModal />
+<RagSidebar />
 <FloatingWindow>
 	<!-- Login branch: always mounted (hidden when inactive) to preserve QueryRoot/AuthClient state -->
 	<div hidden={windowStore.kind !== 'login'}>
