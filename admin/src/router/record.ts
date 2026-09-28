@@ -453,6 +453,14 @@ export const routeRecordRaw: MenuMixedOptions[] = [
     ],
   },
   {
+    path: 'rag',
+    name: 'ragManagement',
+    icon: 'iconify ph--database',
+    label: 'RAG 知识库',
+    meta: { componentName: 'RagManagement', showTab: true },
+    component: 'rag/index',
+  },
+  {
     path: 'email',
     name: 'emailManagement',
     icon: 'iconify ph--envelope',
