@@ -41,6 +41,7 @@ const kindLabels: Record<string, string> = {
   code: '代码',
   table: '表格',
   math: '公式',
+  list: '列表',
 }
 </script>
 
@@ -101,9 +102,8 @@ const kindLabels: Record<string, string> = {
           <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
             <h2 class="font-medium">分块 {{ chunk.seq + 1 }}</h2>
             <span class="text-xs opacity-60"
-              >{{ kindLabels[chunk.kind] || chunk.kind }} · 字符范围 {{ chunk.start }}–{{
-                chunk.end
-              }}</span
+              >{{ kindLabels[chunk.kind] || chunk.kind }} · {{ chunk.tokens }} token · 字符范围
+              {{ chunk.start }}–{{ chunk.end }}</span
             >
           </div>
           <p
@@ -112,6 +112,19 @@ const kindLabels: Record<string, string> = {
           >
             {{ chunk.contextHeader }}
           </p>
+          <dl class="mb-3 grid grid-cols-1 gap-x-5 gap-y-1 text-xs opacity-60 sm:grid-cols-2">
+            <div>
+              <dt class="inline">父块范围：</dt>
+              <dd class="inline">{{ chunk.parentStart }}–{{ chunk.parentEnd }}</dd>
+            </div>
+            <div>
+              <dt class="inline">相邻分块：</dt>
+              <dd class="inline">
+                {{ chunk.previousId ? Number(chunk.previousId.split(':').at(-1)) + 1 : '—' }} /
+                {{ chunk.nextId ? Number(chunk.nextId.split(':').at(-1)) + 1 : '—' }}
+              </dd>
+            </div>
+          </dl>
           <NCode
             :code="chunk.content"
             language="text"

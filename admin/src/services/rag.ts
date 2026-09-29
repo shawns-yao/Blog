@@ -3,6 +3,17 @@ import { request } from './http'
 export interface RagTuning {
   chunkSize: number
   chunkOverlap: number
+  chunkTargetTokens: number
+  chunkMinTokens: number
+  chunkMaxTokens: number
+  chunkOverlapTokens: number
+  parentMaxTokens: number
+  contextMaxTokens: number
+  historyMaxTokens: number
+  multiQueryEnabled: boolean
+  multiQueryMax: number
+  bm25K1: number
+  bm25B: number
   indexVersion: string
   vectorTopK: number
   keywordTopK: number
@@ -29,6 +40,7 @@ export interface RagChatChannel {
 
 export interface RagSettings {
   chatChannels: RagChatChannel[]
+  tokenEncoding: string
   tuning: RagTuning
   enabled: boolean
   primaryModel: string
@@ -71,6 +83,15 @@ export interface RagDocument {
 }
 
 export interface RagChunk {
+  chunkId: string
+  documentId: number
+  headingPath: string[]
+  parentId: string
+  parentStart: number
+  parentEnd: number
+  previousId?: string
+  nextId?: string
+  tokens: number
   seq: number
   content: string
   contextHeader: string

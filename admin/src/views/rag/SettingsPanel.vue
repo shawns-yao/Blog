@@ -55,21 +55,34 @@ const groups: { title: string; fields: Field[] }[] = [
   {
     title: '分块',
     fields: [
-      { key: 'chunkSize', label: '分块大小（字符）', min: 200, max: 2000 },
-      { key: 'chunkOverlap', label: '重叠大小（字符）', min: 0, max: 1999 },
+      { key: 'chunkTargetTokens', label: '子块目标（token）', min: 100, max: 4000 },
+      { key: 'chunkMinTokens', label: '短块合并阈值（token）', min: 1, max: 4000 },
+      { key: 'chunkMaxTokens', label: '子块上限（token）', min: 100, max: 4000 },
+      { key: 'chunkOverlapTokens', label: '重叠上限（token）', min: 0, max: 3999 },
+      { key: 'parentMaxTokens', label: '父块上限（token）', min: 100, max: 8000 },
     ],
   },
   {
     title: '召回与融合',
     fields: [
       { key: 'vectorTopK', label: '向量召回 TopK', min: 1, max: 100 },
-      { key: 'keywordTopK', label: '关键词召回 TopK', min: 1, max: 100 },
+      { key: 'keywordTopK', label: 'BM25 召回 TopK', min: 1, max: 100 },
+      { key: 'bm25K1', label: 'BM25 K1', min: 0.01, max: 3, step: 0.05 },
+      { key: 'bm25B', label: 'BM25 B', min: 0, max: 1, step: 0.05 },
       { key: 'minSimilarity', label: '向量相似度下限', min: 0, max: 1, step: 0.01 },
       { key: 'rrfK', label: 'RRF 平滑常数 K', min: 1, max: 200 },
       { key: 'rrfVectorWeight', label: 'RRF 向量权重', min: 0, max: 1, step: 0.05 },
       { key: 'rrfKeywordWeight', label: 'RRF 关键词权重', min: 0, max: 1, step: 0.05 },
       { key: 'rerankCandidateTopK', label: '融合候选 TopK', min: 1, max: 100 },
       { key: 'topK', label: '最终 TopK', min: 1, max: 20 },
+    ],
+  },
+  {
+    title: '问题理解与上下文',
+    fields: [
+      { key: 'multiQueryMax', label: '子查询上限', min: 1, max: 3 },
+      { key: 'contextMaxTokens', label: '证据预算（token）', min: 100, max: 16000 },
+      { key: 'historyMaxTokens', label: '历史预算（token）', min: 0, max: 8000 },
     ],
   },
   {
@@ -82,8 +95,14 @@ const validation = computed(() => {
   const f = form.value
   if (!f) return ''
   if (Object.values(f).some((value) => value === null)) return '请填写所有数值参数。'
-  if (f.chunkSize != null && f.chunkOverlap != null && f.chunkOverlap >= f.chunkSize)
-    return '重叠大小需要小于分块大小。'
+  if (
+    f.chunkMinTokens! > f.chunkTargetTokens! ||
+    f.chunkTargetTokens! > f.chunkMaxTokens! ||
+    f.chunkOverlapTokens! >= f.chunkTargetTokens!
+  )
+    return '子块需满足短块合并阈值 ≤ 目标 ≤ 上限，重叠小于目标。'
+  if (f.parentMaxTokens! < f.chunkMaxTokens! || f.contextMaxTokens! < f.chunkMaxTokens!)
+    return '父块上限和证据预算不能小于子块上限。'
   if (
     f.rrfVectorWeight != null &&
     f.rrfKeywordWeight != null &&
@@ -96,9 +115,9 @@ const validation = computed(() => {
     f.rerankCandidateTopK != null &&
     f.vectorTopK != null &&
     f.keywordTopK != null &&
-    f.rerankCandidateTopK > f.vectorTopK + f.keywordTopK
+    f.rerankCandidateTopK > (f.vectorTopK + f.keywordTopK) * (1 + f.multiQueryMax!)
   )
-    return '融合候选数不能超过两路召回的总数。'
+    return '融合候选数不能超过所有查询的两路召回总数。'
   if (!f.indexVersion.trim()) return '请填写索引版本。'
   return ''
 })
@@ -178,14 +197,25 @@ function reset() {
           v-if="group.title === '分块'"
           class="mb-4 text-sm opacity-60"
         >
-          按 Unicode 字符计数。修改分块大小、重叠大小或索引版本会触发重建。
+          参考编码
+          {{ settings.tokenEncoding }}。保留段落与结构边界；修改分块参数或索引版本会重建子块索引。
         </p>
         <p
           v-if="group.title === '召回与融合'"
           class="mb-4 text-sm opacity-60"
         >
-          两路召回经加权 RRF 融合，取候选进行重排序，最后去重并截取最终 TopK。
+          原问题与子查询分别召回，经 RRF 融合和重排序后，去重、扩展上下文并按预算选取证据。
         </p>
+        <div
+          v-if="group.title === '问题理解与上下文'"
+          class="mb-4 flex items-center gap-3"
+        >
+          <span>比较与多步骤问题启用子查询</span>
+          <NSwitch
+            v-model:value="form.multiQueryEnabled"
+            aria-label="启用子查询"
+          />
+        </div>
         <div
           v-if="group.title === '重排序'"
           class="mb-4 flex flex-wrap gap-x-8 gap-y-4"
