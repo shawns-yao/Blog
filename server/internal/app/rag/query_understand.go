@@ -14,16 +14,18 @@ import (
 )
 
 type queryPlan struct {
-	Intent             domain.QueryIntent `json:"intent"`
-	Strategy           string             `json:"strategy"`
-	Query              string             `json:"query"`
-	Queries            []string           `json:"queries"`
-	NeedRewrite        bool               `json:"needRewrite"`
-	NeedMultiQuery     bool               `json:"needMultiQuery"`
-	NeedHistory        bool               `json:"needHistory"`
-	RewriteDegraded    bool               `json:"-"`
-	NeedsClarification bool               `json:"needsClarification"`
-	Clarification      string             `json:"clarification"`
+	Intent              domain.QueryIntent `json:"intent"`
+	Strategy            string             `json:"strategy"`
+	Query               string             `json:"query"`
+	Queries             []string           `json:"queries"`
+	NeedRewrite         bool               `json:"needRewrite"`
+	NeedMultiQuery      bool               `json:"needMultiQuery"`
+	NeedHistory         bool               `json:"needHistory"`
+	RewriteDegraded     bool               `json:"-"`
+	NeedsClarification  bool               `json:"needsClarification"`
+	Clarification       string             `json:"clarification"`
+	UnderstandingSource string             `json:"-"`
+	ProtectedTerms      []string           `json:"-"`
 }
 
 var greetingPattern = regexp.MustCompile(`(?i)^(你好|您好|嗨|哈喽|hello|hi|谢谢|多谢|感谢|再见|拜拜)[！!。.?？\s]*$`)
@@ -48,26 +50,37 @@ func (s *Service) historyPolicy() domain.HistoryPolicy {
 	return domain.HistoryPolicy{MaxRounds: rounds, MaxCharacters: characters}
 }
 
-func (s *Service) understandQuery(ctx context.Context, settings settings, question, sessionID string, history []domain.Message, run *domain.QueryRun) (queryPlan, bool, string) {
+func (s *Service) understandQuery(ctx context.Context, settings settings, question, sessionID string, history []domain.Message, run *domain.QueryRun) (plan queryPlan, degraded bool, usedProvider string) {
+	defer func() { plan.ProtectedTerms = queryProtectedTerms(question) }()
 	if greetingPattern.MatchString(question) {
-		return queryPlan{Intent: domain.IntentChat, Query: question, Queries: []string{question}}, false, ""
+		return queryPlan{Intent: domain.IntentChat, Query: question, Queries: []string{question}, UnderstandingSource: "rule"}, false, ""
 	}
 	if topic := discoveryTopic(question); topic != "" {
-		return queryPlan{Intent: domain.IntentDocumentSearch, Query: topic, Queries: distinctQueries(question, topic)}, false, ""
+		return queryPlan{Intent: domain.IntentDocumentSearch, Query: topic, Queries: distinctQueries(question, topic), UnderstandingSource: "rule"}, false, ""
 	}
 	// A complete single-fact question needs no remote classification or rewrite.
-	if completeFactQuestion(question) {
-		return queryPlan{Intent: domain.IntentKnowledgeQuery, Strategy: "FACT", Query: question, Queries: []string{question}}, false, ""
+	rulePlan, routed := ruleQueryPlan(question)
+	routed = settings.tuning.AdaptiveRetrievalEnabled && routed
+	if !routed && completeFactQuestion(question) {
+		return queryPlan{Intent: domain.IntentKnowledgeQuery, Strategy: "FACT", Query: question, Queries: []string{question}, UnderstandingSource: "rule"}, false, ""
 	}
 	payload, _ := json.Marshal(struct {
 		Question string           `json:"question"`
 		History  []domain.Message `json:"history"`
 	}{question, history})
-	raw, provider := s.understandingCall(ctx, settings, queryUnderstandPrompt, string(payload), sessionID, 20*time.Second, run,
-		func(raw string) bool { _, ok := parseQueryPlan(raw); return ok })
-	plan, ok := parseQueryPlan(raw)
+	provider, ok := "", routed
+	if routed {
+		plan = rulePlan
+	} else {
+		raw, selected := s.understandingCall(ctx, settings, queryUnderstandPrompt, string(payload), sessionID, 20*time.Second, run,
+			func(raw string) bool { _, ok := parseQueryPlan(raw); return ok })
+		provider = selected
+		plan, ok = parseQueryPlan(raw)
+		plan.UnderstandingSource = "model"
+	}
 	if !ok {
 		plan = queryPlan{Intent: domain.IntentKnowledgeQuery, Strategy: "FACT"}
+		plan.UnderstandingSource = "fallback"
 		if regexp.MustCompile(`区别|比较|对比|差异`).MatchString(question) {
 			plan.Strategy, plan.NeedMultiQuery = "COMPARE", true
 		}
@@ -91,10 +104,13 @@ func (s *Service) understandQuery(ctx context.Context, settings settings, questi
 		return plan, !ok, provider
 	}
 	plan.NeedMultiQuery = settings.tuning.MultiQueryEnabled && plan.NeedMultiQuery
+	if plan.Strategy == "EXACT" {
+		plan.NeedRewrite, plan.NeedMultiQuery = false, false
+	}
 	if !plan.NeedRewrite && !plan.NeedMultiQuery {
 		return plan, !ok, provider
 	}
-	if plan.Strategy == "MULTI_HOP" && plan.NeedMultiQuery && !plan.NeedRewrite && !plan.NeedHistory {
+	if (plan.Strategy == "MULTI_HOP" || plan.Strategy == "COMPARE") && plan.NeedMultiQuery && !plan.NeedRewrite && !plan.NeedHistory {
 		if clauses := literalSubqueries(question, plan.Strategy); len(clauses) > 1 {
 			plan.Queries = distinctQueries(append([]string{question}, clauses...)...)
 			plan.Queries = plan.Queries[:min(len(plan.Queries), 1+settings.tuning.MultiQueryMax)]
@@ -125,7 +141,7 @@ func (s *Service) understandQuery(ctx context.Context, settings settings, questi
 			if json.Unmarshal([]byte(raw), &expansion) != nil || len(expansion.Queries) > settings.tuning.MultiQueryMax {
 				return false
 			}
-			if plan.NeedRewrite && !supportedQuery(expansion.Query, allowedEntities) {
+			if plan.NeedRewrite && (!supportedQuery(expansion.Query, allowedEntities) || !preservesQueryTerms(expansion.Query, queryProtectedTerms(question))) {
 				return false
 			}
 			if plan.NeedMultiQuery && len(expansion.Queries) == 0 {
@@ -180,7 +196,7 @@ func literalSubqueries(question, strategy string) []string {
 			left, right, ok := strings.Cut(comparison, separator)
 			if ok && utf8.RuneCountInString(strings.TrimSpace(left)) >= 2 && utf8.RuneCountInString(strings.TrimSpace(right)) >= 2 {
 				queries = append(queries, strings.TrimSpace(left), strings.TrimSpace(right))
-				break
+				return distinctQueries(queries...)
 			}
 		}
 	}

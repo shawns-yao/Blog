@@ -71,10 +71,12 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 	}
 	var result []domain.Evidence
 	budgetLimited := false
+	scoreLimited := false
 	perSource := map[int64]int{}
 	for position, candidate := range candidates {
 		if position >= anchors && limit.HasScoreCutoff && len(result) >= limit.Minimum && candidate.Score < limit.ScoreCutoff {
-			return result, "score_gap", nil
+			scoreLimited = true
+			continue
 		}
 		source, ok := sourceByID[candidate.MomentID]
 		if !ok || source.SourceHash != candidate.SourceHash {
@@ -151,6 +153,9 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 	}
 	if budgetLimited {
 		return result, "token_budget", nil
+	}
+	if scoreLimited {
+		return result, "score_gap", nil
 	}
 	return result, "candidate_exhausted", nil
 }

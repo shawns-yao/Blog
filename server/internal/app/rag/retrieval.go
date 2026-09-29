@@ -37,16 +37,23 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 			return matches, true, nil
 		}
 	}
-	embedCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	tuning, policy := createRetrievalPolicy(settings.tuning, plan)
+	settings.tuning = tuning
+	trace.RetrievalPolicy = &policy
 	started := time.Now()
 	queries := plan.Queries
 	if len(queries) == 0 {
 		queries = []string{plan.Query}
 	}
-	vectors, embedErr := settings.embedder.BatchEmbed(embedCtx, queries)
-	run.EmbeddingMs = elapsedMs(started)
-	cancel()
-	if embedErr == nil {
+	var vectors [][]float64
+	var embedErr error
+	if tuning.VectorTopK > 0 {
+		embedCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		vectors, embedErr = settings.embedder.BatchEmbed(embedCtx, queries)
+		run.EmbeddingMs = elapsedMs(started)
+		cancel()
+	}
+	if embedErr == nil && tuning.VectorTopK > 0 {
 		if len(vectors) != len(queries) {
 			return nil, false, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
 		}
@@ -55,12 +62,12 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 				return nil, false, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
 			}
 		}
-	} else {
+	} else if embedErr != nil {
 		trace.EmbeddingDegraded = true
 		vectors = nil
 	}
 	started = time.Now()
-	vector, keyword, err := s.repo.Retrieve(ctx, settings.profile, queries, contentKind, vectors, settings.tuning)
+	vector, keyword, err := s.repo.Retrieve(ctx, settings.profile, queries, contentKind, vectors, tuning)
 	elapsed := time.Since(started).Milliseconds()
 	if run.RetrievalMs != nil {
 		elapsed += *run.RetrievalMs
@@ -80,7 +87,6 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	if embedErr != nil && trace.KeywordCandidates == 0 {
 		return nil, false, &queryFailure{"embedding_unavailable", "嵌入服务暂时不可用，请稍后重试。"}
 	}
-	tuning := settings.tuning
 	if embedErr != nil {
 		tuning.RRFVectorWeight, tuning.RRFKeywordWeight = 0, 1
 	}
@@ -113,9 +119,16 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	limit := adaptiveEvidenceLimit(tuning, plan, candidates, tuning.RerankEnabled && !run.RerankDegraded)
 	trace.DynamicTopK = tuning.DynamicTopKEnabled
 	trace.TopKMinimum, trace.TopKMaximum, trace.TopKTarget, trace.TopKReason = limit.Minimum, limit.Maximum, limit.Target, limit.Reason
-	if plan.Strategy == "MULTI_HOP" && tuning.MultiQueryEnabled && len(queries) > 1 {
+	if (plan.Strategy == "MULTI_HOP" || plan.Strategy == "COMPARE") && tuning.MultiQueryEnabled && len(queries) > 1 {
 		candidates, trace.SubqueryAnchors = prioritizeSubqueryEvidence(candidates, vector, keyword, tuning)
 		captureEvaluationStage(ctx, "coverage", queries, [][]domain.Evidence{candidates})
+	}
+	if tuning.EvidenceSelectionEnabled {
+		candidates = diversifyEvidence(candidates, trace.SubqueryAnchors, tuning.EvidenceDiversityWeight)
+		trace.EvidenceSelection = "subquery_anchors+lexical_diversity"
+		captureEvaluationStage(ctx, "selection", nil, [][]domain.Evidence{candidates})
+	} else {
+		trace.EvidenceSelection = "rank_order"
 	}
 	contextStarted := time.Now()
 	evidence, stoppedBy, contextErr := s.buildContext(ctx, settings, plan, candidates, limit, trace.SubqueryAnchors)

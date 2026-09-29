@@ -152,20 +152,24 @@ AS embedding_dimension FROM base`, profile, profile).Scan(&stats).Error
 }
 
 func (r *RAGRepository) Retrieve(ctx context.Context, profile string, questions []string, contentKind string, vectors [][]float64, tuning domain.Tuning) ([][]domain.Evidence, [][]domain.Evidence, error) {
-	// Two bulk queries irrespective of candidate/document count or query count.
+	// At most two bulk queries irrespective of candidate/document count or query count.
 	// This exact corpus scan matches the existing exact vector search deployment.
 	var corpus []domain.Evidence
-	err := r.db.WithContext(ctx).Raw(`SELECT c.id, c.moment_id, m.title, m.short_url, c.content,
+	var err error
+	keyword := make([][]domain.Evidence, len(questions))
+	if tuning.KeywordTopK > 0 && tuning.RRFKeywordWeight > 0 {
+		err = r.db.WithContext(ctx).Raw(`SELECT c.id, c.moment_id, m.title, m.short_url, c.content,
 c.context_header, c.kind, m.ext_info->>'contentKind' AS content_kind, c.start_at AS start,
 c.end_at AS "end", c.source_hash, c.profile AS index_version, m.created_at, m.updated_at
 FROM rag_chunk c `+ragLiveIndex+` AND (? = '' OR m.ext_info->>'contentKind' = ?) ORDER BY c.id`,
-		profile, contentKind, contentKind).Scan(&corpus).Error
-	if err != nil {
-		return nil, nil, err
+			profile, contentKind, contentKind).Scan(&corpus).Error
+		if err != nil {
+			return nil, nil, err
+		}
+		keyword = infrarag.BM25(corpus, questions, tuning)
 	}
-	keyword := infrarag.BM25(corpus, questions, tuning)
 	vectorResults := make([][]domain.Evidence, len(questions))
-	if len(vectors) == 0 {
+	if len(vectors) == 0 || tuning.VectorTopK == 0 {
 		return vectorResults, keyword, nil
 	}
 	queryVectors, err := json.Marshal(vectors)

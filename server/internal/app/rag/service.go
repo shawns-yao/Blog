@@ -137,6 +137,7 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 	understandingStarted := time.Now()
 	plan, degraded, understandingProvider := s.understandQuery(ctx, settings, question, sessionID, history, &run)
 	trace := &domain.QueryTrace{Intent: plan.Intent, OriginalQuery: question, Query: plan.Query,
+		UnderstandingSource: plan.UnderstandingSource, ProtectedTerms: plan.ProtectedTerms,
 		Strategy: plan.Strategy, Queries: plan.Queries, NeedRewrite: plan.NeedRewrite,
 		NeedMultiQuery: plan.NeedMultiQuery, NeedHistory: plan.NeedHistory, RewriteDegraded: plan.RewriteDegraded,
 		UnderstandingDegraded: degraded, UnderstandingProvider: understandingProvider, TokenEncoding: infrarag.TokenEncoding,
