@@ -25,7 +25,11 @@ async def main():
     root = Path.cwd()
     dataset_dir = root / 'Temp' / 'rag-benchmarks' / sys.argv[1]
     directed = '--directed' in sys.argv[2:]
-    run_dir = dataset_dir / ('directed-runs' if directed else 'runs') / (dataset_dir / ('latest-directed-run.txt' if directed else 'latest-run.txt')).read_text().strip()
+    selected_run = next((argument.split('=', 1)[1] for argument in sys.argv[2:] if argument.startswith('--run-id=')), None)
+    run_id = selected_run or (dataset_dir / ('latest-directed-run.txt' if directed else 'latest-run.txt')).read_text().strip()
+    if not run_id or Path(run_id).name != run_id or run_id in {'.', '..'}:
+        raise ValueError('Invalid evaluation run ID')
+    run_dir = dataset_dir / ('directed-runs' if directed else 'runs') / run_id
     resume = '--resume' in sys.argv[2:]
     score_name = (run_dir / 'latest-ragas.txt').read_text(encoding='utf-8').strip() if resume else datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     score_dir = run_dir / 'ragas' / score_name
@@ -62,14 +66,15 @@ async def main():
         'testKind': ('定向测试' if directed else '公开权威数据测试') + ' / 对项目真实输出的独立评分',
         'ragasVersion': importlib.metadata.version('ragas'),
         'judgeModel': judge_model, 'judgeProvider': 'Gemini', 'judgeTemperature': 0,
-        'judgeMaxTokens': 8192, 'judgeTopP': 0.1, 'instructorAttempts': 1,
+        'judgeMaxTokens': 8192, 'judgeTopP': None, 'instructorAttempts': 1,
         'judgeMinimumRequestIntervalSeconds': 12, 'metricDeadlineSeconds': 240,
         'metrics': ['faithfulness', 'answer_accuracy', 'answer_relevancy'],
         'answerAccuracyAttemptsPerJudge': 1,
         'answerAccuracyPolicy': 'Official question-aware dual-perspective metric; no custom rubric or modified reference answers',
         'artifactDir': str(score_dir),
+        'projectRunId': run_id,
         'embeddingModel': env['RAG_EMBEDDING_MODEL'], 'retryPolicy': 'no runner retries',
-        'contextContract': 'All passages actually dispatched by the project; not just cited passages',
+        'contextContract': 'All captured passage objects actually dispatched by the project, including metadata; not just cited passages',
         'faithfulnessDenominator': 'Answered samples with contexts and successful judge calls; refusals are N/A',
         'accuracyDenominator': 'Core samples with official reference answers; unanswered samples score zero; judge failures separate',
         'relevancyDenominator': 'Core samples with successful judge calls; unanswered samples score zero',
@@ -101,7 +106,7 @@ async def main():
             else:
                 answer = sample.get('answer') or {}
                 response = answer.get('answer') or ''
-                contexts = [f"{item['title']}\n{item['section']}\n{item['content']}"
+                contexts = [json.dumps(item, ensure_ascii=False)
                             for item in (sample.get('capture', {}).get('contexts') or [])]
                 tasks = {}
                 if answer.get('status') == 'answered' and response:

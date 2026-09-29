@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile, writeFile, appendFile, mkdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
+import { dockerOutput, sqlAt, testTarget, verifyTestContainers } from './rag-test-target.mjs';
 
 const name = process.argv[2];
 assert(['open-rag-bench', 'beir-scifact'].includes(name), '指定单个测试集合');
@@ -13,6 +13,14 @@ const sampleArgument = process.argv.slice(3).find(value => value.startsWith('--s
 const selectedIds = sampleArgument ? sampleArgument.slice('--sample-ids='.length).split(',') : null;
 assert(selectedIds === null || selectedIds.every(Boolean), '定向样本 ID 不能为空');
 const testKind = selectedIds ? '定向测试' : '公开权威数据测试';
+const profileArgument = process.argv.slice(3).find(value => value.startsWith('--strategy-profile='));
+const strategyProfile = profileArgument?.split('=')[1] ?? null;
+assert(strategyProfile === null || ['baseline', 'adaptive'].includes(strategyProfile), '策略对照只能是 baseline 或 adaptive');
+const environmentArgument = process.argv.slice(3).find(value => value.startsWith('--environment='));
+const environment = environmentArgument?.split('=')[1] ?? 'docker';
+assert(['daily', 'docker'].includes(environment), '环境只能是 daily 或 docker');
+const target = testTarget(name, environment === 'docker');
+if (target.dedicated) verifyTestContainers(target);
 const root = resolve('.'), dir = join(root, 'Temp/rag-benchmarks', name);
 const runId = new Date().toISOString().replaceAll(':', '-');
 const runDir = join(dir, selectedIds ? 'directed-runs' : 'runs', runId);
@@ -27,11 +35,7 @@ const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
 const save = async (path, value) => writeFile(path, JSON.stringify(value, null, 2));
 const sleep = ms => new Promise(ok => setTimeout(ok, ms));
 function sql(query) {
-  const result = spawnSync('docker', ['exec', '-i', 'shawn-blog-postgres', 'sh', '-lc',
-    'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -v ON_ERROR_STOP=1 -A -t -q'],
-  { input: query, encoding: 'utf8', windowsHide: true, timeout: 45000, maxBuffer: 16 * 1024 * 1024 });
-  if (result.error || result.status !== 0) throw new Error(`database_preparation_failed:${result.stderr?.slice(0, 500)}`);
-  return result.stdout.trim() ? JSON.parse(result.stdout) : null;
+  return sqlAt(target.databaseContainer, query);
 }
 
 // Scores are computed only after the public project endpoint has returned.
@@ -55,9 +59,10 @@ const results = [];
 const metadata = { objective: selectedIds ? 'Verify identified failures using original queries and the unchanged frozen corpus'
   : 'Establish a real-project retrieval/reranking/answer baseline on a frozen public dataset subset',
   testKind, selectedIds, testLevel: 'benchmark/end-to-end Markdown RAG',
-  entrypoint: 'POST http://127.0.0.1:8080/api/v2/public/ask', dataset,
+  strategyProfile, environment: target,
+  entrypoint: `POST ${target.endpoint}`, dataset,
   goldVisibility: 'Evaluator only; project receives corpus text and query only',
-  primaryMetric: 'Final context macro Recall@6 over original document/section IDs; denominator: core project returns',
+  primaryMetric: 'Final dispatched context macro recall over original document/section IDs; Recall@6 is reported separately; denominator: core project returns',
   auxiliaryMetrics: 'HitRate, MRR and binary nDCG at 1/3/6/10/20 per actual phase; unanswerable/incorrect project outputs score zero',
   rankContract: 'Project ordering retained; document/section IDs deduplicated at first occurrence; no hit scores zero; empty/short ranks are not padded with relevant IDs',
   retryPolicy: 'One project request per sample, no runner retries; actual project provider fallback retained and separately logged',
@@ -73,8 +78,8 @@ await writeFile(join(dir, selectedIds ? 'latest-directed-run.txt' : 'latest-run.
 
 function documentSnapshot() {
   return sql(`SELECT COALESCE(jsonb_agg(x),'[]'::jsonb) FROM (
-    SELECT m.id,m.short_url,m.content_hash,s.status,s.attempts,s.last_error,s.active_profile,s.desired_profile,
-      s.active_hash=s.source_hash AS hash_current,count(c.id) AS chunks
+    SELECT m.id,m.short_url,m.content_hash,s.status,s.attempts,s.last_error,s.active_profile,s.desired_profile,s.indexed_at,
+      s.active_hash=s.source_hash AS hash_current,count(c.id) AS chunks,max(c.id) AS latest_chunk_id
     FROM moment m LEFT JOIN rag_index_state s ON s.moment_id=m.id LEFT JOIN rag_chunk c ON c.moment_id=m.id
     WHERE m.ext_info->>'ragBenchmark'=${quote(name)} GROUP BY m.id,s.moment_id
   ) x;`);
@@ -92,30 +97,44 @@ function unitIds(hits) {
 }
 
 try {
-  const publicNotes = sql(`SELECT count(*) FROM moment WHERE is_published=true AND deleted_at IS NULL AND ext_info->>'contentKind'='note';`);
+  const publicNotes = sql(`SELECT count(*) FROM moment WHERE is_published=true AND deleted_at IS NULL AND ext_info->>'contentKind'='note'
+    ${target.dedicated ? `AND (ext_info->>'ragBenchmark' IS DISTINCT FROM ${quote(name)})` : ''};`);
   assert.equal(publicNotes, 0, '临时测试集合必须与原有公开内容隔离');
+  if (target.dedicated) assert.equal(sql("SELECT to_json(value) FROM sys_config WHERE config_key='test.rag.dataset';"), name,
+    '测试数据库必须属于当前集合');
   originalSettings = sql(`SELECT COALESCE(jsonb_object_agg(config_key,value),'{}'::jsonb) FROM sys_config WHERE config_key LIKE 'rag.%' AND is_sensitive=false;`);
   metadata.originalSettings = originalSettings;
   metadata.sourceSnapshot = sql(`SELECT COALESCE(jsonb_agg(jsonb_build_object('id',id,'hash',content_hash,'published',is_published) ORDER BY id),'[]'::jsonb) FROM moment WHERE ext_info->>'ragBenchmark' IS NULL;`);
   metadata.originalIndexProfiles = sql(`SELECT COALESCE(jsonb_agg(jsonb_build_object('id',m.id,'profile',s.active_profile)),'[]'::jsonb)
     FROM moment m JOIN rag_index_state s ON s.moment_id=m.id WHERE m.ext_info->>'ragBenchmark' IS NULL AND m.is_published=true AND m.deleted_at IS NULL;`);
-  if (requestedMaxTokens !== null) {
-    temporarySettings = { 'rag.chunkMaxTokens': String(requestedMaxTokens),
-      'rag.parentMaxTokens': String(Math.max(requestedMaxTokens, Number(originalSettings['rag.parentMaxTokens']))) };
+  if (requestedMaxTokens !== null || strategyProfile !== null) {
+    if (requestedMaxTokens !== null) Object.assign(temporarySettings, { 'rag.chunkMaxTokens': String(requestedMaxTokens),
+      'rag.parentMaxTokens': String(Math.max(requestedMaxTokens, Number(originalSettings['rag.parentMaxTokens']))) });
+    if (strategyProfile !== null) {
+      for (const key of ['adaptiveChunkingEnabled','adaptiveRetrievalEnabled','evidenceSelectionEnabled']) {
+        assert(originalSettings[`rag.${key}`] !== undefined, '先在运行配置中登记新策略开关');
+        temporarySettings[`rag.${key}`] = String(strategyProfile === 'adaptive');
+      }
+    }
     sql(`UPDATE sys_config s SET value=v.value,updated_at=now() FROM jsonb_each_text(${quote(JSON.stringify(temporarySettings))}::jsonb) v WHERE s.config_key=v.key AND s.is_sensitive=false;`);
     metadata.temporarySettings = temporarySettings;
   }
   const input = documents.map(doc => ({ id: doc.id, title: Array.from(doc.title).slice(0, 255).join(''), content: doc.content,
     short_url: `rb-${name}-${doc.id}` }));
-  const rows = sql(`WITH inserted AS (
+  metadata.indexBefore = target.dedicated ? documentSnapshot() : [];
+  const author = target.dedicated ? "(SELECT id FROM app_user WHERE username='rag-benchmark-source' AND is_active=false AND is_admin=false)"
+    : '(SELECT author_id FROM moment WHERE id=9)';
+  sql(`
     INSERT INTO moment(title,summary,content,content_hash,author_id,toc,short_url,is_published,is_original,ext_info,content_updated_at)
-    SELECT d.title,'',d.content,md5(d.content),(SELECT author_id FROM moment WHERE id=9),'[]'::jsonb,d.short_url,true,false,
+    SELECT d.title,'',d.content,md5(d.content),${author},'[]'::jsonb,d.short_url,true,false,
       jsonb_build_object('contentKind','note','ragBenchmark',${quote(name)},'corpusDocumentId',d.id),now()
     FROM jsonb_to_recordset(${quote(JSON.stringify(input))}::jsonb) AS d(id text,title text,content text,short_url text)
     ON CONFLICT(short_url) DO UPDATE SET is_published=true
-      WHERE moment.ext_info->>'ragBenchmark'=${quote(name)} AND moment.content=EXCLUDED.content
-    RETURNING id,ext_info->>'corpusDocumentId' AS document_id
-  ) SELECT jsonb_agg(inserted) FROM inserted;`);
+      WHERE moment.ext_info->>'ragBenchmark'=${quote(name)} AND moment.content=EXCLUDED.content AND moment.is_published=false;`);
+  const rows = sql(`SELECT COALESCE(jsonb_agg(jsonb_build_object('id',m.id,'document_id',d.id)),'[]'::jsonb)
+    FROM moment m JOIN jsonb_to_recordset(${quote(JSON.stringify(input))}::jsonb) AS d(id text,title text,content text,short_url text)
+      ON m.short_url=d.short_url AND m.content=d.content AND m.title=d.title
+    WHERE m.ext_info->>'ragBenchmark'=${quote(name)} AND m.ext_info->>'corpusDocumentId'=d.id AND m.is_published=true AND m.deleted_at IS NULL;`);
   imported = rows.map(row => ({ ...documents.find(doc => doc.id === row.document_id), momentId: row.id }));
   assert.equal(imported.length, documents.length, '全部冻结语料写入，不能漏掉困难文档');
   await save(join(runDir, 'source-map.json'), imported.map(({ content, ...document }) => document));
@@ -134,6 +153,11 @@ try {
     if (Date.now() >= deadline) throw new Error('project_indexing_timeout');
     await sleep(5000);
   }
+  metadata.reusedReadyDocuments = documentSnapshot().filter(doc => metadata.indexBefore.some(before =>
+    before.id === doc.id && before.status === 'ready' && before.hash_current && before.active_profile === doc.active_profile &&
+    before.attempts === doc.attempts && before.chunks === doc.chunks && before.indexed_at === doc.indexed_at &&
+    before.latest_chunk_id === doc.latest_chunk_id)).length;
+  if (target.dedicated) console.log(`${name} 复用索引 ${metadata.reusedReadyDocuments}/${documents.length} 篇`);
   let previousAsk = 0;
   for (const [index, sample] of samples.entries()) {
     await sleep(Math.max(0, 11000 - (Date.now() - previousAsk)));
@@ -144,21 +168,23 @@ try {
       reference: sample.reference, sessionId, externalFailure: null, projectFailure: null, stageMetrics: {} };
     const start = performance.now();
     try {
-      const response = await fetch('http://127.0.0.1:8080/api/v2/public/ask', { method: 'POST',
+      const response = await fetch(target.endpoint, { method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-RAG-Evaluation': '1' },
         body: JSON.stringify({ question, contentKind: 'note', sessionId }), signal: AbortSignal.timeout(125000) });
       if (!response.ok) throw new Error(`transport_http_${response.status}`);
       const payload = await response.json();
       if (payload.code !== 0) { result.projectFailure = `project_response_${payload.code}`; }
       result.answer = payload.data;
-      const capturePath = join(root, 'server/Temp/rag-evaluation', `${sessionId}.json`);
-      const capture = JSON.parse(await readFile(capturePath, 'utf8'));
+      const capture = JSON.parse(target.dedicated
+        ? dockerOutput(['exec', target.serverContainer, 'cat', `/evaluation/${sessionId}.json`])
+        : await readFile(join(root, 'server/Temp/rag-evaluation', `${sessionId}.json`), 'utf8'));
       result.capture = capture;
       for (const [stage, value] of Object.entries(capture.stages)) {
         const ranking = unitIds(value.lists[0] ?? []);
         result.stageMetrics[stage] = Object.fromEntries([1, 3, 6, 10, 20].map(k => [k, rankMetrics(ranking, sample.goldIds, k)]));
         result[`${stage}UnitIds`] = ranking;
       }
+      result.finalContextRecall = rankMetrics(result.contextUnitIds ?? [], sample.goldIds, Number.MAX_SAFE_INTEGER).recall;
       if (result.answer.status === 'temporarily_unavailable') {
         const reason = capture.run.Reason ?? capture.run.reason;
         if (['embedding_unavailable','rerank_unavailable','generation_unavailable'].includes(reason)) result.externalFailure = reason;
@@ -166,6 +192,7 @@ try {
       }
     } catch (error) {
       if (String(error.message).includes('transport_') || error.name === 'TimeoutError' || error.message === 'fetch failed') result.externalFailure = 'transport_or_environment';
+      else if (['ENOENT','RAG_TEST_DOCKER_FAILED'].includes(error.code) || error instanceof SyntaxError) result.externalFailure = 'evaluation_execution_failed';
       else result.projectFailure = error.message;
     }
     result.durationMs = performance.now() - start;
@@ -187,6 +214,22 @@ try {
   const durations = results.map(item => item.durationMs).sort((a,b) => a-b);
   summary.p50Ms = durations[Math.ceil(durations.length * .5)-1];
   summary.p95Ms = durations[Math.ceil(durations.length * .95)-1];
+  const mean = values => values.length ? values.reduce((a,b) => a+b,0)/values.length : null;
+  const percentile = (values, fraction) => values.length ? [...values].sort((a,b) => a-b)[Math.ceil(values.length*fraction)-1] : null;
+  summary.finalContextRecall = mean(core.map(item => item.finalContextRecall ?? 0));
+  summary.policy = {
+    averageVectorTopK: mean(core.map(item => item.answer?.trace?.retrievalPolicy?.vectorTopK).filter(Number.isFinite)),
+    averageKeywordTopK: mean(core.map(item => item.answer?.trace?.retrievalPolicy?.keywordTopK).filter(Number.isFinite)),
+    averageRerankTopK: mean(core.map(item => item.answer?.trace?.retrievalPolicy?.rerankTopK).filter(Number.isFinite)),
+    averageFinalK: mean(core.map(item => item.answer?.trace?.evidenceCount ?? 0)),
+    p95FinalK: percentile(core.map(item => item.answer?.trace?.evidenceCount ?? 0), .95),
+    averageContextTokens: mean(core.map(item => item.answer?.trace?.contextTokens ?? 0)),
+  };
+  summary.coreLatency = { p50Ms: percentile(core.map(item => item.durationMs), .5), p95Ms: percentile(core.map(item => item.durationMs), .95),
+    averageUnderstandingMs: mean(core.map(item => item.answer?.trace?.understandingMs).filter(Number.isFinite)),
+    averageEmbeddingMs: mean(core.map(item => item.capture?.run?.EmbeddingMs).filter(Number.isFinite)),
+    averageRerankMs: mean(core.map(item => item.capture?.run?.RerankMs).filter(Number.isFinite)),
+    averageGenerationMs: mean(core.map(item => item.capture?.run?.GenerationMs).filter(Number.isFinite)) };
   summary.answerStatus = results.reduce((sum,item) => { const key=item.answer?.status ?? 'failed'; sum[key]=(sum[key]??0)+1; return sum; }, {});
   summary.metricQualification = summary.externalFailures / samples.length > .1 ? '受外部因素影响，仅供参考'
     : selectedIds ? 'Directed failures only; excluded from public benchmark aggregates' : 'Frozen subset baseline';
@@ -201,10 +244,10 @@ try {
   console.log(`${name} 阻塞 ${error.message}`);
   process.exitCode = 1;
 } finally {
-  if (imported.length) {
+  if (imported.length && !target.dedicated) {
     sql(`UPDATE moment SET is_published=false WHERE ext_info->>'ragBenchmark'=${quote(name)} AND short_url LIKE ${quote(`rb-${name}-%`)};`);
   }
-  if (Object.keys(temporarySettings).length) {
+  if (Object.keys(temporarySettings).length && !target.dedicated) {
     const restore = Object.fromEntries(Object.keys(temporarySettings).map(key => [key, originalSettings[key]]));
     sql(`UPDATE sys_config s SET value=v.value,updated_at=now() FROM jsonb_each_text(${quote(JSON.stringify(restore))}::jsonb) v WHERE s.config_key=v.key AND s.is_sensitive=false;`);
     const restorationDeadline = Date.now() + 600000;
@@ -218,8 +261,9 @@ try {
     }
     metadata.configurationRestored = true;
   }
+  metadata.configurationRetained = target.dedicated;
   metadata.finishedAt = new Date().toISOString();
-  metadata.restoration = { corpusWithdrawn: imported.length > 0,
+  metadata.restoration = { corpusWithdrawn: imported.length > 0 && !target.dedicated, corpusRetained: target.dedicated,
     sourceSnapshot: sql(`SELECT COALESCE(jsonb_agg(jsonb_build_object('id',id,'hash',content_hash,'published',is_published) ORDER BY id),'[]'::jsonb) FROM moment WHERE ext_info->>'ragBenchmark' IS NULL;`) };
   if (metadata.sourceSnapshot) assert.deepEqual(metadata.restoration.sourceSnapshot, metadata.sourceSnapshot, '现有内容与发布状态保持不变');
   await save(join(runDir, 'metadata.json'), metadata);

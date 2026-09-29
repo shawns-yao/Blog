@@ -13,12 +13,19 @@ name = sys.argv[1]
 if name not in {'open-rag-bench', 'beir-scifact'}:
     raise ValueError('Unknown frozen dataset')
 dataset = root / 'Temp' / 'rag-benchmarks' / name
-run = dataset / 'directed-runs' / (dataset / 'latest-directed-run.txt').read_text().strip()
+public = '--public' in sys.argv[2:]
+selected_run = next((argument.split('=', 1)[1] for argument in sys.argv[2:] if argument.startswith('--run-id=')), None)
+run_id = selected_run or (dataset / ('latest-run.txt' if public else 'latest-directed-run.txt')).read_text().strip()
+if not run_id or Path(run_id).name != run_id or run_id in {'.', '..'}:
+    raise ValueError('Invalid evaluation run ID')
+run = dataset / ('runs' if public else 'directed-runs') / run_id
+metadata = json.loads((run / 'metadata.json').read_text(encoding='utf-8'))
+database_container = metadata.get('environment', {}).get('databaseContainer', 'shawn-blog-postgres')
 documents = {item['id']: item for item in json.loads((dataset / 'processed' / 'documents.json').read_text(encoding='utf-8'))}
 
 
 def observe(query):
-    result = subprocess.run(['docker', 'exec', '-i', 'shawn-blog-postgres', 'sh', '-lc',
+    result = subprocess.run(['docker', 'exec', '-i', database_container, 'sh', '-lc',
                              'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -X -v ON_ERROR_STOP=1 -A -t -q'],
                             input=query, encoding='utf-8', capture_output=True, timeout=45, check=True)
     return json.loads(result.stdout)
@@ -35,7 +42,7 @@ if '--wait' in sys.argv[2:]:
 
 query = f"""SELECT COALESCE(json_agg(x),'[]'::json) FROM (
     SELECT m.ext_info->>'corpusDocumentId' AS document_id,c.id,c.kind,c.start_at,c.end_at,
-      c.content,c.context_header,cardinality(c.embedding) AS dimensions
+      c.content,c.context_header,cardinality(c.embedding) AS dimensions,s.index_duration_ms
     FROM rag_chunk c JOIN moment m ON m.id=c.moment_id JOIN rag_index_state s ON s.moment_id=m.id
     WHERE m.ext_info->>'ragBenchmark'='{name}' AND m.is_published=true AND m.deleted_at IS NULL
       AND s.status='ready' AND s.active_profile=s.desired_profile AND s.active_hash=s.source_hash
@@ -44,7 +51,6 @@ query = f"""SELECT COALESCE(json_agg(x),'[]'::json) FROM (
 ) x;"""
 rows = observe(query)
 encoder = tiktoken.get_encoding('cl100k_base')
-metadata = json.loads((run / 'metadata.json').read_text(encoding='utf-8'))
 maximum = int(metadata.get('temporarySettings', {}).get('rag.chunkMaxTokens', metadata['originalSettings']['rag.chunkMaxTokens']))
 by_document = {}
 for row in rows:
@@ -71,6 +77,7 @@ for document_id, document in documents.items():
             atomic.append({'kind': row['kind'], 'start': start, 'end': end, 'tokens': tokens})
     reports.append({'documentId': document_id, 'sourceSha256': hashlib.sha256(content.encode()).hexdigest(),
                     'chunks': len(token_counts), 'invalidPositions': invalid, 'overLimit': oversized,
+                    'indexDurationMs': next((row['index_duration_ms'] for row in by_document.get(document_id, [])), None),
                     'missingNonWhitespace': sum(not c.isspace() and coverage[i] == 0 for i, c in enumerate(content)),
                     'repeatedNonWhitespace': sum(not c.isspace() and coverage[i] > 1 for i, c in enumerate(content)),
                     'maximumTokens': max(token_counts, default=0), 'largeAtomicChunks': atomic})
@@ -81,6 +88,8 @@ report = {'testKind': '定向测试', 'entrypoint': 'Real project source queue a
           'overLimit': sum(item['overLimit'] for item in reports),
           'missingNonWhitespace': sum(item['missingNonWhitespace'] for item in reports),
           'repeatedNonWhitespace': sum(item['repeatedNonWhitespace'] for item in reports), 'documents': reports}
+durations = [item['indexDurationMs'] for item in reports if item['indexDurationMs'] is not None]
+report['averageDocumentIndexMs'] = sum(durations) / len(durations) if durations else None
 (run / 'index-integrity.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
 print(json.dumps({key: value for key, value in report.items() if key != 'documents'}, ensure_ascii=False), flush=True)
 if len(by_document) != len(documents) or report['invalidPositions'] or report['overLimit'] or report['missingNonWhitespace']:
