@@ -8,6 +8,10 @@ export interface RagTuning {
   chunkMaxTokens: number
   chunkOverlapTokens: number
   parentMaxTokens: number
+  adaptiveChunkingEnabled: boolean
+  adaptiveRetrievalEnabled: boolean
+  evidenceSelectionEnabled: boolean
+  evidenceDiversityWeight: number
   contextMaxTokens: number
   historyMaxTokens: number
   multiQueryEnabled: boolean
@@ -101,6 +105,9 @@ export interface RagChunk {
   kind: string
   start: number
   end: number
+  chunkPolicy?: string
+  targetTokens?: number
+  overlapTokens?: number
 }
 
 export interface RagPage<T> {

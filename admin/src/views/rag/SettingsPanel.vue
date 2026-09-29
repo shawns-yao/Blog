@@ -82,6 +82,7 @@ const groups: { title: string; fields: Field[] }[] = [
     fields: [
       { key: 'dynamicTopKMin', label: '动态 TopK 下限', min: 1, max: 20 },
       { key: 'dynamicTopKMax', label: '动态 TopK 上限', min: 1, max: 20 },
+      { key: 'evidenceDiversityWeight', label: '证据多样性权重', min: 0, max: 1, step: 0.05 },
     ],
   },
   {
@@ -211,6 +212,26 @@ function reset() {
           {{ settings.tokenEncoding }}。保留段落与结构边界；修改分块参数或索引版本会重建子块索引。
         </p>
         <div
+          v-if="group.title === '分块'"
+          class="mb-4 flex items-center gap-3"
+        >
+          <span>按文档结构调整分块</span>
+          <NSwitch
+            v-model:value="form.adaptiveChunkingEnabled"
+            aria-label="按文档结构调整分块"
+          />
+        </div>
+        <div
+          v-if="group.title === '召回与融合'"
+          class="mb-4 flex items-center gap-3"
+        >
+          <span>按问题调整召回与重排</span>
+          <NSwitch
+            v-model:value="form.adaptiveRetrievalEnabled"
+            aria-label="按问题调整召回与重排"
+          />
+        </div>
+        <div
           v-if="group.title === '证据数量'"
           class="mb-4 flex items-center gap-3"
         >
@@ -218,6 +239,16 @@ function reset() {
           <NSwitch
             v-model:value="form.dynamicTopKEnabled"
             aria-label="启用动态 TopK"
+          />
+        </div>
+        <div
+          v-if="group.title === '证据数量'"
+          class="mb-4 flex items-center gap-3"
+        >
+          <span>按覆盖与重复信息选择证据</span>
+          <NSwitch
+            v-model:value="form.evidenceSelectionEnabled"
+            aria-label="按覆盖与重复信息选择证据"
           />
         </div>
         <p
@@ -231,7 +262,8 @@ function reset() {
           v-if="group.title === '召回与融合'"
           class="mb-4 text-sm opacity-60"
         >
-          原问题与子查询分别召回，经 RRF 融合和重排序后，去重、扩展上下文并按预算选取证据。
+          启用策略后，召回与融合参数作为上限；实际数量按问题调整。原问题与子查询分别召回，再经 RRF
+          和重排序选择证据。
         </p>
         <div
           v-if="group.title === '问题理解与上下文'"
@@ -279,7 +311,8 @@ function reset() {
               class="w-full"
               :disabled="
                 (group.title === '重排序' && !form.rerankEnabled) ||
-                (group.title === '证据数量' && !form.dynamicTopKEnabled)
+                (field.key.startsWith('dynamicTopK') && !form.dynamicTopKEnabled) ||
+                (field.key === 'evidenceDiversityWeight' && !form.evidenceSelectionEnabled)
               "
               @update:value="(value) => setNumber(field.key, value)"
             />
