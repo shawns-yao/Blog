@@ -101,7 +101,7 @@ async def main():
                 answer = sample.get('answer') or {}
                 response = answer.get('answer') or ''
                 contexts = [f"{item['title']}\n{item['section']}\n{item['content']}"
-                            for item in sample.get('capture', {}).get('contexts', [])]
+                            for item in (sample.get('capture', {}).get('contexts') or [])]
                 tasks = {}
                 if answer.get('status') == 'answered' and response:
                     if contexts:
