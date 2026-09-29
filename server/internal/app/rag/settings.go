@@ -30,8 +30,6 @@ type settings struct {
 	embedder      *infraai.Embedder
 	reranker      *infraai.Reranker
 	tuning        domain.Tuning
-	chunkSize     int
-	overlap       int
 	minSimilarity float64
 }
 
@@ -121,14 +119,15 @@ func (s *Service) loadTuning(ctx context.Context) (settings, error) {
 		return result, err
 	}
 	result = settings{
-		tuning: tuning, chatPriority: priority, chunkSize: tuning.ChunkSize, overlap: tuning.ChunkOverlap, minSimilarity: tuning.MinSimilarity,
+		tuning: tuning, chatPriority: priority, minSimilarity: tuning.MinSimilarity,
 	}
 	// Credentials are intentionally absent from fingerprints and public responses.
 	result.profile = fingerprint(struct {
-		Version, Chunker, Model, URL string
-		Size, Overlap, Dimensions    int
-	}{tuning.IndexVersion, infrarag.ChunkerVersion, s.providers.EmbeddingModel,
-		s.providers.EmbeddingBaseURL, tuning.ChunkSize, tuning.ChunkOverlap, s.providers.EmbeddingDimensions})
+		Version, Chunker, Encoding, Model, URL                string
+		Target, Minimum, Maximum, Overlap, Parent, Dimensions int
+	}{tuning.IndexVersion, infrarag.ChunkerVersion, infrarag.TokenEncoding, s.providers.EmbeddingModel,
+		s.providers.EmbeddingBaseURL, tuning.ChunkTargetTokens, tuning.ChunkMinTokens, tuning.ChunkMaxTokens,
+		tuning.ChunkOverlapTokens, tuning.ParentMaxTokens, s.providers.EmbeddingDimensions})
 	return result, nil
 }
 

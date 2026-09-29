@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"time"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/rag"
@@ -52,13 +51,13 @@ func (s *Service) indexNext(ctx context.Context, settings settings) {
 		return
 	}
 	started := time.Now()
-	chunks := infrarag.SplitMarkdown(source.Title, source.Content, settings.chunkSize, settings.overlap)
+	chunks := infrarag.SplitMarkdownWithTuning(source.Title, source.Content, settings.tuning)
 	reason := ""
 	if len(chunks) == 0 {
 		reason = "empty_content"
 	}
 	for _, chunk := range chunks {
-		if utf8.RuneCountInString(chunk.Content) > settings.chunkSize*2 {
+		if chunk.Tokens > settings.tuning.ChunkMaxTokens {
 			reason = "oversized_atomic_block"
 			break
 		}

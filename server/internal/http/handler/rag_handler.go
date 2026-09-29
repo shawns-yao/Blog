@@ -50,7 +50,7 @@ func (h *RAGHandler) Ask(c *fiber.Ctx) error {
 	} else {
 		request.SessionID = id.String()
 	}
-	ctx, cancel := context.WithTimeout(c.UserContext(), 90*time.Second)
+	ctx, cancel := context.WithTimeout(c.UserContext(), 120*time.Second)
 	defer cancel()
 	return response.Success(c, h.service.Ask(ctx, request.Question, request.ContentKind, request.SessionID, request.History))
 }
@@ -74,16 +74,18 @@ func (h *RAGHandler) Reindex(c *fiber.Ctx) error {
 
 func (h *RAGHandler) Preview(c *fiber.Ctx) error {
 	var request struct {
-		Title        string `json:"title"`
-		Markdown     string `json:"markdown"`
-		ChunkSize    *int   `json:"chunkSize,omitempty"`
-		ChunkOverlap *int   `json:"chunkOverlap,omitempty"`
+		Title              string `json:"title"`
+		Markdown           string `json:"markdown"`
+		ChunkTargetTokens  *int   `json:"chunkTargetTokens,omitempty"`
+		ChunkOverlapTokens *int   `json:"chunkOverlapTokens,omitempty"`
 	}
-	if c.BodyParser(&request) != nil || strings.TrimSpace(request.Markdown) == "" ||
+	decoder := json.NewDecoder(bytes.NewReader(c.Body()))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&request) != nil || decoder.Decode(new(any)) != io.EOF || strings.TrimSpace(request.Markdown) == "" ||
 		utf8.RuneCountInString(request.Markdown) > 100000 || utf8.RuneCountInString(request.Title) > 255 {
 		return response.NewBizErrorWithMsg(response.ParamsError, "请提供标题与 1–100000 个字符的 Markdown。")
 	}
-	chunks, err := h.service.Preview(c.UserContext(), request.Title, request.Markdown, request.ChunkSize, request.ChunkOverlap)
+	chunks, err := h.service.Preview(c.UserContext(), request.Title, request.Markdown, request.ChunkTargetTokens, request.ChunkOverlapTokens)
 	if err != nil {
 		return response.NewBizErrorWithMsg(response.ParamsError, "分块配置不可用，请检查站内问答设置。")
 	}

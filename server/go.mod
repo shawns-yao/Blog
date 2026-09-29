@@ -20,6 +20,7 @@ require (
 	github.com/oschwald/geoip2-golang/v2 v2.2.0
 	github.com/redis/go-redis/v9 v9.21.0
 	github.com/rwcarlsen/goexif v0.0.0-20190401172101-9e8deecbddbd
+	github.com/tiktoken-go/tokenizer v0.7.0
 	github.com/ua-parser/uap-go v0.0.0-20260529044130-17c35e68e58c
 	golang.org/x/crypto v0.54.0
 	golang.org/x/oauth2 v0.36.0
@@ -43,6 +44,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.33.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.38.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.45.4 // indirect
+	github.com/dlclark/regexp2 v1.11.5 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

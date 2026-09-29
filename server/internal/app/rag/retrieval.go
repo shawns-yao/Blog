@@ -39,20 +39,28 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	embedCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	started := time.Now()
-	vectors, embedErr := settings.embedder.BatchEmbed(embedCtx, []string{plan.Query})
+	queries := plan.Queries
+	if len(queries) == 0 {
+		queries = []string{plan.Query}
+	}
+	vectors, embedErr := settings.embedder.BatchEmbed(embedCtx, queries)
 	run.EmbeddingMs = elapsedMs(started)
 	cancel()
-	queryVector := []float64{}
 	if embedErr == nil {
-		if len(vectors) != 1 || stats.EmbeddingDimension != len(vectors[0]) {
+		if len(vectors) != len(queries) {
 			return nil, false, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
 		}
-		queryVector = vectors[0]
+		for _, vector := range vectors {
+			if stats.EmbeddingDimension != len(vector) {
+				return nil, false, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
+			}
+		}
 	} else {
 		trace.EmbeddingDegraded = true
+		vectors = nil
 	}
 	started = time.Now()
-	vector, keyword, err := s.repo.Retrieve(ctx, settings.profile, plan.Query, contentKind, queryVector, settings.tuning)
+	vector, keyword, err := s.repo.Retrieve(ctx, settings.profile, queries, contentKind, vectors, settings.tuning)
 	elapsed := time.Since(started).Milliseconds()
 	if run.RetrievalMs != nil {
 		elapsed += *run.RetrievalMs
@@ -61,15 +69,20 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	if err != nil {
 		return nil, false, &queryFailure{"retrieval_unavailable", "检索服务暂时不可用，请稍后重试。"}
 	}
-	trace.VectorCandidates, trace.KeywordCandidates = len(vector), len(keyword)
-	if embedErr != nil && len(keyword) == 0 {
+	for _, list := range vector {
+		trace.VectorCandidates += len(list)
+	}
+	for _, list := range keyword {
+		trace.KeywordCandidates += len(list)
+	}
+	if embedErr != nil && trace.KeywordCandidates == 0 {
 		return nil, false, &queryFailure{"embedding_unavailable", "嵌入服务暂时不可用，请稍后重试。"}
 	}
 	tuning := settings.tuning
 	if embedErr != nil {
 		tuning.RRFVectorWeight, tuning.RRFKeywordWeight = 0, 1
 	}
-	candidates := infrarag.Fuse(vector, keyword, tuning)
+	candidates := infrarag.FuseMany(vector, keyword, tuning)
 	trace.FusedCandidates = len(candidates)
 	if len(candidates) > 0 {
 		valid, err := s.repo.Validate(ctx, settings.profile, candidates)
@@ -93,7 +106,11 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 		}
 	}
 	trace.RerankedCandidates = len(candidates)
-	evidence := infrarag.SelectEvidence(candidates, tuning.TopK)
+	evidence, contextErr := s.buildContext(ctx, settings, plan, candidates)
+	if contextErr != nil {
+		return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
+	}
+	trace.ContextTokens = evidenceTokens(evidence)
 	trace.EvidenceCount = len(evidence)
 	if len(evidence) > 0 {
 		valid, err := s.repo.Validate(ctx, settings.profile, evidence)

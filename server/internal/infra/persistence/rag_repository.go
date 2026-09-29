@@ -3,11 +3,10 @@ package persistence
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"time"
-	"unicode"
 
 	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/rag"
+	infrarag "github.com/shawns-yao/shawn-blog/server/internal/infra/rag"
 	"gorm.io/gorm"
 )
 
@@ -152,60 +151,69 @@ AS embedding_dimension FROM base`, profile, profile).Scan(&stats).Error
 	return stats, err
 }
 
-func (r *RAGRepository) Retrieve(ctx context.Context, profile, question, contentKind string, vector []float64, tuning domain.Tuning) ([]domain.Evidence, []domain.Evidence, error) {
-	queryVector, err := json.Marshal(vector)
+func (r *RAGRepository) Retrieve(ctx context.Context, profile string, questions []string, contentKind string, vectors [][]float64, tuning domain.Tuning) ([][]domain.Evidence, [][]domain.Evidence, error) {
+	// Two bulk queries irrespective of candidate/document count or query count.
+	// This exact corpus scan matches the existing exact vector search deployment.
+	var corpus []domain.Evidence
+	err := r.db.WithContext(ctx).Raw(`SELECT c.id, c.moment_id, m.title, m.short_url, c.content,
+c.context_header, c.kind, m.ext_info->>'contentKind' AS content_kind, c.start_at AS start,
+c.end_at AS "end", c.source_hash, c.profile AS index_version, m.created_at, m.updated_at
+FROM rag_chunk c `+ragLiveIndex+` AND (? = '' OR m.ext_info->>'contentKind' = ?) ORDER BY c.id`,
+		profile, contentKind, contentKind).Scan(&corpus).Error
 	if err != nil {
 		return nil, nil, err
 	}
-	terms, err := json.Marshal(lexicalTerms(question))
+	keyword := infrarag.BM25(corpus, questions, tuning)
+	vectorResults := make([][]domain.Evidence, len(questions))
+	if len(vectors) == 0 {
+		return vectorResults, keyword, nil
+	}
+	queryVectors, err := json.Marshal(vectors)
 	if err != nil {
 		return nil, nil, err
 	}
 	type row struct {
 		domain.Evidence
-		Channel string
+		QueryIndex int
 	}
 	var rows []row
 	err = r.db.WithContext(ctx).Raw(`WITH q AS (
-    SELECT ARRAY(SELECT value::double precision FROM jsonb_array_elements_text(?::jsonb)) AS embedding,
-        ?::jsonb AS terms
+    SELECT (ordinality-1)::int AS query_index,
+        ARRAY(SELECT v::double precision FROM jsonb_array_elements_text(value) AS a(v)) AS embedding
+    FROM jsonb_array_elements(?::jsonb) WITH ORDINALITY
 ), base AS MATERIALIZED (
-    SELECT c.id, c.moment_id, m.title, m.short_url, c.content, c.context_header, c.kind,
-        m.ext_info->>'contentKind' AS content_kind, c.start_at AS start, c.end_at AS "end",
-        c.source_hash, c.profile AS index_version, m.created_at, m.updated_at, c.embedding
-    FROM rag_chunk c `+ragLiveIndex+` AND (? = '' OR m.ext_info->>'contentKind' = ?)
-), vector_scores AS (
-    SELECT b.*, (SELECT sum(v.a * v.b) FROM unnest(b.embedding, q.embedding) AS v(a, b)) AS score
-    FROM base b, q WHERE cardinality(b.embedding) = cardinality(q.embedding)
-), vector_hits AS (
-    SELECT *, 'vector'::text AS channel FROM vector_scores WHERE score >= ?
-    ORDER BY score DESC, id LIMIT ?
-), keyword_scores AS (
-    SELECT b.*, (SELECT sum(CASE WHEN position(term IN lower(b.title || ' ' || b.context_header)) > 0
-        THEN 3.0 ELSE 1.0 END)
-        FROM jsonb_array_elements_text(q.terms) AS t(term)
-        WHERE position(term IN lower(b.title || ' ' || b.context_header || ' ' || b.content)) > 0) AS score
-    FROM base b, q
-), keyword_hits AS (
-    SELECT *, 'keyword'::text AS channel FROM keyword_scores WHERE score > 0
-    ORDER BY score DESC, id LIMIT ?
+    SELECT c.* FROM rag_chunk c `+ragLiveIndex+` AND (? = '' OR m.ext_info->>'contentKind' = ?)
+), hits AS (
+    SELECT q.query_index, hit.id, hit.score FROM q CROSS JOIN LATERAL (
+        SELECT b.id, (SELECT sum(v.a*v.b) FROM unnest(b.embedding, q.embedding) AS v(a,b)) AS score
+        FROM base b WHERE cardinality(b.embedding) = cardinality(q.embedding)
+        ORDER BY score DESC, b.id LIMIT ?
+    ) hit WHERE hit.score >= ?
 )
-SELECT id, moment_id, title, short_url, content, context_header, kind, content_kind,
-start, "end", source_hash, index_version, created_at, updated_at, score, channel FROM vector_hits
-UNION ALL
-SELECT id, moment_id, title, short_url, content, context_header, kind, content_kind,
-start, "end", source_hash, index_version, created_at, updated_at, score, channel FROM keyword_hits
-ORDER BY channel, score DESC, id`,
-		string(queryVector), string(terms), profile, contentKind, contentKind, tuning.MinSimilarity, tuning.VectorTopK, tuning.KeywordTopK).Scan(&rows).Error
-	vectorResults, keywordResults := make([]domain.Evidence, 0), make([]domain.Evidence, 0)
+SELECT c.id, c.moment_id, m.title, m.short_url, c.content, c.context_header, c.kind,
+m.ext_info->>'contentKind' AS content_kind, c.start_at AS start, c.end_at AS "end",
+c.source_hash, c.profile AS index_version, m.created_at, m.updated_at, h.score, h.query_index
+FROM hits h JOIN rag_chunk c ON c.id = h.id JOIN moment m ON m.id = c.moment_id
+ORDER BY h.query_index, h.score DESC, c.id`,
+		string(queryVectors), profile, contentKind, contentKind, tuning.VectorTopK, tuning.MinSimilarity).Scan(&rows).Error
 	for _, row := range rows {
-		if row.Channel == "vector" {
-			vectorResults = append(vectorResults, row.Evidence)
-		} else {
-			keywordResults = append(keywordResults, row.Evidence)
+		if row.QueryIndex >= 0 && row.QueryIndex < len(vectorResults) {
+			vectorResults[row.QueryIndex] = append(vectorResults[row.QueryIndex], row.Evidence)
 		}
 	}
-	return vectorResults, keywordResults, err
+	return vectorResults, keyword, err
+}
+
+func (r *RAGRepository) ContextSources(ctx context.Context, profile string, momentIDs []int64) ([]domain.Source, error) {
+	if len(momentIDs) == 0 {
+		return nil, nil
+	}
+	var sources []domain.Source
+	err := r.db.WithContext(ctx).Raw(`SELECT m.id AS moment_id, m.title, m.content, `+ragCurrentHash+` AS source_hash
+FROM moment m JOIN rag_index_state s ON s.moment_id = m.id
+WHERE m.id IN ? AND `+ragEligible+` AND s.active_profile = ? AND s.active_hash = `+ragCurrentHash,
+		momentIDs, profile).Scan(&sources).Error
+	return sources, err
 }
 
 // Deduplicate documents before limiting so a long article cannot consume all
@@ -251,38 +259,4 @@ AND EXISTS (SELECT 1 FROM jsonb_to_recordset(?::jsonb) AS ref(id BIGINT, hash TE
     WHERE ref.id = c.id AND ref.hash = c.source_hash
     AND ref."createdAt" = m.created_at AND ref."updatedAt" = m.updated_at)`, profile, string(payload)).Scan(&result).Error
 	return result.Count == int64(len(evidence)), err
-}
-
-// Keep exact names and code terms; Chinese bigrams provide a substring channel
-// without introducing a segmentation dependency. RRF combines only rank order.
-func lexicalTerms(question string) []string {
-	terms := make([]string, 0)
-	seen := make(map[string]bool)
-	add := func(term string) {
-		if term != "" && !seen[term] && len(terms) < 48 {
-			seen[term] = true
-			terms = append(terms, term)
-		}
-	}
-	var word []rune
-	flush := func() { add(string(word)); word = nil }
-	var previous rune
-	for _, ch := range strings.ToLower(question) {
-		if unicode.Is(unicode.Han, ch) {
-			flush()
-			if previous != 0 {
-				add(string([]rune{previous, ch}))
-			}
-			previous = ch
-		} else {
-			previous = 0
-			if unicode.IsLetter(ch) || unicode.IsDigit(ch) || ch == '_' || ch == '#' || ch == '+' {
-				word = append(word, ch)
-			} else {
-				flush()
-			}
-		}
-	}
-	flush()
-	return terms
 }

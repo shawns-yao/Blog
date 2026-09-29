@@ -3,6 +3,15 @@ package rag
 import "time"
 
 type Chunk struct {
+	ChunkID       string    `json:"chunkId"`
+	DocumentID    int64     `json:"documentId"`
+	HeadingPath   []string  `json:"headingPath"`
+	ParentID      string    `json:"parentId"`
+	ParentStart   int       `json:"parentStart"`
+	ParentEnd     int       `json:"parentEnd"`
+	PreviousID    string    `json:"previousId,omitempty"`
+	NextID        string    `json:"nextId,omitempty"`
+	Tokens        int       `json:"tokens"`
 	Seq           int       `json:"seq"`
 	Content       string    `json:"content"`
 	ContextHeader string    `json:"contextHeader"`
@@ -40,6 +49,8 @@ type Evidence struct {
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
 	Score         float64   `json:"-"`
+	Tokens        int       `json:"tokens,omitempty"`
+	Expanded      bool      `json:"expanded,omitempty"`
 }
 
 type Citation struct {
@@ -68,6 +79,16 @@ const (
 
 // QueryTrace explains this request only; it is not stored as conversation history.
 type QueryTrace struct {
+	OriginalQuery         string           `json:"originalQuery"`
+	Strategy              string           `json:"strategy,omitempty"`
+	Queries               []string         `json:"queries,omitempty"`
+	NeedRewrite           bool             `json:"needRewrite"`
+	NeedHistory           bool             `json:"needHistory"`
+	NeedMultiQuery        bool             `json:"needMultiQuery"`
+	RewriteDegraded       bool             `json:"rewriteDegraded"`
+	ContextTokens         int              `json:"contextTokens"`
+	HistoryTokens         int              `json:"historyTokens"`
+	TokenEncoding         string           `json:"tokenEncoding"`
 	UnderstandingProvider string           `json:"understandingProvider,omitempty"`
 	AnswerProvider        string           `json:"answerProvider,omitempty"`
 	AnswerAttempts        []string         `json:"answerAttempts,omitempty"`

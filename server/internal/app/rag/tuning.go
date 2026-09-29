@@ -12,23 +12,38 @@ import (
 	appsysconfig "github.com/shawns-yao/shawn-blog/server/internal/app/sysconfig"
 	domainconfig "github.com/shawns-yao/shawn-blog/server/internal/domain/config"
 	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/rag"
+	infrarag "github.com/shawns-yao/shawn-blog/server/internal/infra/rag"
 )
 
 var tuningKeys = []string{
 	"rag.chunkSize", "rag.chunkOverlap", "rag.indexVersion", "rag.minSimilarity",
 	"rag.vectorTopK", "rag.keywordTopK", "rag.topK", "rag.rrfK", "rag.rrfVectorWeight", "rag.rrfKeywordWeight",
 	"rag.rerankEnabled", "rag.rerankCandidateTopK", "rag.rerankThreshold", "rag.rerankFallback",
+	"rag.chunkTargetTokens", "rag.chunkMinTokens", "rag.chunkMaxTokens", "rag.chunkOverlapTokens", "rag.parentMaxTokens",
+	"rag.contextMaxTokens", "rag.historyMaxTokens", "rag.multiQueryEnabled", "rag.multiQueryMax", "rag.bm25K1", "rag.bm25B",
 }
 
 var configKeys = append(append([]string{}, tuningKeys...), chatPriorityKey)
 
 func defaultTuning() domain.Tuning {
 	return domain.Tuning{ChunkSize: 1200, ChunkOverlap: 120, IndexVersion: "1", MinSimilarity: 0.35,
-		VectorTopK: 20, KeywordTopK: 20, TopK: 6, RRFK: 60, RRFVectorWeight: 0.7, RRFKeywordWeight: 0.3,
+		ChunkTargetTokens: 500, ChunkMinTokens: 180, ChunkMaxTokens: 800, ChunkOverlapTokens: 60, ParentMaxTokens: 1600,
+		ContextMaxTokens: 6000, HistoryMaxTokens: 3000, MultiQueryEnabled: true, MultiQueryMax: 3, BM25K1: 1.2, BM25B: 0.75,
+		VectorTopK: 25, KeywordTopK: 25, TopK: 6, RRFK: 60, RRFVectorWeight: 0.7, RRFKeywordWeight: 0.3,
 		RerankEnabled: true, RerankCandidateTopK: 40, RerankThreshold: 0.2, RerankFallback: true}
 }
 
 func validateTuning(t domain.Tuning) error {
+	if t.ChunkMinTokens < 1 || t.ChunkTargetTokens < 100 || t.ChunkMaxTokens > 4000 ||
+		t.ChunkMinTokens > t.ChunkTargetTokens || t.ChunkTargetTokens > t.ChunkMaxTokens ||
+		t.ChunkOverlapTokens < 0 || t.ChunkOverlapTokens >= t.ChunkTargetTokens ||
+		t.ParentMaxTokens < t.ChunkMaxTokens || t.ParentMaxTokens > 8000 {
+		return fmt.Errorf("子块需满足最小 ≤ 目标 ≤ 上限，目标至少 100 token，上限最多 4000；重叠小于目标，父块上限介于子块上限与 8000 之间。")
+	}
+	if t.ContextMaxTokens < t.ChunkMaxTokens || t.ContextMaxTokens > 16000 || t.HistoryMaxTokens < 0 || t.HistoryMaxTokens > 8000 ||
+		t.MultiQueryMax < 1 || t.MultiQueryMax > 3 || t.BM25K1 <= 0 || t.BM25K1 > 3 || t.BM25B < 0 || t.BM25B > 1 {
+		return fmt.Errorf("证据预算需介于子块上限与 16000 token；历史预算为 0–8000，子查询上限为 1–3，BM25 K1 为 (0,3]、B 为 [0,1]。")
+	}
 	if t.ChunkSize < 200 || t.ChunkSize > 2000 || t.ChunkOverlap < 0 || t.ChunkOverlap >= t.ChunkSize {
 		return fmt.Errorf("分块大小需为 200–2000 个字符，重叠大小需小于分块大小。")
 	}
@@ -37,14 +52,14 @@ func validateTuning(t domain.Tuning) error {
 	}
 	if t.VectorTopK < 1 || t.VectorTopK > 100 || t.KeywordTopK < 1 || t.KeywordTopK > 100 ||
 		t.TopK < 1 || t.TopK > 20 || t.RerankCandidateTopK < t.TopK || t.RerankCandidateTopK > 100 ||
-		t.RerankCandidateTopK > t.VectorTopK+t.KeywordTopK {
-		return fmt.Errorf("召回 TopK 需为 1–100，最终 TopK 需为 1–20；融合候选数需介于最终 TopK 与召回总数之间，最多 100。")
+		t.RerankCandidateTopK > (t.VectorTopK+t.KeywordTopK)*(1+t.MultiQueryMax) {
+		return fmt.Errorf("召回 TopK 需为 1–100，最终 TopK 需为 1–20；融合候选数需介于最终 TopK 与多查询召回总数之间，最多 100。")
 	}
 	if t.RRFK < 1 || t.RRFK > 200 || t.RRFVectorWeight < 0 || t.RRFKeywordWeight < 0 ||
 		math.Abs(t.RRFVectorWeight+t.RRFKeywordWeight-1) > 0.000001 {
 		return fmt.Errorf("RRF K 需为 1–200，两路权重需非负且合计为 1。")
 	}
-	for _, n := range []float64{t.MinSimilarity, t.RRFVectorWeight, t.RRFKeywordWeight, t.RerankThreshold} {
+	for _, n := range []float64{t.MinSimilarity, t.RRFVectorWeight, t.RRFKeywordWeight, t.RerankThreshold, t.BM25K1, t.BM25B} {
 		if math.IsNaN(n) || math.IsInf(n, 0) {
 			return fmt.Errorf("阈值和权重必须为有限数值。")
 		}
@@ -109,7 +124,7 @@ func (s *Service) AdminSettings(ctx context.Context) (domain.AdminSettings, erro
 		}
 	}
 	_, rerankErr := s.newReranker()
-	return domain.AdminSettings{Tuning: settings.tuning, Enabled: p.Enabled, ChatChannels: channels,
+	return domain.AdminSettings{Tuning: settings.tuning, Enabled: p.Enabled, ChatChannels: channels, TokenEncoding: infrarag.TokenEncoding,
 		PrimaryModel: primary.Model, FallbackModel: p.Fallback.Model, EmbeddingModel: p.EmbeddingModel, RerankModel: p.RerankModel,
 		PrimaryConfigured: foundPrimary, FallbackConfigured: chatConfigured(p.Fallback),
 		EmbeddingConfigured: s.embeddingConfigured(), RerankConfigured: rerankErr == nil}, nil
@@ -135,9 +150,9 @@ func (s *Service) UpdateTuning(ctx context.Context, tuning domain.Tuning) (domai
 		valueType := "number"
 		if field == "indexVersion" {
 			valueType = "string"
-		} else if field == "rerankEnabled" || field == "rerankFallback" {
+		} else if field == "rerankEnabled" || field == "rerankFallback" || field == "multiQueryEnabled" {
 			valueType = "bool"
-		} else if field == "minSimilarity" || field == "rrfVectorWeight" || field == "rrfKeywordWeight" || field == "rerankThreshold" {
+		} else if field == "minSimilarity" || field == "rrfVectorWeight" || field == "rrfKeywordWeight" || field == "rerankThreshold" || field == "bm25K1" || field == "bm25B" {
 			valueType = "string"
 			number, _ := strconv.ParseFloat(string(value), 64)
 			value, _ = json.Marshal(strconv.FormatFloat(number, 'f', -1, 64))

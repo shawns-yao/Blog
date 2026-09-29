@@ -6,6 +6,17 @@ import "time"
 type Tuning struct {
 	ChunkSize           int     `json:"chunkSize"`
 	ChunkOverlap        int     `json:"chunkOverlap"`
+	ChunkTargetTokens   int     `json:"chunkTargetTokens"`
+	ChunkMinTokens      int     `json:"chunkMinTokens"`
+	ChunkMaxTokens      int     `json:"chunkMaxTokens"`
+	ChunkOverlapTokens  int     `json:"chunkOverlapTokens"`
+	ParentMaxTokens     int     `json:"parentMaxTokens"`
+	ContextMaxTokens    int     `json:"contextMaxTokens"`
+	HistoryMaxTokens    int     `json:"historyMaxTokens"`
+	MultiQueryEnabled   bool    `json:"multiQueryEnabled"`
+	MultiQueryMax       int     `json:"multiQueryMax"`
+	BM25K1              float64 `json:"bm25K1"`
+	BM25B               float64 `json:"bm25B"`
 	IndexVersion        string  `json:"indexVersion"`
 	VectorTopK          int     `json:"vectorTopK"`
 	KeywordTopK         int     `json:"keywordTopK"`
@@ -22,6 +33,7 @@ type Tuning struct {
 
 type AdminSettings struct {
 	ChatChannels        []ChatChannel `json:"chatChannels"`
+	TokenEncoding       string        `json:"tokenEncoding"`
 	Tuning              Tuning        `json:"tuning"`
 	Enabled             bool          `json:"enabled"`
 	PrimaryModel        string        `json:"primaryModel"`

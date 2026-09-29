@@ -48,6 +48,58 @@ func Fuse(vector, keyword []domain.Evidence, tuning domain.Tuning) []domain.Evid
 	return merged[:min(len(merged), tuning.RerankCandidateTopK)]
 }
 
+// Each query/channel contributes its rank independently; raw scores never mix.
+func FuseMany(vector, keyword [][]domain.Evidence, tuning domain.Tuning) []domain.Evidence {
+	items := map[int64]domain.Evidence{}
+	queries := max(len(vector), len(keyword))
+	if queries == 0 {
+		return nil
+	}
+	for q := 0; q < queries; q++ {
+		lists := [][]domain.Evidence{nil, nil}
+		if q < len(vector) {
+			lists[0] = vector[q]
+		}
+		if q < len(keyword) {
+			lists[1] = keyword[q]
+		}
+		for channel, list := range lists {
+			weight := tuning.RRFVectorWeight
+			if channel == 1 {
+				weight = tuning.RRFKeywordWeight
+			}
+			seen := map[int64]bool{}
+			for rank, item := range list {
+				if seen[item.ID] {
+					continue
+				}
+				seen[item.ID] = true
+				contribution := weight / float64(queries) / float64(tuning.RRFK+rank+1)
+				if existing, ok := items[item.ID]; ok {
+					existing.Score += contribution
+					items[item.ID] = existing
+				} else {
+					item.Score = contribution
+					items[item.ID] = item
+				}
+			}
+		}
+	}
+	result := make([]domain.Evidence, 0, len(items))
+	for _, item := range items {
+		if item.Score > 0 {
+			result = append(result, item)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].Score == result[j].Score {
+			return result[i].ID < result[j].ID
+		}
+		return result[i].Score > result[j].Score
+	})
+	return result[:min(len(result), tuning.RerankCandidateTopK)]
+}
+
 // SelectEvidence applies source diversity after reranking so the model sees
 // the highest-ranked non-overlapping passages, rather than a pre-trimmed pool.
 func SelectEvidence(candidates []domain.Evidence, limit int) []domain.Evidence {

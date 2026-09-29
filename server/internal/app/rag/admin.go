@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/rag"
+	infrarag "github.com/shawns-yao/shawn-blog/server/internal/infra/rag"
 )
 
 func (s *Service) Documents(ctx context.Context, filter domain.DocumentFilter) (domain.DocumentPage, error) {
@@ -38,7 +39,24 @@ func (s *Service) DocumentChunks(ctx context.Context, momentID int64, page, page
 	if err != nil {
 		return nil, 0, err
 	}
-	return s.repo.DocumentChunks(ctx, settings.profile, momentID, page, pageSize)
+	chunks, total, err := s.repo.DocumentChunks(ctx, settings.profile, momentID, page, pageSize)
+	if err != nil || len(chunks) == 0 {
+		return chunks, total, err
+	}
+	sources, err := s.repo.ContextSources(ctx, settings.profile, []int64{momentID})
+	if err != nil || len(sources) != 1 {
+		return nil, 0, domain.ErrStaleSource
+	}
+	hierarchy := infrarag.SplitMarkdownWithTuning(sources[0].Title, sources[0].Content, settings.tuning)
+	for i, chunk := range chunks {
+		if chunk.Seq >= len(hierarchy) || hierarchy[chunk.Seq].Content != chunk.Content ||
+			hierarchy[chunk.Seq].Start != chunk.Start || hierarchy[chunk.Seq].End != chunk.End {
+			return nil, 0, domain.ErrStaleSource
+		}
+		chunks[i] = hierarchy[chunk.Seq]
+	}
+	infrarag.BindChunkIDs(chunks, momentID, settings.profile)
+	return chunks, total, nil
 }
 
 func (s *Service) ReindexDocument(ctx context.Context, momentID int64) error {
