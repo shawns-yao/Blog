@@ -58,6 +58,8 @@ func (s *Service) indexNext(ctx context.Context, settings settings) {
 	}
 	for _, chunk := range chunks {
 		if chunk.Tokens > settings.tuning.ChunkMaxTokens {
+			log.Printf("[rag] oversized chunk moment_id=%d kind=%s tokens=%d limit=%d start=%d end=%d",
+				source.MomentID, chunk.Kind, chunk.Tokens, settings.tuning.ChunkMaxTokens, chunk.Start, chunk.End)
 			reason = "oversized_atomic_block"
 			break
 		}

@@ -254,6 +254,7 @@ Go 请求使用自身 `User-Agent: grtblog-rag/1.0` 与当前会话 UUID 的 `x-
 | 配置                                                    | 含义                                                                                |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `RAG_ENABLED`                                           | 服务开关，默认关闭；关闭时不启动索引查询与模型调用                                  |
+| `RAG_EVALUATION_TRACE_DIR`                              | 本地评测目录，留空关闭；还需请求头 `X-RAG-Evaluation: 1`，不增加公开响应字段         |
 | `RAG_CHAT_GPT_*`                                        | GPT 本机代理；默认模型 `gpt-6-sol`，`EXTRA_BODY_JSON` 默认推理强度 medium           |
 | `RAG_CHAT_GROK_*`                                       | Grok 的地址、模型、密钥、协议、请求头、额外请求体和超时                             |
 | `RAG_CHAT_GEMINI_*`                                     | Gemini，当前 `PROTOCOL=openai`、地址以 `/v1` 结尾                                   |

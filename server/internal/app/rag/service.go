@@ -123,6 +123,16 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 		}
 		return result("temporarily_unavailable", "问答服务尚未启用或模型配置不可用。")
 	}
+	ctx, evaluation := s.beginEvaluation(ctx, sessionID, question, contentKind, settings)
+	if evaluation != nil {
+		defer func() {
+			evaluation.Answer = answer
+			evaluation.Run = run
+			evaluation.Run.Status = answer.Status
+			evaluation.Run.DurationMs = time.Since(started).Milliseconds()
+			s.saveEvaluation(evaluation)
+		}()
+	}
 	history = budgetHistory(history, settings.tuning.HistoryMaxTokens)
 	plan, degraded, understandingProvider := s.understandQuery(ctx, settings, question, sessionID, history, &run)
 	trace := &domain.QueryTrace{Intent: plan.Intent, OriginalQuery: question, Query: plan.Query,
@@ -156,6 +166,9 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 		// JSON separates the user's question and source data; neither can supply URLs
 		// or instruction messages. Citations below are mapped exclusively on the server.
 		passages := passagesFor(evidence)
+		if evaluation != nil {
+			evaluation.Contexts = passages
+		}
 		payload, _ := json.Marshal(struct {
 			Question          string             `json:"question"`
 			History           []domain.Message   `json:"history"`

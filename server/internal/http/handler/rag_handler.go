@@ -50,7 +50,7 @@ func (h *RAGHandler) Ask(c *fiber.Ctx) error {
 	} else {
 		request.SessionID = id.String()
 	}
-	ctx, cancel := context.WithTimeout(c.UserContext(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(apprag.WithEvaluationTrace(c.UserContext(), c.Get("X-RAG-Evaluation") == "1"), 120*time.Second)
 	defer cancel()
 	return response.Success(c, h.service.Ask(ctx, request.Question, request.ContentKind, request.SessionID, request.History))
 }

@@ -75,6 +75,8 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	for _, list := range keyword {
 		trace.KeywordCandidates += len(list)
 	}
+	captureEvaluationStage(ctx, "vector", queries, vector)
+	captureEvaluationStage(ctx, "keyword", queries, keyword)
 	if embedErr != nil && trace.KeywordCandidates == 0 {
 		return nil, false, &queryFailure{"embedding_unavailable", "嵌入服务暂时不可用，请稍后重试。"}
 	}
@@ -84,6 +86,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	candidates := infrarag.FuseMany(vector, keyword, tuning)
 	trace.FusedCandidates = len(candidates)
+	captureEvaluationStage(ctx, "fused", nil, [][]domain.Evidence{candidates})
 	if len(candidates) > 0 {
 		valid, err := s.repo.Validate(ctx, settings.profile, candidates)
 		if err != nil || !valid {
@@ -106,12 +109,14 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 		}
 	}
 	trace.RerankedCandidates = len(candidates)
+	captureEvaluationStage(ctx, "reranked", nil, [][]domain.Evidence{candidates})
 	evidence, contextErr := s.buildContext(ctx, settings, plan, candidates)
 	if contextErr != nil {
 		return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
 	}
 	trace.ContextTokens = evidenceTokens(evidence)
 	trace.EvidenceCount = len(evidence)
+	captureEvaluationStage(ctx, "context", nil, [][]domain.Evidence{evidence})
 	if len(evidence) > 0 {
 		valid, err := s.repo.Validate(ctx, settings.profile, evidence)
 		if err != nil || !valid {

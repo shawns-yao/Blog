@@ -8,6 +8,7 @@ import (
 // RAGConfig keeps provider credentials in the server environment.
 type RAGConfig struct {
 	Enabled              bool
+	EvaluationTraceDir   string
 	GPT                  RAGChatConfig
 	Grok                 RAGChatConfig
 	Gemini               RAGChatConfig
@@ -42,6 +43,7 @@ func loadRAG() RAGConfig {
 	gpt.ExtraBodyJSON = getEnv("RAG_CHAT_GPT_EXTRA_BODY_JSON", `{"reasoning_effort":"medium"}`)
 	return RAGConfig{
 		Enabled:              getEnvAsBool("RAG_ENABLED", false),
+		EvaluationTraceDir:   strings.TrimSpace(getEnv("RAG_EVALUATION_TRACE_DIR", "")),
 		GPT:                  gpt,
 		Grok:                 loadRAGChat("RAG_CHAT_GROK_", "grok", "openai", "https://ai.hybgzs.com/v1", "grok-4.7", ""),
 		Gemini:               loadRAGChat("RAG_CHAT_GEMINI_", "gemini", "openai", "https://ai.hybgzs.com/v1", "gemini-3.1-flash-lite-preview", ""),
