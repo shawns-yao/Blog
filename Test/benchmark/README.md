@@ -1,6 +1,6 @@
 # 公开数据集问答评测
 
-本目录仅用于**公开权威数据测试**。数据、评判环境和运行结果分别保存在 `Temp/rag-benchmarks/`，不与项目单元测试或八篇自有文档的定向测试混合。
+本目录保存公开数据集的编排与评分工具。完整冻结子集运行标记为**公开权威数据测试**；仅选择原有失败样本复测时标记为**定向测试**，保存在独立的 `directed-runs/`，不得混入公开子集统计。数据、评判环境和运行结果保存在 `Temp/rag-benchmarks/`，不与项目单元测试混合。
 
 ## 数据集与首轮范围
 
@@ -33,12 +33,21 @@ node Test/benchmark/prepare-rag-datasets.mjs
 node Test/benchmark/run-rag-benchmark.mjs beir-scifact
 node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --chunk-max=4000
 
+# 修复验证：保留完整冻结语料，只运行指定的原始失败问题。
+# 不传 --chunk-max 时使用项目日常配置；定向结果另存，公开基线不覆盖。
+node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --sample-ids=fe1c96e9-42de-45c9-9422-063b55c14ce5,e51bbbef-f955-4d23-86cd-6ff94e936279,55fd007f-2662-4393-8e90-ed8ca6b05a56
+
+# 在该定向轮次进行中另开终端，观察真实工作进程的索引结果。
+# 检查原文覆盖、位置、向量维度及普通／原子块上限，不替代项目分块。
+Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe Test/benchmark/inspect-rag-index.py open-rag-bench --wait
+
 # 独立评分环境；完整依赖快照另存到 Temp。
 python -m venv Temp/rag-benchmarks/ragas-runtime
 Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe -m pip install --upgrade pip
 Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe -m pip install ragas==0.4.3 instructor==1.17.0 langchain-community==0.3.31 python-dotenv
 Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe Test/benchmark/score-ragas.py beir-scifact
 Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe Test/benchmark/score-ragas.py open-rag-bench
+Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe Test/benchmark/score-ragas.py open-rag-bench --directed
 ```
 
 Ragas 可以消费进行中的输出，也可以在项目测试完成后独立运行。评分使用 Gemini，避免默认用生成回答的 GPT 自评；回答相关性复用配置的 BGE 嵌入。Gemini 的实际请求至少间隔 12 秒，客户端和结构化适配器均不重试失败请求。评判模型与嵌入请求都独立于项目功能统计；多次评分分别存入运行目录的 `ragas/<UTC时间>/`，不覆盖此前失败记录。

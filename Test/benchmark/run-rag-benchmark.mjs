@@ -9,13 +9,19 @@ assert(['open-rag-bench', 'beir-scifact'].includes(name), '指定单个测试集
 const maxTokenArgument = process.argv.slice(3).find(value => value.startsWith('--chunk-max='));
 const requestedMaxTokens = maxTokenArgument ? Number(maxTokenArgument.split('=')[1]) : null;
 assert(requestedMaxTokens === null || Number.isInteger(requestedMaxTokens), '分块上限必须为整数');
+const sampleArgument = process.argv.slice(3).find(value => value.startsWith('--sample-ids='));
+const selectedIds = sampleArgument ? sampleArgument.slice('--sample-ids='.length).split(',') : null;
+assert(selectedIds === null || selectedIds.every(Boolean), '定向样本 ID 不能为空');
+const testKind = selectedIds ? '定向测试' : '公开权威数据测试';
 const root = resolve('.'), dir = join(root, 'Temp/rag-benchmarks', name);
 const runId = new Date().toISOString().replaceAll(':', '-');
-const runDir = join(dir, 'runs', runId);
+const runDir = join(dir, selectedIds ? 'directed-runs' : 'runs', runId);
 await mkdir(runDir, { recursive: true });
 const dataset = JSON.parse(await readFile(join(dir, 'manifest.json'), 'utf8'));
 const documents = JSON.parse(await readFile(join(dir, 'processed/documents.json'), 'utf8'));
-const samples = JSON.parse(await readFile(join(dir, 'processed/evaluator-only.json'), 'utf8'));
+const allSamples = JSON.parse(await readFile(join(dir, 'processed/evaluator-only.json'), 'utf8'));
+const samples = selectedIds ? allSamples.filter(sample => selectedIds.includes(String(sample.id))) : allSamples;
+assert(!selectedIds || samples.length === new Set(selectedIds).size, '所有定向样本必须来自已冻结的数据集');
 const hash = value => createHash('sha256').update(value).digest('hex');
 const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
 const save = async (path, value) => writeFile(path, JSON.stringify(value, null, 2));
@@ -46,22 +52,24 @@ await save(join(runDir, 'evaluator-selftest.json'), { type: '定向测试', chec
 
 let imported = [], originalSettings, temporarySettings = {};
 const results = [];
-const metadata = { objective: 'Establish a real-project retrieval/reranking/answer baseline on a frozen public dataset subset',
-  testKind: '公开权威数据测试', testLevel: 'benchmark/end-to-end Markdown RAG',
+const metadata = { objective: selectedIds ? 'Verify identified failures using original queries and the unchanged frozen corpus'
+  : 'Establish a real-project retrieval/reranking/answer baseline on a frozen public dataset subset',
+  testKind, selectedIds, testLevel: 'benchmark/end-to-end Markdown RAG',
   entrypoint: 'POST http://127.0.0.1:8080/api/v2/public/ask', dataset,
   goldVisibility: 'Evaluator only; project receives corpus text and query only',
   primaryMetric: 'Final context macro Recall@6 over original document/section IDs; denominator: core project returns',
   auxiliaryMetrics: 'HitRate, MRR and binary nDCG at 1/3/6/10/20 per actual phase; unanswerable/incorrect project outputs score zero',
   rankContract: 'Project ordering retained; document/section IDs deduplicated at first occurrence; no hit scores zero; empty/short ranks are not padded with relevant IDs',
   retryPolicy: 'One project request per sample, no runner retries; actual project provider fallback retained and separately logged',
-  passCriteria: 'N/A: initial characterization without an invented acceptance threshold; decision INCONCLUSIVE',
+  passCriteria: selectedIds ? 'Directed defect evidence only; assess each specified failure separately, not a public benchmark acceptance score'
+    : 'N/A: initial characterization without an invented acceptance threshold; decision INCONCLUSIVE',
   artifactDir: runDir, startedAt: new Date().toISOString(), status: 'running',
   evaluatorSha256: hash(await readFile(new URL(import.meta.url))),
   limitations: ['Frozen subset changes corpus difficulty; scores are not directly comparable with official full-corpus leaderboards',
     'JSON-to-Markdown is input format adaptation; PDF parsing/OCR are outside this run',
     'BEIR provides relevance labels, not question-answer reference texts'], results: [] };
 await save(join(runDir, 'metadata.json'), metadata);
-await writeFile(join(dir, 'latest-run.txt'), runId);
+await writeFile(join(dir, selectedIds ? 'latest-directed-run.txt' : 'latest-run.txt'), runId);
 
 function documentSnapshot() {
   return sql(`SELECT COALESCE(jsonb_agg(x),'[]'::jsonb) FROM (
@@ -169,7 +177,8 @@ try {
   const summary = { rawSamples: samples.length, excluded: 0, effectiveSamples: samples.length,
     externalFailures: results.length - core.length, projectFailures: results.filter(item => item.projectFailure).length,
     coreReturns: core.length, stages: {}, decision: 'INCONCLUSIVE',
-    decisionReason: 'Initial baseline measurement; no predetermined effect acceptance threshold' };
+    decisionReason: selectedIds ? 'Directed subset; no claim about complete benchmark quality'
+      : 'Initial baseline measurement; no predetermined effect acceptance threshold' };
   for (const stage of ['vector','keyword','fused','reranked','context']) {
     summary.stages[stage] = Object.fromEntries([1,3,6,10,20].map(k => [k,
       Object.fromEntries(['hit','recall','mrr','ndcg'].map(metric => [metric, core.length
@@ -179,7 +188,8 @@ try {
   summary.p50Ms = durations[Math.ceil(durations.length * .5)-1];
   summary.p95Ms = durations[Math.ceil(durations.length * .95)-1];
   summary.answerStatus = results.reduce((sum,item) => { const key=item.answer?.status ?? 'failed'; sum[key]=(sum[key]??0)+1; return sum; }, {});
-  summary.metricQualification = summary.externalFailures / samples.length > .1 ? '受外部因素影响，仅供参考' : 'Frozen subset baseline';
+  summary.metricQualification = summary.externalFailures / samples.length > .1 ? '受外部因素影响，仅供参考'
+    : selectedIds ? 'Directed failures only; excluded from public benchmark aggregates' : 'Frozen subset baseline';
   await save(join(runDir, 'metrics.json'), summary);
   const csv = ['sample_id,status,external_failure,project_failure,fused_recall20,reranked_mrr10,context_recall6,duration_ms',
     ...results.map(item => [item.id,item.answer?.status??'',item.externalFailure??'',item.projectFailure??'',

@@ -24,7 +24,8 @@ logging.getLogger('ragas').setLevel(logging.CRITICAL)
 async def main():
     root = Path.cwd()
     dataset_dir = root / 'Temp' / 'rag-benchmarks' / sys.argv[1]
-    run_dir = dataset_dir / 'runs' / (dataset_dir / 'latest-run.txt').read_text().strip()
+    directed = '--directed' in sys.argv[2:]
+    run_dir = dataset_dir / ('directed-runs' if directed else 'runs') / (dataset_dir / ('latest-directed-run.txt' if directed else 'latest-run.txt')).read_text().strip()
     resume = '--resume' in sys.argv[2:]
     score_name = (run_dir / 'latest-ragas.txt').read_text(encoding='utf-8').strip() if resume else datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     score_dir = run_dir / 'ragas' / score_name
@@ -58,7 +59,7 @@ async def main():
     accuracy = AnswerAccuracy(llm=llm, max_retries=1)
     relevancy = AnswerRelevancy(llm=llm, embeddings=embeddings)
     contract = {
-        'testKind': '公开权威数据测试 / 对项目真实输出的独立评分',
+        'testKind': ('定向测试' if directed else '公开权威数据测试') + ' / 对项目真实输出的独立评分',
         'ragasVersion': importlib.metadata.version('ragas'),
         'judgeModel': judge_model, 'judgeProvider': 'Gemini', 'judgeTemperature': 0,
         'judgeMaxTokens': 8192, 'judgeTopP': 0.1, 'instructorAttempts': 1,
