@@ -18,6 +18,9 @@ export interface RagTuning {
   vectorTopK: number
   keywordTopK: number
   topK: number
+  dynamicTopKEnabled: boolean
+  dynamicTopKMin: number
+  dynamicTopKMax: number
   minSimilarity: number
   rrfK: number
   rrfVectorWeight: number

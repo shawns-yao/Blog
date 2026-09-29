@@ -74,7 +74,14 @@ const groups: { title: string; fields: Field[] }[] = [
       { key: 'rrfVectorWeight', label: 'RRF 向量权重', min: 0, max: 1, step: 0.05 },
       { key: 'rrfKeywordWeight', label: 'RRF 关键词权重', min: 0, max: 1, step: 0.05 },
       { key: 'rerankCandidateTopK', label: '融合候选 TopK', min: 1, max: 100 },
-      { key: 'topK', label: '最终 TopK', min: 1, max: 20 },
+      { key: 'topK', label: '基准 TopK', min: 1, max: 20 },
+    ],
+  },
+  {
+    title: '证据数量',
+    fields: [
+      { key: 'dynamicTopKMin', label: '动态 TopK 下限', min: 1, max: 20 },
+      { key: 'dynamicTopKMax', label: '动态 TopK 上限', min: 1, max: 20 },
     ],
   },
   {
@@ -111,6 +118,9 @@ const validation = computed(() => {
     return 'RRF 两路权重之和需要等于 1。'
   if (f.rerankCandidateTopK != null && f.topK != null && f.rerankCandidateTopK < f.topK)
     return '融合候选 TopK 不能小于最终 TopK。'
+  if (f.dynamicTopKMin! > f.dynamicTopKMax!) return '动态 TopK 下限不能超过上限。'
+  if (f.dynamicTopKEnabled && f.dynamicTopKMax! > f.rerankCandidateTopK!)
+    return '动态 TopK 上限不能超过融合候选数。'
   if (
     f.rerankCandidateTopK != null &&
     f.vectorTopK != null &&
@@ -200,6 +210,23 @@ function reset() {
           参考编码
           {{ settings.tokenEncoding }}。保留段落与结构边界；修改分块参数或索引版本会重建子块索引。
         </p>
+        <div
+          v-if="group.title === '证据数量'"
+          class="mb-4 flex items-center gap-3"
+        >
+          <span>动态 TopK</span>
+          <NSwitch
+            v-model:value="form.dynamicTopKEnabled"
+            aria-label="启用动态 TopK"
+          />
+        </div>
+        <p
+          v-if="group.title === '证据数量'"
+          class="mb-4 text-sm opacity-60"
+        >
+          启用后按问题类型、证据排名和上下文预算调整数量；下限不保证补足无关证据。关闭后使用基准
+          TopK 作为固定上限。
+        </p>
         <p
           v-if="group.title === '召回与融合'"
           class="mb-4 text-sm opacity-60"
@@ -250,7 +277,10 @@ function reset() {
               :precision="field.step ? 2 : 0"
               :aria-label="field.label"
               class="w-full"
-              :disabled="group.title === '重排序' && !form.rerankEnabled"
+              :disabled="
+                (group.title === '重排序' && !form.rerankEnabled) ||
+                (group.title === '证据数量' && !form.dynamicTopKEnabled)
+              "
               @update:value="(value) => setNumber(field.key, value)"
             />
           </NFormItem>
