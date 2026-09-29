@@ -22,6 +22,7 @@ var tuningKeys = []string{
 	"rag.chunkTargetTokens", "rag.chunkMinTokens", "rag.chunkMaxTokens", "rag.chunkOverlapTokens", "rag.parentMaxTokens",
 	"rag.contextMaxTokens", "rag.historyMaxTokens", "rag.multiQueryEnabled", "rag.multiQueryMax", "rag.bm25K1", "rag.bm25B",
 	"rag.dynamicTopKEnabled", "rag.dynamicTopKMin", "rag.dynamicTopKMax",
+	"rag.adaptiveChunkingEnabled", "rag.adaptiveRetrievalEnabled", "rag.evidenceSelectionEnabled", "rag.evidenceDiversityWeight",
 }
 
 var configKeys = append(append([]string{}, tuningKeys...), chatPriorityKey)
@@ -32,6 +33,7 @@ func defaultTuning() domain.Tuning {
 		ContextMaxTokens: 6000, HistoryMaxTokens: 3000, MultiQueryEnabled: true, MultiQueryMax: 3, BM25K1: 1.2, BM25B: 0.75,
 		VectorTopK: 25, KeywordTopK: 25, TopK: 6, RRFK: 60, RRFVectorWeight: 0.7, RRFKeywordWeight: 0.3,
 		DynamicTopKEnabled: true, DynamicTopKMin: 2, DynamicTopKMax: 12,
+		AdaptiveChunkingEnabled: true, AdaptiveRetrievalEnabled: true, EvidenceSelectionEnabled: true, EvidenceDiversityWeight: 0.2,
 		RerankEnabled: true, RerankCandidateTopK: 40, RerankThreshold: 0.2, RerankFallback: true}
 }
 
@@ -65,10 +67,13 @@ func validateTuning(t domain.Tuning) error {
 		math.Abs(t.RRFVectorWeight+t.RRFKeywordWeight-1) > 0.000001 {
 		return fmt.Errorf("RRF K 需为 1–200，两路权重需非负且合计为 1。")
 	}
-	for _, n := range []float64{t.MinSimilarity, t.RRFVectorWeight, t.RRFKeywordWeight, t.RerankThreshold, t.BM25K1, t.BM25B} {
+	for _, n := range []float64{t.MinSimilarity, t.RRFVectorWeight, t.RRFKeywordWeight, t.RerankThreshold, t.BM25K1, t.BM25B, t.EvidenceDiversityWeight} {
 		if math.IsNaN(n) || math.IsInf(n, 0) {
 			return fmt.Errorf("阈值和权重必须为有限数值。")
 		}
+	}
+	if t.EvidenceDiversityWeight < 0 || t.EvidenceDiversityWeight > 1 {
+		return fmt.Errorf("证据多样性权重需为 0–1。")
 	}
 	if t.MinSimilarity < 0 || t.MinSimilarity > 1 || t.RerankThreshold < -10 || t.RerankThreshold > 10 {
 		return fmt.Errorf("向量阈值需为 0–1，重排序阈值需为 -10–10。")
@@ -171,9 +176,9 @@ func (s *Service) UpdateTuning(ctx context.Context, tuning domain.Tuning) (domai
 		valueType := "number"
 		if field == "indexVersion" {
 			valueType = "string"
-		} else if field == "rerankEnabled" || field == "rerankFallback" || field == "multiQueryEnabled" || field == "dynamicTopKEnabled" {
+		} else if strings.HasSuffix(field, "Enabled") || field == "rerankFallback" {
 			valueType = "bool"
-		} else if field == "minSimilarity" || field == "rrfVectorWeight" || field == "rrfKeywordWeight" || field == "rerankThreshold" || field == "bm25K1" || field == "bm25B" {
+		} else if field == "minSimilarity" || field == "rrfVectorWeight" || field == "rrfKeywordWeight" || field == "rerankThreshold" || field == "bm25K1" || field == "bm25B" || field == "evidenceDiversityWeight" {
 			valueType = "string"
 			number, _ := strconv.ParseFloat(string(value), 64)
 			value, _ = json.Marshal(strconv.FormatFloat(number, 'f', -1, 64))

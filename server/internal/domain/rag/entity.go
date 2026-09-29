@@ -19,6 +19,9 @@ type Chunk struct {
 	Start         int       `json:"start"`
 	End           int       `json:"end"`
 	Vector        []float64 `json:"vector,omitempty"`
+	ChunkPolicy   string    `json:"chunkPolicy,omitempty"`
+	TargetTokens  int       `json:"targetTokens,omitempty"`
+	OverlapTokens int       `json:"overlapTokens,omitempty"`
 }
 
 type Source struct {
@@ -79,6 +82,10 @@ const (
 
 // QueryTrace explains this request only; it is not stored as conversation history.
 type QueryTrace struct {
+	UnderstandingSource   string           `json:"understandingSource,omitempty"`
+	ProtectedTerms        []string         `json:"protectedTerms,omitempty"`
+	RetrievalPolicy       *RetrievalPolicy `json:"retrievalPolicy,omitempty"`
+	EvidenceSelection     string           `json:"evidenceSelection,omitempty"`
 	OriginalQuery         string           `json:"originalQuery"`
 	Strategy              string           `json:"strategy,omitempty"`
 	Queries               []string         `json:"queries,omitempty"`
@@ -112,6 +119,19 @@ type QueryTrace struct {
 	TopKStoppedBy         string           `json:"topKStoppedBy,omitempty"`
 	SubqueryAnchors       int              `json:"subqueryAnchors,omitempty"`
 	EvidenceSourceIDs     []int64          `json:"evidenceSourceIds,omitempty"`
+}
+
+// Effective request policy is distinct from the configured resource ceilings.
+type RetrievalPolicy struct {
+	Version          string  `json:"version"`
+	Mode             string  `json:"mode"`
+	Reason           string  `json:"reason"`
+	VectorTopK       int     `json:"vectorTopK"`
+	KeywordTopK      int     `json:"keywordTopK"`
+	RerankTopK       int     `json:"rerankTopK"`
+	VectorWeight     float64 `json:"vectorWeight"`
+	KeywordWeight    float64 `json:"keywordWeight"`
+	ContextMaxTokens int     `json:"contextMaxTokens"`
 }
 
 type ChannelFailure struct {

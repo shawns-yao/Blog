@@ -15,7 +15,7 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-const ChunkerVersion = "weknora-markdown-token-parent-v3"
+const ChunkerVersion = "weknora-markdown-token-parent-v4"
 
 // Ordinary text follows the configured maximum. An indivisible structural
 // unit has a separate ceiling and is stored alone rather than being truncated.
@@ -44,6 +44,8 @@ type unit struct {
 	start, end int
 	kind       string
 	header     string
+	forced     bool
+	origin     int
 }
 
 var protectedPatterns = []struct {
@@ -67,6 +69,29 @@ func SplitMarkdown(title, markdown string, size, overlap int) []domain.Chunk {
 }
 
 func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []domain.Chunk {
+	if tuning.ChunkTargetTokens < 100 {
+		tuning.ChunkTargetTokens = 500
+	}
+	tuning.ChunkMaxTokens = max(tuning.ChunkTargetTokens, tuning.ChunkMaxTokens)
+	source := []byte(markdown)
+	doc := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader(source))
+	effective, policy := tuning, "configured"
+	if tuning.AdaptiveChunkingEnabled {
+		effective, policy = selectChunkPolicy(title, profileMarkdown(markdown, doc), tuning)
+	}
+	chunks := splitParsedMarkdown(title, markdown, effective, doc)
+	if tuning.AdaptiveChunkingEnabled && !validPolicyChunks(markdown, chunks, effective) {
+		tuning.AdaptiveChunkingEnabled = false
+		effective, policy = tuning, "configured_fallback"
+		chunks = splitParsedMarkdown(title, markdown, effective, doc)
+	}
+	for i := range chunks {
+		chunks[i].ChunkPolicy, chunks[i].TargetTokens, chunks[i].OverlapTokens = policy, effective.ChunkTargetTokens, effective.ChunkOverlapTokens
+	}
+	return chunks
+}
+
+func splitParsedMarkdown(title, markdown string, tuning domain.Tuning, doc ast.Node) []domain.Chunk {
 	size, overlap := tuning.ChunkTargetTokens, tuning.ChunkOverlapTokens
 	if size < 100 {
 		size = 500
@@ -76,7 +101,6 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 		overlap = 0
 	}
 	source := []byte(markdown)
-	doc := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader(source))
 	sections := []section{{header: strings.TrimSpace(title)}}
 	var headings [6]string
 	_ = ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -123,7 +147,11 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 		if i+1 < len(sections) {
 			end = sections[i+1].start
 		}
-		units := splitSection(markdown[section.start:end], max(1, maximum-CountTokens(section.header)-2))
+		reserve := 0
+		if tuning.AdaptiveChunkingEnabled {
+			reserve = overlap
+		}
+		units := splitSection(markdown[section.start:end], max(1, maximum-CountTokens(section.header)-2), reserve)
 		sectionStart := len(chunks)
 		var current []unit
 		currentSize := 0
@@ -157,7 +185,7 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 				Tokens:      CountTokens(header + "\n\n" + markdown[start:end]),
 			})
 		}
-		for _, next := range units {
+		for unitIndex, next := range units {
 			length := CountTokens(markdown[section.start+next.start : section.start+next.end])
 			if CountTokens(headerFor([]unit{next})+"\n\n"+
 				markdown[section.start+next.start:section.start+next.end]) > maximum {
@@ -177,6 +205,9 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 				tail, tailSize := len(current), 0
 				for tail > 0 {
 					item := current[tail-1]
+					if tuning.AdaptiveChunkingEnabled && (!item.forced || !next.forced || item.origin != next.origin) {
+						break
+					}
 					itemSize := CountTokens(markdown[section.start+item.start : section.start+item.end])
 					tailUnits := append(append([]unit{}, current[tail-1:]...), next)
 					if tailSize+itemSize > overlap || CountTokens(headerFor(tailUnits)+"\n\n"+
@@ -187,6 +218,15 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 					tailSize += itemSize
 				}
 				current = append([]unit(nil), current[tail:]...)
+				if len(current) == 0 && reserve > 0 && next.forced && tail > 0 && unitIndex > 0 {
+					previous := units[unitIndex-1]
+					if previous.forced && previous.origin == next.origin {
+						if fragment, ok := forcedOverlapTail(markdown[section.start:end], previous, overlap); ok &&
+							CountTokens(headerFor([]unit{fragment, next})+"\n\n"+markdown[section.start+fragment.start:section.start+next.end]) <= maximum {
+							current, tailSize = []unit{fragment}, CountTokens(markdown[section.start+fragment.start:section.start+fragment.end])
+						}
+					}
+				}
 				currentSize = tailSize
 			}
 			current = append(current, next)
@@ -212,7 +252,8 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 	return chunks
 }
 
-func splitSection(source string, size int) []unit {
+func splitSection(source string, size, overlap int) []unit {
+	plainLimit := max(1, size-overlap)
 	var spans []span
 	// Goldmark retains paragraphs and complete list/blockquote structure.
 	doc := goldmark.New(goldmark.WithExtensions(extension.GFM)).Parser().Parse(text.NewReader([]byte(source)))
@@ -246,11 +287,12 @@ func splitSection(source string, size int) []unit {
 	var units []unit
 	appendRange := func(start, end int, kind, header string, limit int) {
 		for _, paragraph := range strings.SplitAfter(source[start:end], "\n\n") {
+			origin, forced := start, CountTokens(paragraph) > limit
 			for _, piece := range splitBySeparators(paragraph, []string{"\n", "。", "！", "？", ". ", " "}, limit) {
 				// Plain text without separators uses rune-safe windows.
 				for len(piece) > 0 {
 					bytes := tokenPrefixBytes(piece, limit)
-					units = append(units, unit{start: start, end: start + bytes, kind: kind, header: header})
+					units = append(units, unit{start: start, end: start + bytes, kind: kind, header: header, forced: forced, origin: origin})
 					start += bytes
 					piece = piece[bytes:]
 				}
@@ -263,7 +305,7 @@ func splitSection(source string, size int) []unit {
 			continue
 		}
 		if protected.start > pos {
-			appendRange(pos, protected.start, "text", "", size)
+			appendRange(pos, protected.start, "text", "", plainLimit)
 		}
 		header := ""
 		if protected.kind == "table" {
@@ -320,7 +362,7 @@ func splitSection(source string, size int) []unit {
 		pos = protected.end
 	}
 	if pos < len(source) {
-		appendRange(pos, len(source), "text", "", size)
+		appendRange(pos, len(source), "text", "", plainLimit)
 	}
 	return units
 }

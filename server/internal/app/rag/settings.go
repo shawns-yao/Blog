@@ -128,9 +128,10 @@ func (s *Service) loadTuning(ctx context.Context) (settings, error) {
 	result.profile = fingerprint(struct {
 		Version, Chunker, Encoding, Model, URL                string
 		Target, Minimum, Maximum, Overlap, Parent, Dimensions int
+		Adaptive                                              bool
 	}{tuning.IndexVersion, infrarag.ChunkerVersion, infrarag.TokenEncoding, s.providers.EmbeddingModel,
 		s.providers.EmbeddingBaseURL, tuning.ChunkTargetTokens, tuning.ChunkMinTokens, tuning.ChunkMaxTokens,
-		tuning.ChunkOverlapTokens, tuning.ParentMaxTokens, s.providers.EmbeddingDimensions})
+		tuning.ChunkOverlapTokens, tuning.ParentMaxTokens, s.providers.EmbeddingDimensions, tuning.AdaptiveChunkingEnabled})
 	return result, nil
 }
 
