@@ -28,6 +28,7 @@ type RAGConfig struct {
 
 type RAGChatConfig struct {
 	Name          string
+	Disabled      bool
 	Protocol      string
 	BaseURL       string
 	Model         string
@@ -69,6 +70,7 @@ func (c RAGConfig) ChatChannels() []RAGChatConfig {
 func loadRAGChat(prefix, name, protocol, baseURL, model, sessionHeader string) RAGChatConfig {
 	return RAGChatConfig{
 		Name:          name,
+		Disabled:      !getEnvAsBool(prefix+"ENABLED", true),
 		Protocol:      strings.ToLower(strings.TrimSpace(getEnv(prefix+"PROTOCOL", protocol))),
 		BaseURL:       strings.TrimRight(strings.TrimSpace(getEnv(prefix+"BASE_URL", baseURL)), "/"),
 		Model:         strings.TrimSpace(getEnv(prefix+"MODEL", model)),

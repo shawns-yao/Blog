@@ -15,7 +15,7 @@ import (
 
 const chatPriorityKey = "rag.chatPriority"
 
-var defaultChatPriority = []string{"gpt", "grok", "gemini", "opencode_go"}
+var defaultChatPriority = []string{"gpt", "gemini", "grok", "opencode_go"}
 
 func validateChatPriority(priority []string) error {
 	if len(priority) != len(defaultChatPriority) {

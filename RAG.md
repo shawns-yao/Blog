@@ -1,6 +1,6 @@
 # RAG 接入设计
 
-> 状态：右侧问答、后台 RAG 模块及真实检索链路已接入。同篇证据丢失、过早澄清、命中摘要后拒答和完整公式超限已修复，详见 [定向修复记录](Test/benchmark/fixes_20260929.md)。最终证据动态 TopK 已接入，默认范围 2–12，后台可开关与调整上下限；按问题策略、相对排名分差、子查询证据与 token 预算选择数量。聊天初始顺序为 GPT、Grok、Gemini、OpenCode Go、官方 DeepSeek；向量与重排序保持 BGE。更新日期：2026-09-29。自动扩大召回或二次检索、各内容类型独立后台参数和持久化对话尚未完成；答案完整性、通道延迟和最优参数仍需改进，后台新增控件视觉与保存交互尚未验证。
+> 状态：右侧问答、后台 RAG 模块及真实检索链路已接入。同篇证据丢失、过早澄清、命中摘要后拒答和完整公式超限已修复，详见 [定向修复记录](Test/benchmark/fixes_20260929.md)。最终证据动态 TopK 已接入，默认范围 2–12，后台可开关与调整上下限；按问题策略、相对排名分差、子查询证据与 token 预算选择数量。当前有效聊天顺序为 GPT、Gemini、OpenCode Go、官方 DeepSeek，Grok 暂时停用；向量与重排序保持 BGE。更新日期：2026-09-29。自动扩大召回或二次检索、各内容类型独立后台参数和持久化对话尚未完成；答案完整性、通道延迟和最优参数仍需改进，后台新增控件视觉与保存交互尚未验证。
 
 动态 TopK 的配置、真实入口对照、原三道论文问题复查及环境恢复见 [实现与定向验证记录](Test/benchmark/dynamic_topk_20260929.md)。定向检查不代替全量公开成绩或答案准确性评分。
 
@@ -231,13 +231,13 @@ MULTI_HOP 的明确分句优先作为独立子查询，避免改写把相邻步�
 
 已按用户选择将 `C:\Document\Desktop\GitHub\RAG\WeKnora` 的相关代码裁剪合并到博客，而非调用独立 WeKnora 服务。参考版本为 `a46a3c5996785fd7d3713a650e21d02ed7517710`；保留了[MIT 许可证及来源路径](server/licenses/WeKnora-MIT.txt)。本次补充 `tiktoken-go/tokenizer` 作为统一参考计数器，其余继续复用现有 Go 服务与依赖，没有引入参考项目的租户、知识库管理或完整 Agent 平台。
 
-问答、向量和重排序模型统一使用服务端 `.env`，模板见 [Config/rag.env.example](Config/rag.env.example)。初始聊天顺序如下，理解与回答阶段均按后台保存的顺序尝试配置有效的通道。
+问答、向量和重排序模型统一使用服务端 `.env`，模板见 [Config/rag.env.example](Config/rag.env.example)。当前保存的排列如下，理解与回答阶段均按后台保存的顺序尝试启用且配置有效的通道。
 
 | 优先级            | 通道          | 模型                                   | 协议                              |
 | ----------------- | ------------- | -------------------------------------- | --------------------------------- |
 | 1                 | GPT 本机代理  | `gpt-6-sol`，`reasoning_effort=medium` | OpenAI Chat Completions           |
-| 2                 | Grok 中转     | `grok-4.7`                             | OpenAI Chat Completions           |
-| 3                 | Gemini 中转   | `gemini-3.1-flash-lite-preview`        | OpenAI Chat Completions           |
+| 2                 | Gemini 中转   | `gemini-3.1-flash-lite-preview`        | OpenAI Chat Completions           |
+| 3，当前暂停       | Grok 中转     | `grok-4.7`                             | OpenAI Chat Completions           |
 | 4                 | OpenCode Go   | `deepseek-v4.1-flash`                  | OpenAI Chat Completions，加会话头 |
 | default，始终最后 | 官方 DeepSeek | `deepseek-flash`                       | OpenAI Chat Completions           |
 
@@ -246,6 +246,8 @@ MULTI_HOP 的明确分句优先作为独立子查询，避免改写把相邻步�
 顺序保存在现有 `sys_config` 的非敏感 JSON 配置 `rag.chatPriority`，只包含 `gpt/grok/gemini/opencode_go` 四个通道标识，不包含地址、密钥或正文。首次未保存时使用上表顺序；每次请求读取配置，保存后的新请求立即使用新顺序，已开始的请求继续使用其配置快照。官方兜底由服务端最后追加。此配置属于持久化运行配置，不是派生索引或临时测试数据；不新增表、迁移或索引重建任务。
 
 用户提供的 GPT 本机入口为 `http://127.0.0.1:8317/v1`。当前 Go 后端在 Docker 中运行，本地 `.env` 使用 `http://host.docker.internal:8317/v1` 访问同一宿主机服务；改为宿主机运行后应使用 `127.0.0.1`。GPT 的额外请求体默认包含 `reasoning_effort=medium`，不携带 Go 会话头。
+
+聊天通道支持 `RAG_CHAT_*_ENABLED`，默认 `true`。设置为 `false` 后，问题理解、改写、一般交流与知识回答均跳过该通道，不移除地址、模型或密钥，也不从四通道排序列表中删除它。当前日常环境设置 `RAG_CHAT_GROK_ENABLED=false`，GPT 与 Gemini 启用；恢复 Grok 时将开关改为 `true` 并重启后端。这属于本地运行配置，优先级仍保存于既有 `sys_config`，不新增表、迁移或索引重建。
 
 配置无效时跳过；超时、HTTP 错误、空结果或格式／引用校验失败时尝试下一通道。正确返回无依据时不继续降级；每次生成前复核公开证据。整个问答最多 120 秒，分类最多 20 秒，必要时改写最多 15 秒，生成最多 50 秒。理解阶段首选通道最多 12 秒，生成首选通道最多 30 秒；后续通道共享剩余阶段时间，各通道还受自身超时限制。问题 embedding 最多 15 秒，重排序默认最多 10 秒，所有阶段同时受整个问答期限限制。
 
@@ -263,6 +265,7 @@ Go 请求使用自身 `User-Agent: grtblog-rag/1.0` 与当前会话 UUID 的 `x-
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | `RAG_ENABLED`                                           | 服务开关，默认关闭；关闭时不启动索引查询与模型调用                                  |
 | `RAG_EVALUATION_TRACE_DIR`                              | 本地评测目录，留空关闭；还需请求头 `X-RAG-Evaluation: 1`，不增加公开响应字段         |
+| `RAG_CHAT_*_ENABLED`                                    | 聊天通道开关，默认 true；false 时跳过该通道，仍保留模型和凭据                       |
 | `RAG_CHAT_GPT_*`                                        | GPT 本机代理；默认模型 `gpt-6-sol`，`EXTRA_BODY_JSON` 默认推理强度 medium           |
 | `RAG_CHAT_GROK_*`                                       | Grok 的地址、模型、密钥、协议、请求头、额外请求体和超时                             |
 | `RAG_CHAT_GEMINI_*`                                     | Gemini，当前 `PROTOCOL=openai`、地址以 `/v1` 结尾                                   |
@@ -275,7 +278,7 @@ Go 请求使用自身 `User-Agent: grtblog-rag/1.0` 与当前会话 UUID 的 `x-
 
 聊天地址填写实际 API 根路径，例如 Go 地址以 `/v1` 结尾，DeepSeek 官方地址为 `https://api.deepseek.com`；代码追加 `/chat/completions`。JSON 配置在 `.env` 中作为一行对象填写，`EXTRA_BODY_JSON` 不能覆盖模型、消息或流式开关。模板为选定的 DeepSeek 模型关闭 thinking；更换供应商时按其协议调整，不默认向所有 OpenAI 兼容模型发送此扩展字段。`.env` 由现有启动入口加载，修改后需要重启服务。实际密钥不进入 Git、返回体或错误日志。
 
-后台新增独立 `/rag` 菜单，包含三个页签。密钥及供应商地址不在后台返回，模型“已配置”表示本地参数完整，不表示供应商连接已通过。
+后台新增独立 `/rag` 菜单，包含三个页签。密钥及供应商地址不在后台返回，模型“已配置”表示通道已启用且本地参数完整，不表示供应商连接已通过；暂停通道不计入可用配置，凭据仍保留。
 
 页面复用既有组件与数据流：前台使用 `Button`、`Textarea`、bits-ui `Dialog`、`QueryRoot` 和共享 API 客户端；`Textarea` 仅补充原生属性透传及元素引用，保持原有调用兼容。后台使用 `PageHeader`、`ScrollContainer`、Naive UI 的表格／表单／抽屉／分页及既有请求封装，数据请求沿用 TanStack Query。新增页面组件只组合 RAG 业务，没有新增基础组件库或依赖。
 
@@ -407,3 +410,9 @@ SciFact 最终上下文文档 Recall@6 为 0.968750，Open RAG 章节 Recall@6 �
 以上为修复前的冻结基线。本轮已根据失败记录修改代码，并单独进行 [定向修复验证](Test/benchmark/fixes_20260929.md)，没有覆盖原始成绩。新版本普通上限仍为 800，完整公式使用独立预算；三个原有失败问题和多步骤证据遗漏均已复测，答案完整性与模型降级延迟继续单列。
 
 结束后撤回 148 条临时来源为草稿，确认派生块清零；原有 16 篇公开文章正文与发布状态不变，块上限 800／父范围 1600 和基线索引恢复。评测开关已移除，重启后公开问答及索引均就绪，关闭记录的真实入口定向检查通过。没有运行全量单元测试或本轮页面验证。
+
+### 暂停 Grok 与 GPT、Gemini 顺序验证
+
+2026-09-29 按用户要求暂停反复超时的 Grok，保存 GPT、Gemini、Grok、OpenCode Go 的四通道排列；执行时跳过 Grok，官方 default 仍固定最后。Go 构建、受影响包 `go vet` 与差异格式检查通过。没有修改前端组件或站内文章正文，也没有重建索引。
+
+两项独立**定向测试**均通过前端代理 `/api/v2/public/ask` 进入真实链路。暂时关闭 GPT 后，Gemini 首次尝试并有据回答，用时 5.312 秒；随后恢复 GPT，实际首次尝试 GPT 并有据回答，用时 22.988 秒。两项原始数合计 2、排除 0、外部失败 0、核心返回 2，Grok 均未被调用。第二项未触发 GPT 失败降级，不能当作实际超时切换的验证；当前顺序和暂停开关已恢复为日常配置。记录分别保存在 `Temp/rag-benchmarks/provider-pause/gemini-2026-09-29T10-38-02.535Z.json` 与 `gpt-first-2026-09-29T10-38-56.845Z.json`，不属于公开效果评分，也未操作后台页面。

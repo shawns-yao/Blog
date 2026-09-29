@@ -46,7 +46,7 @@ func (s *Service) loadSettings(ctx context.Context) (settings, error) {
 		return result, err
 	}
 	for _, channel := range s.orderedChatChannels(result.chatPriority) {
-		if channel.APIKey == "" {
+		if channel.Disabled || channel.APIKey == "" {
 			continue
 		}
 		client, err := infraai.NewRAGChatClient(channel.BaseURL, channel.APIKey, channel.HeadersJSON, channel.ExtraBodyJSON, channel.SessionHeader, channel.Timeout, channel.Protocol)
@@ -91,6 +91,9 @@ func (s *Service) loadIndexSettings(ctx context.Context) (settings, error) {
 }
 
 func chatConfigured(channel appconfig.RAGChatConfig) bool {
+	if channel.Disabled {
+		return false
+	}
 	_, err := infraai.NewRAGChatClient(channel.BaseURL, channel.APIKey, channel.HeadersJSON, channel.ExtraBodyJSON, channel.SessionHeader, channel.Timeout, channel.Protocol)
 	return err == nil && channel.Model != ""
 }
