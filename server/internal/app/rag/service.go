@@ -192,6 +192,13 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 			return result("temporarily_unavailable", "来源内容已更新，请重新提问。")
 		}
 	}
+	seenSources := make(map[int64]bool)
+	for _, item := range evidence {
+		if !seenSources[item.MomentID] {
+			trace.EvidenceSourceIDs = append(trace.EvidenceSourceIDs, item.MomentID)
+			seenSources[item.MomentID] = true
+		}
+	}
 	return answer
 }
 

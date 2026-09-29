@@ -122,6 +122,10 @@ func (s *Service) understandQuery(ctx context.Context, settings settings, questi
 		if plan.NeedHistory && len(history) >= 2 {
 			plan.Queries = distinctQueries(question, history[len(history)-2].Content)
 		}
+		if plan.NeedMultiQuery {
+			plan.Queries = distinctQueries(append(plan.Queries, literalSubqueries(question, plan.Strategy)...)...)
+			plan.Queries = plan.Queries[:min(len(plan.Queries), 1+settings.tuning.MultiQueryMax)]
+		}
 		return plan, !ok, provider
 	}
 	if plan.NeedRewrite && validQuery(expansion.Query) {
@@ -137,6 +141,33 @@ func (s *Service) understandQuery(ctx context.Context, settings settings, questi
 	}
 	plan.Queries = plan.Queries[:min(len(plan.Queries), 1+settings.tuning.MultiQueryMax)]
 	return plan, !ok, provider
+}
+
+// An unavailable expansion model can still search explicit clauses from the
+// original question. These phrases add no entities or inferred conditions.
+func literalSubqueries(question, strategy string) []string {
+	clauses := regexp.MustCompile(`[，,。；;？?]+`).Split(question, -1)
+	var queries []string
+	if strategy == "COMPARE" && len(clauses) > 0 {
+		comparison := strings.TrimSpace(clauses[0])
+		comparison = strings.TrimPrefix(strings.TrimPrefix(comparison, "比较"), "对比")
+		for _, separator := range []string{"和", "与"} {
+			left, right, ok := strings.Cut(comparison, separator)
+			if ok && utf8.RuneCountInString(strings.TrimSpace(left)) >= 2 && utf8.RuneCountInString(strings.TrimSpace(right)) >= 2 {
+				queries = append(queries, strings.TrimSpace(left), strings.TrimSpace(right))
+				break
+			}
+		}
+	}
+	if len(clauses) > 1 {
+		for _, clause := range clauses {
+			clause = strings.TrimSpace(clause)
+			if utf8.RuneCountInString(clause) >= 2 && clause != question {
+				queries = append(queries, clause)
+			}
+		}
+	}
+	return distinctQueries(queries...)
 }
 
 func (s *Service) understandingCall(ctx context.Context, settings settings, prompt, payload, sessionID string, timeout time.Duration, run *domain.QueryRun, validate func(string) bool) (string, string) {

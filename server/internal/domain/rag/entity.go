@@ -102,6 +102,7 @@ type QueryTrace struct {
 	FusedCandidates       int              `json:"fusedCandidates"`
 	RerankedCandidates    int              `json:"rerankedCandidates"`
 	EvidenceCount         int              `json:"evidenceCount"`
+	EvidenceSourceIDs     []int64          `json:"evidenceSourceIds,omitempty"`
 }
 
 type ChannelFailure struct {
