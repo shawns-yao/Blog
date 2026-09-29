@@ -48,9 +48,9 @@ func budgetHistory(history []domain.Message, limit int) []domain.Message {
 	return history[start:]
 }
 
-func (s *Service) buildContext(ctx context.Context, settings settings, plan queryPlan, candidates []domain.Evidence) ([]domain.Evidence, error) {
+func (s *Service) buildContext(ctx context.Context, settings settings, plan queryPlan, candidates []domain.Evidence, limit evidenceLimit, anchors int) ([]domain.Evidence, string, error) {
 	if len(candidates) == 0 {
-		return nil, nil
+		return nil, "candidate_exhausted", nil
 	}
 	var ids []int64
 	seen := map[int64]bool{}
@@ -62,7 +62,7 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 	}
 	sources, err := s.repo.ContextSources(ctx, settings.profile, ids)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	sourceByID := map[int64]domain.Source{}
 	chunksByID := map[int64][]domain.Chunk{}
@@ -70,14 +70,18 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 		sourceByID[source.MomentID] = source
 	}
 	var result []domain.Evidence
+	budgetLimited := false
 	perSource := map[int64]int{}
-	for _, candidate := range candidates {
+	for position, candidate := range candidates {
+		if position >= anchors && limit.HasScoreCutoff && len(result) >= limit.Minimum && candidate.Score < limit.ScoreCutoff {
+			return result, "score_gap", nil
+		}
 		source, ok := sourceByID[candidate.MomentID]
 		if !ok || source.SourceHash != candidate.SourceHash {
-			return nil, domain.ErrStaleSource
+			return nil, "", domain.ErrStaleSource
 		}
 		// A factual answer can need several distant sections of the same paper.
-		maxPerSource := settings.tuning.TopK
+		maxPerSource := limit.Maximum
 		switch plan.Strategy {
 		case "COMPARE":
 			maxPerSource = 2
@@ -134,15 +138,19 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 		if evidenceTokens(proposal) > settings.tuning.ContextMaxTokens {
 			proposal[len(proposal)-1] = base
 			if evidenceTokens(proposal) > settings.tuning.ContextMaxTokens {
+				budgetLimited = true
 				continue
 			}
 			candidate = base
 		}
 		result = append(result, candidate)
 		perSource[candidate.MomentID]++
-		if len(result) == settings.tuning.TopK {
-			break
+		if len(result) == limit.Target {
+			return result, "target", nil
 		}
 	}
-	return result, nil
+	if budgetLimited {
+		return result, "token_budget", nil
+	}
+	return result, "candidate_exhausted", nil
 }

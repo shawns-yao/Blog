@@ -21,6 +21,7 @@ var tuningKeys = []string{
 	"rag.rerankEnabled", "rag.rerankCandidateTopK", "rag.rerankThreshold", "rag.rerankFallback",
 	"rag.chunkTargetTokens", "rag.chunkMinTokens", "rag.chunkMaxTokens", "rag.chunkOverlapTokens", "rag.parentMaxTokens",
 	"rag.contextMaxTokens", "rag.historyMaxTokens", "rag.multiQueryEnabled", "rag.multiQueryMax", "rag.bm25K1", "rag.bm25B",
+	"rag.dynamicTopKEnabled", "rag.dynamicTopKMin", "rag.dynamicTopKMax",
 }
 
 var configKeys = append(append([]string{}, tuningKeys...), chatPriorityKey)
@@ -30,6 +31,7 @@ func defaultTuning() domain.Tuning {
 		ChunkTargetTokens: 500, ChunkMinTokens: 180, ChunkMaxTokens: 800, ChunkOverlapTokens: 60, ParentMaxTokens: 1600,
 		ContextMaxTokens: 6000, HistoryMaxTokens: 3000, MultiQueryEnabled: true, MultiQueryMax: 3, BM25K1: 1.2, BM25B: 0.75,
 		VectorTopK: 25, KeywordTopK: 25, TopK: 6, RRFK: 60, RRFVectorWeight: 0.7, RRFKeywordWeight: 0.3,
+		DynamicTopKEnabled: true, DynamicTopKMin: 2, DynamicTopKMax: 12,
 		RerankEnabled: true, RerankCandidateTopK: 40, RerankThreshold: 0.2, RerankFallback: true}
 }
 
@@ -54,6 +56,10 @@ func validateTuning(t domain.Tuning) error {
 		t.TopK < 1 || t.TopK > 20 || t.RerankCandidateTopK < t.TopK || t.RerankCandidateTopK > 100 ||
 		t.RerankCandidateTopK > (t.VectorTopK+t.KeywordTopK)*(1+t.MultiQueryMax) {
 		return fmt.Errorf("召回 TopK 需为 1–100，最终 TopK 需为 1–20；融合候选数需介于最终 TopK 与多查询召回总数之间，最多 100。")
+	}
+	if t.DynamicTopKMin < 1 || t.DynamicTopKMax > 20 || t.DynamicTopKMin > t.DynamicTopKMax ||
+		(t.DynamicTopKEnabled && t.DynamicTopKMax > t.RerankCandidateTopK) {
+		return fmt.Errorf("动态 TopK 需满足 1 ≤ 下限 ≤ 上限 ≤ 20；启用时上限不能超过融合候选数。")
 	}
 	if t.RRFK < 1 || t.RRFK > 200 || t.RRFVectorWeight < 0 || t.RRFKeywordWeight < 0 ||
 		math.Abs(t.RRFVectorWeight+t.RRFKeywordWeight-1) > 0.000001 {
@@ -91,7 +97,17 @@ func decodeTuning(values map[string]string) (domain.Tuning, error) {
 	if err != nil {
 		return t, errNotConfigured
 	}
-	if json.Unmarshal(data, &t) != nil || validateTuning(t) != nil {
+	if json.Unmarshal(data, &t) != nil {
+		return t, errNotConfigured
+	}
+	// Older installations can have a candidate pool smaller than the new defaults.
+	if strings.TrimSpace(values["rag.dynamicTopKMax"]) == "" {
+		t.DynamicTopKMax = min(t.DynamicTopKMax, t.RerankCandidateTopK)
+	}
+	if strings.TrimSpace(values["rag.dynamicTopKMin"]) == "" {
+		t.DynamicTopKMin = min(t.DynamicTopKMin, t.DynamicTopKMax)
+	}
+	if validateTuning(t) != nil {
 		return t, errNotConfigured
 	}
 	return t, nil
@@ -131,6 +147,11 @@ func (s *Service) AdminSettings(ctx context.Context) (domain.AdminSettings, erro
 }
 
 func (s *Service) UpdateTuning(ctx context.Context, tuning domain.Tuning) (domain.AdminSettings, error) {
+	// Old clients omit the new fields and retain the fixed mode they requested.
+	if tuning.DynamicTopKMin == 0 && tuning.DynamicTopKMax == 0 {
+		tuning.DynamicTopKMax = min(defaultTuning().DynamicTopKMax, tuning.RerankCandidateTopK)
+		tuning.DynamicTopKMin = min(defaultTuning().DynamicTopKMin, tuning.DynamicTopKMax)
+	}
 	if err := validateTuning(tuning); err != nil {
 		return domain.AdminSettings{}, err
 	}
@@ -150,7 +171,7 @@ func (s *Service) UpdateTuning(ctx context.Context, tuning domain.Tuning) (domai
 		valueType := "number"
 		if field == "indexVersion" {
 			valueType = "string"
-		} else if field == "rerankEnabled" || field == "rerankFallback" || field == "multiQueryEnabled" {
+		} else if field == "rerankEnabled" || field == "rerankFallback" || field == "multiQueryEnabled" || field == "dynamicTopKEnabled" {
 			valueType = "bool"
 		} else if field == "minSimilarity" || field == "rrfVectorWeight" || field == "rrfKeywordWeight" || field == "rerankThreshold" || field == "bm25K1" || field == "bm25B" {
 			valueType = "string"

@@ -110,12 +110,16 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	trace.RerankedCandidates = len(candidates)
 	captureEvaluationStage(ctx, "reranked", nil, [][]domain.Evidence{candidates})
+	limit := adaptiveEvidenceLimit(tuning, plan, candidates, tuning.RerankEnabled && !run.RerankDegraded)
+	trace.DynamicTopK = tuning.DynamicTopKEnabled
+	trace.TopKMinimum, trace.TopKMaximum, trace.TopKTarget, trace.TopKReason = limit.Minimum, limit.Maximum, limit.Target, limit.Reason
 	if plan.Strategy == "MULTI_HOP" && tuning.MultiQueryEnabled && len(queries) > 1 {
 		candidates, trace.SubqueryAnchors = prioritizeSubqueryEvidence(candidates, vector, keyword, tuning)
 		captureEvaluationStage(ctx, "coverage", queries, [][]domain.Evidence{candidates})
 	}
 	contextStarted := time.Now()
-	evidence, contextErr := s.buildContext(ctx, settings, plan, candidates)
+	evidence, stoppedBy, contextErr := s.buildContext(ctx, settings, plan, candidates, limit, trace.SubqueryAnchors)
+	trace.TopKStoppedBy = stoppedBy
 	trace.ContextMs = time.Since(contextStarted).Milliseconds()
 	if contextErr != nil {
 		return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}

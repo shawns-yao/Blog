@@ -21,6 +21,9 @@ type Tuning struct {
 	VectorTopK          int     `json:"vectorTopK"`
 	KeywordTopK         int     `json:"keywordTopK"`
 	TopK                int     `json:"topK"`
+	DynamicTopKEnabled  bool    `json:"dynamicTopKEnabled"`
+	DynamicTopKMin      int     `json:"dynamicTopKMin"`
+	DynamicTopKMax      int     `json:"dynamicTopKMax"`
 	MinSimilarity       float64 `json:"minSimilarity"`
 	RRFK                int     `json:"rrfK"`
 	RRFVectorWeight     float64 `json:"rrfVectorWeight"`

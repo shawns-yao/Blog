@@ -104,6 +104,12 @@ type QueryTrace struct {
 	FusedCandidates       int              `json:"fusedCandidates"`
 	RerankedCandidates    int              `json:"rerankedCandidates"`
 	EvidenceCount         int              `json:"evidenceCount"`
+	DynamicTopK           bool             `json:"dynamicTopK"`
+	TopKMinimum           int              `json:"topKMinimum,omitempty"`
+	TopKMaximum           int              `json:"topKMaximum,omitempty"`
+	TopKTarget            int              `json:"topKTarget,omitempty"`
+	TopKReason            string           `json:"topKReason,omitempty"`
+	TopKStoppedBy         string           `json:"topKStoppedBy,omitempty"`
 	SubqueryAnchors       int              `json:"subqueryAnchors,omitempty"`
 	EvidenceSourceIDs     []int64          `json:"evidenceSourceIds,omitempty"`
 }
