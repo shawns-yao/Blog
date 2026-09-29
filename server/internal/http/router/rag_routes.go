@@ -30,6 +30,7 @@ func registerRAGRoutes(v2 fiber.Router, deps Dependencies) {
 	admin.Post("/preview", h.Preview)
 	admin.Get("/settings", h.Settings)
 	admin.Put("/settings", h.UpdateSettings)
+	admin.Put("/chat-priority", h.UpdateChatPriority)
 	admin.Get("/documents", h.Documents)
 	admin.Get("/documents/:id/chunks", h.DocumentChunks)
 	admin.Post("/documents/:id/reindex", h.ReindexDocument)

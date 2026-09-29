@@ -6,6 +6,7 @@ a46a3c5996785fd7d3713a650e21d02ed7517710:
 - internal/models/embedding/openai.go (batch embedding protocol)
 - internal/models/rerank/remote_api.go (remote reranking protocol)
 - internal/types/retrieval_config.go (retrieval and weighted RRF defaults)
+- internal/application/service/chat_pipeline/query_understand.go (intent and structured query rewriting)
 
 Source: https://github.com/Tencent/WeKnora
 The blog adaptations use its existing goldmark parser, model providers and

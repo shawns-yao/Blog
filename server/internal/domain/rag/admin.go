@@ -21,16 +21,27 @@ type Tuning struct {
 }
 
 type AdminSettings struct {
-	Tuning              Tuning `json:"tuning"`
-	Enabled             bool   `json:"enabled"`
-	PrimaryModel        string `json:"primaryModel"`
-	FallbackModel       string `json:"fallbackModel"`
-	EmbeddingModel      string `json:"embeddingModel"`
-	RerankModel         string `json:"rerankModel"`
-	PrimaryConfigured   bool   `json:"primaryConfigured"`
-	FallbackConfigured  bool   `json:"fallbackConfigured"`
-	EmbeddingConfigured bool   `json:"embeddingConfigured"`
-	RerankConfigured    bool   `json:"rerankConfigured"`
+	ChatChannels        []ChatChannel `json:"chatChannels"`
+	Tuning              Tuning        `json:"tuning"`
+	Enabled             bool          `json:"enabled"`
+	PrimaryModel        string        `json:"primaryModel"`
+	FallbackModel       string        `json:"fallbackModel"`
+	EmbeddingModel      string        `json:"embeddingModel"`
+	RerankModel         string        `json:"rerankModel"`
+	PrimaryConfigured   bool          `json:"primaryConfigured"`
+	FallbackConfigured  bool          `json:"fallbackConfigured"`
+	EmbeddingConfigured bool          `json:"embeddingConfigured"`
+	RerankConfigured    bool          `json:"rerankConfigured"`
+}
+
+type ChatChannel struct {
+	Name            string `json:"name"`
+	Model           string `json:"model"`
+	Protocol        string `json:"protocol"`
+	Priority        int    `json:"priority"`
+	Configured      bool   `json:"configured"`
+	Default         bool   `json:"default"`
+	ReasoningEffort string `json:"reasoningEffort,omitempty"`
 }
 
 type Document struct {

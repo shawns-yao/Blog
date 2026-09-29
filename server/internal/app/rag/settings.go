@@ -26,6 +26,7 @@ type ConfigReader interface {
 type settings struct {
 	profile       string
 	channels      []chatChannel
+	chatPriority  []string
 	embedder      *infraai.Embedder
 	reranker      *infraai.Reranker
 	tuning        domain.Tuning
@@ -38,6 +39,7 @@ type chatChannel struct {
 	client  *infraai.RAGChatClient
 	model   string
 	primary bool
+	name    string
 }
 
 func (s *Service) loadSettings(ctx context.Context) (settings, error) {
@@ -45,24 +47,22 @@ func (s *Service) loadSettings(ctx context.Context) (settings, error) {
 	if err != nil {
 		return result, err
 	}
-	for i, channel := range []appconfig.RAGChatConfig{s.providers.Primary, s.providers.Fallback} {
+	for _, channel := range s.orderedChatChannels(result.chatPriority) {
 		if channel.APIKey == "" {
 			continue
 		}
-		client, err := infraai.NewRAGChatClient(channel.BaseURL, channel.APIKey, channel.HeadersJSON, channel.ExtraBodyJSON, channel.SessionHeader, channel.Timeout)
+		client, err := infraai.NewRAGChatClient(channel.BaseURL, channel.APIKey, channel.HeadersJSON, channel.ExtraBodyJSON, channel.SessionHeader, channel.Timeout, channel.Protocol)
 		if err != nil || channel.Model == "" {
 			continue
 		}
-		result.channels = append(result.channels, chatChannel{client: client, model: channel.Model, primary: i == 0})
+		result.channels = append(result.channels, chatChannel{client: client, model: channel.Model, primary: len(result.channels) == 0, name: channel.Name})
 	}
 	if len(result.channels) == 0 {
 		return result, errNotConfigured
 	}
 	if result.tuning.RerankEnabled {
 		result.reranker, err = s.newReranker()
-		if err != nil && !result.tuning.RerankFallback {
-			return result, errNotConfigured
-		}
+		// A reranker configuration error affects retrieval, not general chat.
 	}
 	return result, nil
 }
@@ -93,7 +93,7 @@ func (s *Service) loadIndexSettings(ctx context.Context) (settings, error) {
 }
 
 func chatConfigured(channel appconfig.RAGChatConfig) bool {
-	_, err := infraai.NewRAGChatClient(channel.BaseURL, channel.APIKey, channel.HeadersJSON, channel.ExtraBodyJSON, channel.SessionHeader, channel.Timeout)
+	_, err := infraai.NewRAGChatClient(channel.BaseURL, channel.APIKey, channel.HeadersJSON, channel.ExtraBodyJSON, channel.SessionHeader, channel.Timeout, channel.Protocol)
 	return err == nil && channel.Model != ""
 }
 
@@ -116,8 +116,12 @@ func (s *Service) loadTuning(ctx context.Context) (settings, error) {
 	if err != nil {
 		return result, err
 	}
+	priority, err := decodeChatPriority(values[chatPriorityKey])
+	if err != nil {
+		return result, err
+	}
 	result = settings{
-		tuning: tuning, chunkSize: tuning.ChunkSize, overlap: tuning.ChunkOverlap, minSimilarity: tuning.MinSimilarity,
+		tuning: tuning, chatPriority: priority, chunkSize: tuning.ChunkSize, overlap: tuning.ChunkOverlap, minSimilarity: tuning.MinSimilarity,
 	}
 	// Credentials are intentionally absent from fingerprints and public responses.
 	result.profile = fingerprint(struct {

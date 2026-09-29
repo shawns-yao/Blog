@@ -25,12 +25,15 @@ type RAGChatClient struct {
 	client        *http.Client
 }
 
-func NewRAGChatClient(baseURL, apiKey, headersJSON, extraBodyJSON, sessionHeader string, timeout time.Duration) (*RAGChatClient, error) {
+func NewRAGChatClient(baseURL, apiKey, headersJSON, extraBodyJSON, sessionHeader string, timeout time.Duration, protocol string) (*RAGChatClient, error) {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	parsed, err := url.Parse(baseURL)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") ||
 		parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || apiKey == "" || timeout <= 0 || timeout > 30*time.Second {
 		return nil, errors.New("invalid chat configuration")
+	}
+	if protocol != "openai" {
+		return nil, errors.New("invalid chat protocol")
 	}
 	var headers map[string]string
 	var extra map[string]json.RawMessage

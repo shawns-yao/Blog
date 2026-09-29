@@ -208,6 +208,24 @@ ORDER BY channel, score DESC, id`,
 	return vectorResults, keywordResults, err
 }
 
+// Deduplicate documents before limiting so a long article cannot consume all
+// title-search slots with its chunks. No embedding request is needed here.
+func (r *RAGRepository) DiscoverDocuments(ctx context.Context, profile, titlePattern, contentKind string, limit int) ([]domain.Evidence, error) {
+	rows := make([]domain.Evidence, 0)
+	err := r.db.WithContext(ctx).Raw(`WITH hits AS (
+    SELECT DISTINCT ON (c.moment_id) c.id, c.moment_id, m.title, m.short_url,
+        c.content, c.context_header, c.kind, m.ext_info->>'contentKind' AS content_kind,
+        c.start_at AS start, c.end_at AS "end", c.source_hash, c.profile AS index_version,
+        m.created_at, m.updated_at
+    FROM rag_chunk c `+ragLiveIndex+` AND (? = '' OR m.ext_info->>'contentKind' = ?)
+        AND m.title ~* ?
+    ORDER BY c.moment_id, c.seq
+)
+SELECT * FROM hits ORDER BY updated_at DESC, moment_id LIMIT ?`,
+		profile, contentKind, contentKind, titlePattern, limit).Scan(&rows).Error
+	return rows, err
+}
+
 func (r *RAGRepository) Validate(ctx context.Context, profile string, evidence []domain.Evidence) (bool, error) {
 	if len(evidence) == 0 {
 		return false, nil

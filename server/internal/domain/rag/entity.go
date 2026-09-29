@@ -48,12 +48,49 @@ type Citation struct {
 }
 
 type Answer struct {
-	Status       string     `json:"status"`
-	Mode         string     `json:"mode,omitempty"`
-	Answer       string     `json:"answer"`
-	Reason       string     `json:"reason,omitempty"`
-	Citations    []Citation `json:"citations"`
-	IndexVersion string     `json:"indexVersion,omitempty"`
+	Status       string      `json:"status"`
+	Mode         string      `json:"mode,omitempty"`
+	Answer       string      `json:"answer"`
+	Reason       string      `json:"reason,omitempty"`
+	Citations    []Citation  `json:"citations"`
+	IndexVersion string      `json:"indexVersion,omitempty"`
+	Trace        *QueryTrace `json:"trace,omitempty"`
+}
+
+type QueryIntent string
+
+const (
+	IntentChat           QueryIntent = "chat"
+	IntentDocumentSearch QueryIntent = "document_search"
+	IntentKnowledgeQuery QueryIntent = "knowledge_query"
+	IntentClarify        QueryIntent = "clarify"
+)
+
+// QueryTrace explains this request only; it is not stored as conversation history.
+type QueryTrace struct {
+	UnderstandingProvider string           `json:"understandingProvider,omitempty"`
+	AnswerProvider        string           `json:"answerProvider,omitempty"`
+	AnswerAttempts        []string         `json:"answerAttempts,omitempty"`
+	AnswerFailures        []ChannelFailure `json:"answerFailures,omitempty"`
+	Intent                QueryIntent      `json:"intent"`
+	Query                 string           `json:"query"`
+	UnderstandingDegraded bool             `json:"understandingDegraded"`
+	EmbeddingDegraded     bool             `json:"embeddingDegraded"`
+	VectorCandidates      int              `json:"vectorCandidates"`
+	KeywordCandidates     int              `json:"keywordCandidates"`
+	FusedCandidates       int              `json:"fusedCandidates"`
+	RerankedCandidates    int              `json:"rerankedCandidates"`
+	EvidenceCount         int              `json:"evidenceCount"`
+}
+
+type ChannelFailure struct {
+	Provider string `json:"provider"`
+	Reason   string `json:"reason"`
+}
+
+type HistoryPolicy struct {
+	MaxRounds     int `json:"maxRounds"`
+	MaxCharacters int `json:"maxCharacters"`
 }
 
 // Conversation messages supply context, never independently verified evidence.
@@ -75,6 +112,8 @@ type IndexStats struct {
 }
 
 type Availability struct {
-	Available bool   `json:"available"`
-	Reason    string `json:"reason"`
+	Available  bool           `json:"available"`
+	Reason     string         `json:"reason"`
+	IndexReady bool           `json:"indexReady"`
+	History    *HistoryPolicy `json:"history,omitempty"`
 }

@@ -74,14 +74,16 @@ func (h *RAGHandler) Reindex(c *fiber.Ctx) error {
 
 func (h *RAGHandler) Preview(c *fiber.Ctx) error {
 	var request struct {
-		Title    string `json:"title"`
-		Markdown string `json:"markdown"`
+		Title        string `json:"title"`
+		Markdown     string `json:"markdown"`
+		ChunkSize    *int   `json:"chunkSize,omitempty"`
+		ChunkOverlap *int   `json:"chunkOverlap,omitempty"`
 	}
 	if c.BodyParser(&request) != nil || strings.TrimSpace(request.Markdown) == "" ||
 		utf8.RuneCountInString(request.Markdown) > 100000 || utf8.RuneCountInString(request.Title) > 255 {
 		return response.NewBizErrorWithMsg(response.ParamsError, "请提供标题与 1–100000 个字符的 Markdown。")
 	}
-	chunks, err := h.service.Preview(c.UserContext(), request.Title, request.Markdown)
+	chunks, err := h.service.Preview(c.UserContext(), request.Title, request.Markdown, request.ChunkSize, request.ChunkOverlap)
 	if err != nil {
 		return response.NewBizErrorWithMsg(response.ParamsError, "分块配置不可用，请检查站内问答设置。")
 	}
@@ -105,6 +107,23 @@ func (h *RAGHandler) UpdateSettings(c *fiber.Ctx) error {
 		return response.NewBizErrorWithMsg(response.ParamsError, "检索配置格式无效。")
 	}
 	settings, err := h.service.UpdateTuning(c.UserContext(), request)
+	if err != nil {
+		return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
+	}
+	return response.Success(c, settings)
+}
+
+func (h *RAGHandler) UpdateChatPriority(c *fiber.Ctx) error {
+	c.Set("Cache-Control", "no-store")
+	var request struct {
+		Priority []string `json:"priority"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(c.Body()))
+	decoder.DisallowUnknownFields()
+	if len(c.Body()) > 1000 || decoder.Decode(&request) != nil || decoder.Decode(new(any)) != io.EOF {
+		return response.NewBizErrorWithMsg(response.ParamsError, "语言模型优先级格式无效。")
+	}
+	settings, err := h.service.UpdateChatPriority(c.UserContext(), request.Priority)
 	if err != nil {
 		return response.NewBizErrorWithMsg(response.ParamsError, err.Error())
 	}

@@ -15,6 +15,7 @@ type Repository interface {
 	Fail(ctx context.Context, source Source, reason string) error
 	Stats(ctx context.Context, profile string) (IndexStats, error)
 	Retrieve(ctx context.Context, profile, question, contentKind string, vector []float64, tuning Tuning) ([]Evidence, []Evidence, error)
+	DiscoverDocuments(ctx context.Context, profile, titlePattern, contentKind string, limit int) ([]Evidence, error)
 	Validate(ctx context.Context, profile string, evidence []Evidence) (bool, error)
 	Documents(ctx context.Context, profile string, filter DocumentFilter) (DocumentPage, error)
 	DocumentChunks(ctx context.Context, profile string, momentID int64, page, pageSize int) ([]Chunk, int64, error)

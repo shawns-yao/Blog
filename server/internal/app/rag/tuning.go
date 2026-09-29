@@ -14,11 +14,13 @@ import (
 	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/rag"
 )
 
-var configKeys = []string{
+var tuningKeys = []string{
 	"rag.chunkSize", "rag.chunkOverlap", "rag.indexVersion", "rag.minSimilarity",
 	"rag.vectorTopK", "rag.keywordTopK", "rag.topK", "rag.rrfK", "rag.rrfVectorWeight", "rag.rrfKeywordWeight",
 	"rag.rerankEnabled", "rag.rerankCandidateTopK", "rag.rerankThreshold", "rag.rerankFallback",
 }
+
+var configKeys = append(append([]string{}, tuningKeys...), chatPriorityKey)
 
 func defaultTuning() domain.Tuning {
 	return domain.Tuning{ChunkSize: 1200, ChunkOverlap: 120, IndexVersion: "1", MinSimilarity: 0.35,
@@ -58,7 +60,7 @@ func decodeTuning(values map[string]string) (domain.Tuning, error) {
 	data, _ := json.Marshal(t)
 	fields := make(map[string]json.RawMessage)
 	_ = json.Unmarshal(data, &fields)
-	for _, key := range configKeys {
+	for _, key := range tuningKeys {
 		value := strings.TrimSpace(values[key])
 		if value == "" {
 			continue
@@ -86,10 +88,30 @@ func (s *Service) AdminSettings(ctx context.Context) (domain.AdminSettings, erro
 		return domain.AdminSettings{}, err
 	}
 	p := s.providers
+	channels := make([]domain.ChatChannel, 0, 5)
+	primary := p.GPT
+	foundPrimary := false
+	for i, channel := range s.orderedChatChannels(settings.chatPriority) {
+		configured := chatConfigured(channel)
+		var extra struct {
+			ReasoningEffort string `json:"reasoning_effort"`
+		}
+		_ = json.Unmarshal([]byte(channel.ExtraBodyJSON), &extra)
+		switch extra.ReasoningEffort {
+		case "none", "minimal", "low", "medium", "high", "xhigh":
+		default:
+			extra.ReasoningEffort = ""
+		}
+		channels = append(channels, domain.ChatChannel{Name: channel.Name, Model: channel.Model, Protocol: channel.Protocol,
+			Priority: i + 1, Configured: configured, Default: channel.Name == p.Fallback.Name, ReasoningEffort: extra.ReasoningEffort})
+		if configured && !foundPrimary {
+			primary, foundPrimary = channel, true
+		}
+	}
 	_, rerankErr := s.newReranker()
-	return domain.AdminSettings{Tuning: settings.tuning, Enabled: p.Enabled,
-		PrimaryModel: p.Primary.Model, FallbackModel: p.Fallback.Model, EmbeddingModel: p.EmbeddingModel, RerankModel: p.RerankModel,
-		PrimaryConfigured: chatConfigured(p.Primary), FallbackConfigured: chatConfigured(p.Fallback),
+	return domain.AdminSettings{Tuning: settings.tuning, Enabled: p.Enabled, ChatChannels: channels,
+		PrimaryModel: primary.Model, FallbackModel: p.Fallback.Model, EmbeddingModel: p.EmbeddingModel, RerankModel: p.RerankModel,
+		PrimaryConfigured: foundPrimary, FallbackConfigured: chatConfigured(p.Fallback),
 		EmbeddingConfigured: s.embeddingConfigured(), RerankConfigured: rerankErr == nil}, nil
 }
 
@@ -106,8 +128,8 @@ func (s *Service) UpdateTuning(ctx context.Context, tuning domain.Tuning) (domai
 	if !ok {
 		return domain.AdminSettings{}, fmt.Errorf("配置服务不支持写入。")
 	}
-	items := make([]appsysconfig.UpdateItem, 0, len(configKeys))
-	for _, key := range configKeys {
+	items := make([]appsysconfig.UpdateItem, 0, len(tuningKeys))
+	for _, key := range tuningKeys {
 		field := strings.TrimPrefix(key, "rag.")
 		value := fields[field]
 		valueType := "number"
