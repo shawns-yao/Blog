@@ -34,7 +34,7 @@ let lastAsk = 0;
 let originalValues;
 let baseline;
 let initialProfile;
-const valueTypes = key => ['multiQueryEnabled', 'rerankEnabled', 'rerankFallback'].includes(key) ? 'bool'
+const valueTypes = key => ['multiQueryEnabled', 'rerankEnabled', 'rerankFallback', 'dynamicTopKEnabled'].includes(key) ? 'bool'
   : ['indexVersion', 'chatPriority', 'minSimilarity', 'rrfVectorWeight', 'rrfKeywordWeight', 'rerankThreshold', 'bm25K1', 'bm25B'].includes(key) ? 'string' : 'number';
 
 function sql(query) {
@@ -279,6 +279,7 @@ try {
   baseline = { chunkTargetTokens: 500, chunkMinTokens: 180, chunkMaxTokens: 800, chunkOverlapTokens: 60,
     parentMaxTokens: 1600, contextMaxTokens: 6000, historyMaxTokens: 3000, multiQueryEnabled: true,
     multiQueryMax: 3, bm25K1: 1.2, bm25B: 0.75, vectorTopK: 20, keywordTopK: 20, topK: 6,
+    dynamicTopKEnabled: false, dynamicTopKMin: 2, dynamicTopKMax: 12,
     rrfK: 60, rrfVectorWeight: 0.7, rrfKeywordWeight: 0.3, rerankEnabled: true,
     rerankCandidateTopK: 40, rerankThreshold: 0, rerankFallback: true,
     chatPriority: JSON.stringify(['gpt','grok','gemini','opencode_go']) };
