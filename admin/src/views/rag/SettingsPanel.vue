@@ -13,11 +13,16 @@ import {
 } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 
+import { useInjection } from '@/composables'
+import { mediaQueryInjectionKey } from '@/injection'
 import { saveRagSettings } from '@/services/rag'
+
+import ChatPriority from './ChatPriority.vue'
 
 import type { RagSettings, RagTuning } from '@/services/rag'
 
 const props = defineProps<{ settings?: RagSettings }>()
+const { isMaxSm } = useInjection(mediaQueryInjectionKey)
 type Draft = { [K in keyof RagTuning]: RagTuning[K] extends number ? number | null : RagTuning[K] }
 type NumberKey = {
   [K in keyof RagTuning]: RagTuning[K] extends number ? K : never
@@ -134,19 +139,12 @@ function reset() {
     v-if="settings && form"
     class="space-y-6 pt-3"
   >
+    <ChatPriority :channels="settings.chatChannels" />
     <NDescriptions
       label-placement="top"
-      :column="2"
+      :column="isMaxSm ? 1 : 2"
       class="break-words"
     >
-      <NDescriptionsItem label="问答主通道"
-        >{{ settings.primaryModel }} ·
-        {{ settings.primaryConfigured ? '已配置' : '未配置' }}</NDescriptionsItem
-      >
-      <NDescriptionsItem label="问答兜底通道"
-        >{{ settings.fallbackModel }} ·
-        {{ settings.fallbackConfigured ? '已配置' : '未配置' }}</NDescriptionsItem
-      >
       <NDescriptionsItem label="向量模型"
         >{{ settings.embeddingModel }} ·
         {{ settings.embeddingConfigured ? '已配置' : '未配置' }}</NDescriptionsItem

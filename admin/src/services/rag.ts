@@ -17,7 +17,18 @@ export interface RagTuning {
   rerankFallback: boolean
 }
 
+export interface RagChatChannel {
+  name: string
+  model: string
+  protocol: string
+  priority: number
+  configured: boolean
+  default: boolean
+  reasoningEffort?: string
+}
+
 export interface RagSettings {
+  chatChannels: RagChatChannel[]
   tuning: RagTuning
   enabled: boolean
   primaryModel: string
@@ -97,6 +108,8 @@ export const getRagIndex = () => request<RagIndexStats>('/admin/rag/index')
 export const getRagMetrics = () => request<RagMetrics>('/admin/rag/metrics')
 export const saveRagSettings = (tuning: RagTuning) =>
   request<RagSettings>('/admin/rag/settings', { method: 'PUT', body: tuning, retry: 0 })
+export const saveRagChatPriority = (priority: string[]) =>
+  request<RagSettings>('/admin/rag/chat-priority', { method: 'PUT', body: { priority }, retry: 0 })
 export const reindexRag = () =>
   request<{ queued: boolean }>('/admin/rag/reindex', { method: 'POST', retry: 0 })
 export const reindexRagDocument = (id: number) =>
