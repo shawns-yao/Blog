@@ -106,6 +106,14 @@ type QueryTrace struct {
 	Query                 string           `json:"query"`
 	UnderstandingDegraded bool             `json:"understandingDegraded"`
 	EmbeddingDegraded     bool             `json:"embeddingDegraded"`
+	EmbeddingProvider     string           `json:"embeddingProvider,omitempty"`
+	EmbeddingAttempts     []string         `json:"embeddingAttempts,omitempty"`
+	EmbeddingFailures     []ChannelFailure `json:"embeddingFailures,omitempty"`
+	EmbeddingFallbackUsed bool             `json:"embeddingFallbackUsed"`
+	RerankProvider        string           `json:"rerankProvider,omitempty"`
+	RerankAttempts        []string         `json:"rerankAttempts,omitempty"`
+	RerankFailures        []ChannelFailure `json:"rerankFailures,omitempty"`
+	RerankFallbackUsed    bool             `json:"rerankFallbackUsed"`
 	VectorCandidates      int              `json:"vectorCandidates"`
 	KeywordCandidates     int              `json:"keywordCandidates"`
 	FusedCandidates       int              `json:"fusedCandidates"`

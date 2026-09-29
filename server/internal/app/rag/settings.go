@@ -27,8 +27,8 @@ type settings struct {
 	profile       string
 	channels      []chatChannel
 	chatPriority  []string
-	embedder      *infraai.Embedder
-	reranker      *infraai.Reranker
+	embedder      *infraai.EmbeddingPool
+	reranker      *infraai.RerankPool
 	tuning        domain.Tuning
 	minSimilarity float64
 }
@@ -62,6 +62,7 @@ func (s *Service) loadSettings(ctx context.Context) (settings, error) {
 		result.reranker, err = s.newReranker()
 		// A reranker configuration error affects retrieval, not general chat.
 	}
+	result.embedder = s.embedder
 	return result, nil
 }
 
@@ -70,7 +71,7 @@ func (s *Service) embeddingConfigured() bool {
 	parsed, err := url.Parse(p.EmbeddingBaseURL)
 	return err == nil && parsed.Host != "" && (parsed.Scheme == "https" || parsed.Scheme == "http") &&
 		parsed.User == nil && parsed.RawQuery == "" && parsed.Fragment == "" &&
-		p.EmbeddingModel != "" && p.EmbeddingAPIKey != "" && p.EmbeddingDimensions >= 0 && p.EmbeddingDimensions <= 16384
+		p.EmbeddingModel != "" && p.EmbeddingAPIKey != "" && s.embedder != nil && s.indexEmbedder != nil
 }
 
 // Indexing depends on embedding configuration, independently of chat/rerank availability.
@@ -85,8 +86,7 @@ func (s *Service) loadIndexSettings(ctx context.Context) (settings, error) {
 	if !s.embeddingConfigured() {
 		return result, errNotConfigured
 	}
-	p := s.providers
-	result.embedder = infraai.NewEmbedder(p.EmbeddingBaseURL, p.EmbeddingAPIKey, p.EmbeddingModel, p.EmbeddingDimensions)
+	result.embedder = s.indexEmbedder
 	return result, nil
 }
 
@@ -98,9 +98,33 @@ func chatConfigured(channel appconfig.RAGChatConfig) bool {
 	return err == nil && channel.Model != ""
 }
 
-func (s *Service) newReranker() (*infraai.Reranker, error) {
+func (s *Service) newReranker() (*infraai.RerankPool, error) {
+	if s.reranker == nil {
+		return nil, infraai.ErrRerankUnavailable
+	}
+	return s.reranker, nil
+}
+
+func (s *Service) embeddingRoutes() []infraai.ModelRoute {
 	p := s.providers
-	return infraai.NewReranker(p.RerankBaseURL, p.RerankModel, p.RerankAPIKey, p.RerankTimeout)
+	routes := []infraai.ModelRoute{{Name: p.EmbeddingProvider, BaseURL: p.EmbeddingBaseURL, Model: p.EmbeddingModel,
+		APIKey: p.EmbeddingAPIKey, Timeout: p.EmbeddingTimeout}}
+	return appendModelRoute(routes, p.EmbeddingFallback)
+}
+
+func (s *Service) rerankRoutes() []infraai.ModelRoute {
+	p := s.providers
+	routes := []infraai.ModelRoute{{Name: p.RerankProvider, BaseURL: p.RerankBaseURL, Model: p.RerankModel,
+		APIKey: p.RerankAPIKey, Timeout: p.RerankTimeout}}
+	return appendModelRoute(appendModelRoute(routes, p.RerankFallback), p.RerankLastResort)
+}
+
+func appendModelRoute(routes []infraai.ModelRoute, config appconfig.RAGModelConfig) []infraai.ModelRoute {
+	if config.BaseURL != "" || config.Model != "" || config.APIKey != "" {
+		routes = append(routes, infraai.ModelRoute{Name: config.Name, BaseURL: config.BaseURL, Model: config.Model,
+			APIKey: config.APIKey, Timeout: config.Timeout})
+	}
+	return routes
 }
 
 func (s *Service) loadTuning(ctx context.Context) (settings, error) {
@@ -125,12 +149,17 @@ func (s *Service) loadTuning(ctx context.Context) (settings, error) {
 		tuning: tuning, chatPriority: priority, minSimilarity: tuning.MinSimilarity,
 	}
 	// Credentials are intentionally absent from fingerprints and public responses.
+	// Verified routes in one explicit space share indexes. Legacy single-route profiles keep their URL identity.
+	indexIdentity := s.providers.EmbeddingBaseURL
+	if s.providers.EmbeddingSpaceID != "" {
+		indexIdentity = "space:" + s.providers.EmbeddingSpaceID
+	}
 	result.profile = fingerprint(struct {
 		Version, Chunker, Encoding, Model, URL                string
 		Target, Minimum, Maximum, Overlap, Parent, Dimensions int
 		Adaptive                                              bool
 	}{tuning.IndexVersion, infrarag.ChunkerVersion, infrarag.TokenEncoding, s.providers.EmbeddingModel,
-		s.providers.EmbeddingBaseURL, tuning.ChunkTargetTokens, tuning.ChunkMinTokens, tuning.ChunkMaxTokens,
+		indexIdentity, tuning.ChunkTargetTokens, tuning.ChunkMinTokens, tuning.ChunkMaxTokens,
 		tuning.ChunkOverlapTokens, tuning.ParentMaxTokens, s.providers.EmbeddingDimensions, tuning.AdaptiveChunkingEnabled})
 	return result, nil
 }

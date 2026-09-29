@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -62,12 +61,12 @@ func (e *Embedder) BatchEmbed(ctx context.Context, texts []string) ([][]float64,
 	}
 	response, err := e.client.Do(req)
 	if err != nil {
-		return nil, ErrEmbeddingUnavailable
+		return nil, unavailable(ErrEmbeddingUnavailable, "network_error")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		// Upstream errors can contain credentials or original text; never expose them.
-		return nil, fmt.Errorf("%w (HTTP %d)", ErrEmbeddingUnavailable, response.StatusCode)
+		return nil, httpFailure(ErrEmbeddingUnavailable, response.StatusCode)
 	}
 	var result struct {
 		Data []struct {
@@ -76,7 +75,7 @@ func (e *Embedder) BatchEmbed(ctx context.Context, texts []string) ([][]float64,
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(io.LimitReader(response.Body, 16<<20)).Decode(&result); err != nil || len(result.Data) != len(texts) {
-		return nil, ErrEmbeddingUnavailable
+		return nil, unavailable(ErrEmbeddingUnavailable, "invalid_response")
 	}
 	vectors := make([][]float64, len(texts))
 	dimension := e.dimensions
@@ -88,7 +87,7 @@ func (e *Embedder) BatchEmbed(ctx context.Context, texts []string) ([][]float64,
 			dimension = len(item.Embedding)
 		}
 		if len(item.Embedding) != dimension || dimension > 16384 {
-			return nil, ErrEmbeddingUnavailable
+			return nil, unavailable(ErrEmbeddingUnavailable, "dimension_mismatch")
 		}
 		norm := 0.0
 		for _, value := range item.Embedding {

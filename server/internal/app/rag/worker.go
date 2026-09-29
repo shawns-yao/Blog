@@ -27,7 +27,7 @@ func (s *Service) Run(ctx context.Context) {
 					lastProfile, reconciledAt = settings.profile, time.Now()
 				}
 			}
-			if err == nil {
+			if err == nil && settings.embedder.Ready() {
 				s.indexNext(ctx, settings)
 			}
 		}
@@ -40,7 +40,8 @@ func (s *Service) Run(ctx context.Context) {
 }
 
 func (s *Service) indexNext(ctx context.Context, settings settings) {
-	workCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	// Leave one minute before the repository's ten-minute lease expires.
+	workCtx, cancel := context.WithTimeout(ctx, 9*time.Minute)
 	defer cancel()
 	source, err := s.repo.Claim(workCtx, settings.profile, uuid.NewString())
 	if err != nil {
@@ -66,22 +67,30 @@ func (s *Service) indexNext(ctx context.Context, settings settings) {
 		}
 	}
 	dimensions := 0
-	// One live-source check per HTTP batch stops further dispatch after withdrawal.
+	// One live-source check per HTTP attempt stops further dispatch after withdrawal, including failover.
 	// This is a source lifecycle check, not per-chunk SQL or a list-query N+1.
 	for start := 0; reason == "" && start < len(chunks); start += 16 {
-		current, err := s.repo.CurrentSource(workCtx, *source, settings.profile)
-		if err != nil || !current {
-			reason = "source_changed"
-			break
-		}
 		end := min(start+16, len(chunks))
 		texts := make([]string, end-start)
 		for i := start; i < end; i++ {
 			texts[i-start] = chunks[i].ContextHeader + "\n\n" + chunks[i].Content
 		}
-		vectors, err := settings.embedder.BatchEmbed(workCtx, texts)
+		vectors, provider, err := settings.embedder.BatchEmbedChecked(workCtx, texts, func(attempt context.Context) error {
+			current, err := s.repo.CurrentSource(attempt, *source, settings.profile)
+			if err != nil || !current {
+				return domain.ErrStaleSource
+			}
+			return nil
+		})
 		if err != nil {
+			for _, failure := range provider.Failures {
+				log.Printf("[rag] embedding failed moment_id=%d provider=%s reason=%s batch=%d",
+					source.MomentID, failure.Provider, failure.Reason, len(texts))
+			}
 			reason = "embedding_unavailable"
+			if errors.Is(err, domain.ErrStaleSource) {
+				reason = "source_changed"
+			}
 			break
 		}
 		for i, vector := range vectors {

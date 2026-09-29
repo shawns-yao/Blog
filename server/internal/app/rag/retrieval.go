@@ -48,10 +48,11 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	var vectors [][]float64
 	var embedErr error
 	if tuning.VectorTopK > 0 {
-		embedCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		vectors, embedErr = settings.embedder.BatchEmbed(embedCtx, queries)
+		var provider infraai.ProviderTrace
+		vectors, provider, embedErr = settings.embedder.BatchEmbedWithTrace(ctx, infraai.EmbeddingQueries(queries, s.providers.EmbeddingInstruction))
+		trace.EmbeddingProvider, trace.EmbeddingAttempts, trace.EmbeddingFailures = provider.Provider, provider.Attempts, provider.Failures
+		trace.EmbeddingFallbackUsed = provider.Fallback
 		run.EmbeddingMs = elapsedMs(started)
-		cancel()
 	}
 	if embedErr == nil && tuning.VectorTopK > 0 {
 		if len(vectors) != len(queries) {
@@ -103,7 +104,10 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 		ranked, rerankErr := []domain.Evidence(nil), infraai.ErrRerankUnavailable
 		if settings.reranker != nil {
 			started = time.Now()
-			ranked, rerankErr = settings.reranker.Rerank(ctx, plan.Query, candidates, tuning.RerankThreshold)
+			var provider infraai.ProviderTrace
+			ranked, provider, rerankErr = settings.reranker.Rerank(ctx, plan.Query, candidates, tuning.RerankThreshold)
+			trace.RerankProvider, trace.RerankAttempts, trace.RerankFailures = provider.Provider, provider.Attempts, provider.Failures
+			trace.RerankFallbackUsed = provider.Fallback
 			run.RerankMs = elapsedMs(started)
 		}
 		if rerankErr == nil {

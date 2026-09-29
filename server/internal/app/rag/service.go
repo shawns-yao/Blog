@@ -20,14 +20,45 @@ import (
 )
 
 type Service struct {
-	repo      domain.Repository
-	config    ConfigReader
-	providers appconfig.RAGConfig
-	askSlot   chan struct{}
+	repo          domain.Repository
+	config        ConfigReader
+	providers     appconfig.RAGConfig
+	askSlot       chan struct{}
+	embedder      *infraai.EmbeddingPool
+	indexEmbedder *infraai.EmbeddingPool
+	reranker      *infraai.RerankPool
 }
 
 func NewService(repo domain.Repository, config ConfigReader, providers appconfig.RAGConfig) *Service {
-	return &Service{repo: repo, config: config, providers: providers, askSlot: make(chan struct{}, 2)}
+	if providers.EmbeddingProvider == "" {
+		providers.EmbeddingProvider = "primary"
+	}
+	if providers.EmbeddingTimeout == 0 {
+		providers.EmbeddingTimeout = 25 * time.Second
+	}
+	if providers.EmbeddingStageTimeout == 0 {
+		providers.EmbeddingStageTimeout = 40 * time.Second
+	}
+	if providers.EmbeddingIndexTimeout == 0 {
+		providers.EmbeddingIndexTimeout = time.Minute
+	}
+	if providers.RerankProvider == "" {
+		providers.RerankProvider = "primary"
+	}
+	if providers.RerankStageTimeout == 0 {
+		providers.RerankStageTimeout = 20 * time.Second
+	}
+	s := &Service{repo: repo, config: config, providers: providers, askSlot: make(chan struct{}, 2)}
+	s.embedder, _ = infraai.NewEmbeddingPool(s.embeddingRoutes(), providers.EmbeddingDimensions, providers.EmbeddingSpaceID,
+		providers.EmbeddingStageTimeout)
+	indexRoutes := s.embeddingRoutes()
+	for i := range indexRoutes {
+		indexRoutes[i].Timeout = providers.EmbeddingIndexTimeout
+	}
+	s.indexEmbedder, _ = infraai.NewEmbeddingPool(indexRoutes, providers.EmbeddingDimensions, providers.EmbeddingSpaceID,
+		providers.EmbeddingIndexTimeout*time.Duration(len(indexRoutes)))
+	s.reranker, _ = infraai.NewRerankPool(s.rerankRoutes(), providers.RerankStageTimeout)
+	return s
 }
 
 func (s *Service) Availability(ctx context.Context) domain.Availability {

@@ -29,7 +29,7 @@ func NewReranker(baseURL, model, apiKey string, timeout time.Duration) (*Reranke
 	parsed, err := url.Parse(baseURL)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") ||
 		parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" ||
-		model == "" || apiKey == "" || timeout <= 0 || timeout > 15*time.Second {
+		model == "" || apiKey == "" || timeout <= 0 || timeout > time.Minute {
 		return nil, ErrRerankUnavailable
 	}
 	return &Reranker{baseURL: strings.TrimRight(baseURL, "/"), model: model, apiKey: apiKey,
@@ -61,11 +61,11 @@ func (r *Reranker) Rerank(ctx context.Context, query string, candidates []domain
 	request.Header.Set("User-Agent", "grtblog-rag/1.0")
 	response, err := r.client.Do(request)
 	if err != nil {
-		return nil, ErrRerankUnavailable
+		return nil, unavailable(ErrRerankUnavailable, "network_error")
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return nil, ErrRerankUnavailable
+		return nil, httpFailure(ErrRerankUnavailable, response.StatusCode)
 	}
 	var ranked struct {
 		Results []struct {
@@ -74,7 +74,7 @@ func (r *Reranker) Rerank(ctx context.Context, query string, candidates []domain
 		} `json:"results"`
 	}
 	if json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&ranked) != nil || len(ranked.Results) != len(candidates) {
-		return nil, ErrRerankUnavailable
+		return nil, unavailable(ErrRerankUnavailable, "invalid_response")
 	}
 	seen := make(map[int]bool, len(candidates))
 	result := make([]domain.Evidence, 0, len(candidates))
