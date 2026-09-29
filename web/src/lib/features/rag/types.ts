@@ -1,7 +1,11 @@
 export type RagAvailability = {
 	available: boolean;
 	reason: 'ready' | 'disabled' | 'not_configured' | 'index_not_ready' | 'temporarily_unavailable';
+	indexReady?: boolean;
+	history?: RagHistoryPolicy;
 };
+
+export type RagHistoryPolicy = { maxRounds: number; maxCharacters: number };
 
 export type RagCitation = {
 	number: number;

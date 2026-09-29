@@ -95,7 +95,7 @@
 	function send() {
 		const value = question.trim();
 		if (!ready || !value || mutation.isPending) return;
-		const history = conversationHistory(turns);
+		const history = conversationHistory(turns, availability.data?.history);
 		const id = crypto.randomUUID();
 		pendingTurnId = id;
 		onTurnsChange([...turns, { id, question: value, answer: null }]);
