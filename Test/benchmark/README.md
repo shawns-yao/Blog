@@ -17,7 +17,7 @@
 
 经数据库准备授权，批量保存带集合标识的评测 Markdown；项目触发器与工作进程实际执行分块、嵌入和索引。问答仅调用 `/api/v2/public/ask`，继续使用项目配置的问题理解、改写、多查询、双路召回、RRF、重排序、证据预算及模型降级。脚本不调用内部 RAG 模块，不注入向量、候选或答案，不需要管理员账号。
 
-默认使用专用 Docker 环境。SciFact 与 Open RAG 各自使用独立数据库、Redis、应用和持久卷，入口分别为本机 `18080`、`18081`；仅绑定 `127.0.0.1`，数据库和 Redis 不映射宿主端口。共享 Go 依赖与编译缓存，不共享业务数据。两个集合仍串行发起模型请求，避免供应商并发影响。
+默认使用专用 Docker 环境。SciFact 与 Open RAG 各自使用独立数据库、Redis、应用和持久卷，入口分别为本机 `18080`、`18081`；仅绑定 `127.0.0.1`，数据库和 Redis 不映射宿主端口。共享 Go 依赖与编译缓存，不共享业务数据。每套内部串行问答；比较供应商延迟时建议两套也串行执行，若同时运行必须记录并发负载限制。
 
 首次初始化复制当前日常库的 schema、迁移历史和非敏感 `rag.*` 参数，不复制正文、登录账号、敏感配置或派生向量；语料作者是无密码、停用、非管理员的来源记录。模型密钥继续读取已有本地 `server/.env`。首次保存集合后保留来源和实际工作进程生成的索引；重复运行核对原文、发布状态和索引指纹，未变更文档不更新、不重新嵌入。分块参数或版本变更仍须由项目重建索引。
 
@@ -38,6 +38,15 @@ node Test/benchmark/prepare-rag-datasets.mjs
 # 首次初始化，之后仍用 start 运行当前代码并复用数据。
 node Test/benchmark/rag-test-environment.mjs start beir-scifact
 node Test/benchmark/rag-test-environment.mjs start open-rag-bench
+
+# 在独立容器核验 Qwen 主备，不提前切换日常配置或重复复制密钥。
+node Test/benchmark/rag-test-environment.mjs start beir-scifact --models=qwen
+node Test/benchmark/rag-test-environment.mjs start open-rag-bench --models=qwen
+# 4096 维长论文的真实工作进程可能超过原 25 分钟等待预算。
+node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --index-timeout-minutes=90
+
+# 已有 Qwen 索引上的真实故障切换；会重启 SciFact 应用，不能同时运行该集合的公开问答。
+node Test/rag-provider-failover.mjs
 
 # 默认专用 Docker 环境；一次执行一个集合，完成后保留语料与索引。
 node Test/benchmark/run-rag-benchmark.mjs beir-scifact
@@ -81,7 +90,9 @@ Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe Test/benchmark/score-ragas.
 Temp/rag-benchmarks/ragas-runtime/Scripts/python.exe Test/benchmark/score-ragas.py open-rag-bench --run-id=<metadata中的运行目录名>
 ```
 
-Ragas 可以消费进行中的输出，也可以在项目测试完成后独立运行。评分使用 Gemini，避免默认用生成回答的 GPT 自评；回答相关性复用配置的 BGE 嵌入。Gemini 的实际请求至少间隔 12 秒，客户端和结构化适配器均不重试失败请求。评判模型与嵌入请求都独立于项目功能统计；多次评分分别存入运行目录的 `ragas/<UTC时间>/`，不覆盖此前失败记录。
+Ragas 可以消费进行中的输出，也可以在项目测试完成后独立运行。已完成基线评分使用 Gemini，回答相关性使用当时配置的 BGE 嵌入；评分器读取本地配置并记录实际模型。更换评分嵌入后，相关性分数不能直接当作同一评分条件的版本对照。Gemini 请求至少间隔 12 秒，客户端和结构化适配器均不重试失败请求。评判请求独立于项目功能统计；多次评分另存 `ragas/<UTC时间>/`，不覆盖此前失败记录。
+
+`Test/rag-provider-preflight.mjs` 只核验供应商协议和相同输入的向量兼容性，不计入项目效果。默认显式请求 4096 维；设置 `RAG_PROVIDER_PREFLIGHT_DIMENSIONS=0` 可观察原生返回。`Test/rag-provider-failover.mjs` 从真实公开问答入口验证配置顺序、备用向量、备用重排、故障冷却以及 BM25／RRF 退路，并核对索引快照；不调用项目内部函数或注入候选。故障配置由专用 Compose 覆盖层提供，真实密钥仅在进程内读取已有本地环境文件。
 
 Open RAG 首次入库在完整公式 1053 token 处超过日常 800 的硬上限；1600 轮次随后遇到 2919 token 的公式，两次记录分别保留。历史长论文基线采用普通硬上限 4000，父范围同步为 4000。修复后较长原子结构有独立上限，新的策略对照继续使用日常普通上限 800／原子上限 4000／父范围 1600；不自动扩大普通上限来绕过缺陷，也不把不同预算的旧成绩当作匹配对照。临时配置由脚本记录、恢复，并等待原有公开内容重新完成日常索引。需要续评分时使用相同集合与运行 ID，并添加 `--resume`，已有分数只在评分契约相同时复用。
 

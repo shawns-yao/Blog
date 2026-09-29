@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { parseEnv } from 'node:util';
 import { dockerOutput, sqlAt, testTarget } from './rag-test-target.mjs';
 
 const [action, dataset] = process.argv.slice(2);
@@ -16,6 +17,30 @@ if (['127.0.0.1', 'localhost', '[::1]'].includes(gptURL.hostname)) gptURL.hostna
 const composeEnv = { ...process.env, RAG_TEST_PROJECT: target.project, RAG_TEST_PORT: String(target.port),
   RAG_TEST_GPT_BASE_URL: gptURL.toString().replace(/\/$/, '') };
 const composeArgs = ['--env-file', 'deploy/.env', '-f', 'deploy/docker-compose.rag-test.yml', '-p', target.project];
+const options = process.argv.slice(4);
+const models = options.find(value => value.startsWith('--models='))?.split('=')[1] ?? 'configured';
+assert(['configured', 'qwen'].includes(models), '模型配置只能使用 configured 或 qwen');
+const faults = new Set(options.filter(value => value.startsWith('--fault=')).map(value => value.slice(8)));
+assert([...faults].every(value => ['embedding-primary', 'embedding-all', 'rerank-primary', 'rerank-qwen', 'rerank-all'].includes(value)), '指定已有供应商故障场景');
+assert(models === 'qwen' || faults.size === 0, '故障场景只用于专用 Qwen 测试配置');
+if (models === 'qwen') {
+  const values = parseEnv(serverEnv);
+  function secret(key, seen = new Set()) {
+    assert(!seen.has(key), '环境变量引用不能循环');
+    const next = new Set(seen); next.add(key);
+    return (values[key] ?? '').replace(/\$\{([A-Z0-9_]+)\}/g, (_, name) => secret(name, next));
+  }
+  composeEnv.RAG_TEST_HYBGZS_KEY = secret('HYBGZS_QWEN_API_KEY');
+  composeEnv.RAG_TEST_TUMUER_KEY = secret('TUMUER_RAG_API_KEY') || secret('RAG_EMBEDDING_FALLBACK_API_KEY') || secret('RAG_EMBEDDING_API_KEY');
+  assert(composeEnv.RAG_TEST_HYBGZS_KEY && composeEnv.RAG_TEST_TUMUER_KEY, '本地需要两站现有密钥');
+  const closed = 'http://127.0.0.1:1/v1';
+  if (faults.has('embedding-primary') || faults.has('embedding-all')) composeEnv.RAG_TEST_EMBEDDING_BASE_URL = closed;
+  if (faults.has('embedding-all')) composeEnv.RAG_TEST_EMBEDDING_FALLBACK_BASE_URL = closed;
+  if (faults.has('rerank-primary') || faults.has('rerank-qwen') || faults.has('rerank-all')) composeEnv.RAG_TEST_RERANK_BASE_URL = closed;
+  if (faults.has('rerank-qwen') || faults.has('rerank-all')) composeEnv.RAG_TEST_RERANK_FALLBACK_BASE_URL = closed;
+  if (faults.has('rerank-all')) composeEnv.RAG_TEST_RERANK_LAST_RESORT_BASE_URL = closed;
+  composeArgs.splice(4, 0, '-f', 'deploy/docker-compose.rag-test-models.yml');
+}
 const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
 const sleep = ms => new Promise(ok => setTimeout(ok, ms));
 

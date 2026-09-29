@@ -1,0 +1,32 @@
+services:
+  server:
+    environment:
+      RAG_EMBEDDING_PROVIDER: hybgzs
+      RAG_EMBEDDING_BASE_URL: "${RAG_TEST_EMBEDDING_BASE_URL:-https://ai.hybgzs.com/v1}"
+      RAG_EMBEDDING_MODEL: Qwen/Qwen3-Embedding-8B
+      RAG_EMBEDDING_API_KEY: "${RAG_TEST_HYBGZS_KEY:?Qwen key is required}"
+      RAG_EMBEDDING_DIMENSIONS: "4096"
+      RAG_EMBEDDING_SPACE_ID: qwen3-embedding-8b-4096-v1
+      RAG_EMBEDDING_QUERY_INSTRUCTION: "Given a web search query, retrieve relevant passages that answer the query."
+      RAG_EMBEDDING_TIMEOUT: 25s
+      RAG_EMBEDDING_STAGE_TIMEOUT: 40s
+      RAG_EMBEDDING_INDEX_TIMEOUT: 60s
+      RAG_EMBEDDING_FALLBACK_PROVIDER: tumuer
+      RAG_EMBEDDING_FALLBACK_BASE_URL: "${RAG_TEST_EMBEDDING_FALLBACK_BASE_URL:-https://router.tumuer.me/v1}"
+      RAG_EMBEDDING_FALLBACK_MODEL: Qwen/Qwen3-Embedding-8B
+      RAG_EMBEDDING_FALLBACK_API_KEY: "${RAG_TEST_TUMUER_KEY:?Tumuer key is required}"
+      RAG_EMBEDDING_FALLBACK_TIMEOUT: 15s
+      RAG_RERANK_PROVIDER: tumuer_bge
+      RAG_RERANK_BASE_URL: "${RAG_TEST_RERANK_BASE_URL:-https://router.tumuer.me/v1}"
+      RAG_RERANK_MODEL: Pro/BAAI/bge-reranker-v2-m3
+      RAG_RERANK_API_KEY: "${RAG_TEST_TUMUER_KEY}"
+      RAG_RERANK_TIMEOUT: 10s
+      RAG_RERANK_STAGE_TIMEOUT: 20s
+      RAG_RERANK_FALLBACK_PROVIDER: tumuer_qwen
+      RAG_RERANK_FALLBACK_BASE_URL: "${RAG_TEST_RERANK_FALLBACK_BASE_URL:-https://router.tumuer.me/v1}"
+      RAG_RERANK_FALLBACK_MODEL: Qwen/Qwen3-Reranker-8B
+      RAG_RERANK_FALLBACK_API_KEY: "${RAG_TEST_TUMUER_KEY}"
+      RAG_RERANK_FALLBACK_TIMEOUT: 10s
+      RAG_RERANK_LAST_RESORT_BASE_URL: ""
+      RAG_RERANK_LAST_RESORT_MODEL: ""
+      RAG_RERANK_LAST_RESORT_API_KEY: ""

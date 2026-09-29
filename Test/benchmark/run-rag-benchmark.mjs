@@ -13,6 +13,8 @@ const sampleArgument = process.argv.slice(3).find(value => value.startsWith('--s
 const selectedIds = sampleArgument ? sampleArgument.slice('--sample-ids='.length).split(',') : null;
 assert(selectedIds === null || selectedIds.every(Boolean), '定向样本 ID 不能为空');
 const testKind = selectedIds ? '定向测试' : '公开权威数据测试';
+const indexTimeout = Number(process.argv.slice(3).find(value => value.startsWith('--index-timeout-minutes='))?.split('=')[1] ?? 25);
+assert(Number.isInteger(indexTimeout) && indexTimeout > 0 && indexTimeout <= 120, '入库等待预算为 1–120 分钟');
 const profileArgument = process.argv.slice(3).find(value => value.startsWith('--strategy-profile='));
 const strategyProfile = profileArgument?.split('=')[1] ?? null;
 assert(strategyProfile === null || ['baseline', 'adaptive'].includes(strategyProfile), '策略对照只能是 baseline 或 adaptive');
@@ -21,6 +23,14 @@ const environment = environmentArgument?.split('=')[1] ?? 'docker';
 assert(['daily', 'docker'].includes(environment), '环境只能是 daily 或 docker');
 const target = testTarget(name, environment === 'docker');
 if (target.dedicated) verifyTestContainers(target);
+const providerFields = ['RAG_EMBEDDING_PROVIDER', 'RAG_EMBEDDING_MODEL', 'RAG_EMBEDDING_DIMENSIONS', 'RAG_EMBEDDING_SPACE_ID',
+  'RAG_EMBEDDING_QUERY_INSTRUCTION', 'RAG_EMBEDDING_TIMEOUT', 'RAG_EMBEDDING_STAGE_TIMEOUT', 'RAG_EMBEDDING_INDEX_TIMEOUT',
+  'RAG_EMBEDDING_FALLBACK_PROVIDER', 'RAG_EMBEDDING_FALLBACK_MODEL', 'RAG_RERANK_PROVIDER', 'RAG_RERANK_MODEL',
+  'RAG_RERANK_TIMEOUT', 'RAG_RERANK_STAGE_TIMEOUT', 'RAG_RERANK_FALLBACK_PROVIDER', 'RAG_RERANK_FALLBACK_MODEL',
+  'RAG_RERANK_LAST_RESORT_PROVIDER', 'RAG_RERANK_LAST_RESORT_MODEL'];
+const runtimeEnv = JSON.parse(dockerOutput(['inspect', '--format', '{{json .Config.Env}}', target.serverContainer]));
+const providerConfig = Object.fromEntries(runtimeEnv.map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
+  .filter(([key]) => providerFields.includes(key)));
 const root = resolve('.'), dir = join(root, 'Temp/rag-benchmarks', name);
 const runId = new Date().toISOString().replaceAll(':', '-');
 const runDir = join(dir, selectedIds ? 'directed-runs' : 'runs', runId);
@@ -59,7 +69,7 @@ const results = [];
 const metadata = { objective: selectedIds ? 'Verify identified failures using original queries and the unchanged frozen corpus'
   : 'Establish a real-project retrieval/reranking/answer baseline on a frozen public dataset subset',
   testKind, selectedIds, testLevel: 'benchmark/end-to-end Markdown RAG',
-  strategyProfile, environment: target,
+  strategyProfile, environment: target, providerConfig, indexTimeoutMinutes: indexTimeout,
   entrypoint: `POST ${target.endpoint}`, dataset,
   goldVisibility: 'Evaluator only; project receives corpus text and query only',
   primaryMetric: 'Final dispatched context macro recall over original document/section IDs; Recall@6 is reported separately; denominator: core project returns',
@@ -140,7 +150,7 @@ try {
   await save(join(runDir, 'source-map.json'), imported.map(({ content, ...document }) => document));
   metadata.importedDocuments = imported.length;
   await save(join(runDir, 'metadata.json'), metadata);
-  const deadline = Date.now() + 1500000;
+  const deadline = Date.now() + indexTimeout * 60000;
   let lastState = '';
   for (;;) {
     const docs = documentSnapshot();
