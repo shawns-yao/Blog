@@ -15,7 +15,20 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-const ChunkerVersion = "weknora-markdown-token-parent-v2"
+const ChunkerVersion = "weknora-markdown-token-parent-v3"
+
+// Ordinary text follows the configured maximum. An indivisible structural
+// unit has a separate ceiling and is stored alone rather than being truncated.
+const AtomicChunkMaxTokens = 4000
+
+func ChunkTokenLimit(kind string, maximum int) int {
+	switch kind {
+	case "math", "code", "table", "list":
+		return max(maximum, AtomicChunkMaxTokens)
+	default:
+		return maximum
+	}
+}
 
 type section struct {
 	start  int
@@ -146,6 +159,14 @@ func SplitMarkdownWithTuning(title, markdown string, tuning domain.Tuning) []dom
 		}
 		for _, next := range units {
 			length := CountTokens(markdown[section.start+next.start : section.start+next.end])
+			if CountTokens(headerFor([]unit{next})+"\n\n"+
+				markdown[section.start+next.start:section.start+next.end]) > maximum {
+				flush()
+				current = []unit{next}
+				flush()
+				current, currentSize = nil, 0
+				continue
+			}
 			proposal := append(append([]unit{}, current...), next)
 			overLimit := len(current) > 0 && CountTokens(headerFor(proposal)+"\n\n"+
 				markdown[section.start+current[0].start:section.start+next.end]) > maximum
@@ -257,7 +278,7 @@ func splitSection(source string, size int) []unit {
 			units = append(units, unit{start: protected.start, end: protected.end, kind: protected.kind, header: header})
 		} else {
 			// Large code and tables split only between complete lines. An oversized
-			// row/formula remains intact; the worker rejects it instead of truncating.
+			// row remains intact and gets its own bounded atomic chunk.
 			if protected.kind == "code" {
 				header = strings.SplitN(block, "\n", 2)[0]
 			}

@@ -57,9 +57,10 @@ func (s *Service) indexNext(ctx context.Context, settings settings) {
 		reason = "empty_content"
 	}
 	for _, chunk := range chunks {
-		if chunk.Tokens > settings.tuning.ChunkMaxTokens {
+		limit := infrarag.ChunkTokenLimit(chunk.Kind, settings.tuning.ChunkMaxTokens)
+		if chunk.Tokens > limit {
 			log.Printf("[rag] oversized chunk moment_id=%d kind=%s tokens=%d limit=%d start=%d end=%d",
-				source.MomentID, chunk.Kind, chunk.Tokens, settings.tuning.ChunkMaxTokens, chunk.Start, chunk.End)
+				source.MomentID, chunk.Kind, chunk.Tokens, limit, chunk.Start, chunk.End)
 			reason = "oversized_atomic_block"
 			break
 		}
