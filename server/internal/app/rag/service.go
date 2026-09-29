@@ -134,11 +134,13 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 		}()
 	}
 	history = budgetHistory(history, settings.tuning.HistoryMaxTokens)
+	understandingStarted := time.Now()
 	plan, degraded, understandingProvider := s.understandQuery(ctx, settings, question, sessionID, history, &run)
 	trace := &domain.QueryTrace{Intent: plan.Intent, OriginalQuery: question, Query: plan.Query,
 		Strategy: plan.Strategy, Queries: plan.Queries, NeedRewrite: plan.NeedRewrite,
 		NeedMultiQuery: plan.NeedMultiQuery, NeedHistory: plan.NeedHistory, RewriteDegraded: plan.RewriteDegraded,
-		UnderstandingDegraded: degraded, UnderstandingProvider: understandingProvider, TokenEncoding: infrarag.TokenEncoding}
+		UnderstandingDegraded: degraded, UnderstandingProvider: understandingProvider, TokenEncoding: infrarag.TokenEncoding,
+		UnderstandingMs: time.Since(understandingStarted).Milliseconds()}
 	if !plan.NeedHistory && plan.Intent != domain.IntentChat {
 		history = nil
 	}
@@ -191,6 +193,9 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 	}
 	if plan.Intent != domain.IntentChat && answer.Mode == "conversation" {
 		return result("no_evidence", "站内现有内容未找到足够依据。")
+	}
+	if answer.Status == "no_evidence" && plan.NeedsClarification && plan.Clarification != "" {
+		answer = domain.Answer{Status: "answered", Mode: "conversation", Answer: plan.Clarification, Citations: []domain.Citation{}}
 	}
 	// A withdrawal/edit during generation invalidates the whole answer.
 	current, err := s.loadSettings(ctx)
@@ -322,7 +327,9 @@ strategy=GLOBAL 只能总结本次检索覆盖的资料，不能声称遍历了�
 documentDiscovery=true 表示用户在查找相关文档，不是在要求具体技术结论。根据 evidence 的 title 列出现有匹配文档并引用编号；标题是已核实的文档元数据，不需要正文包含技术知识才能确认它存在。
 查找文档时直接列出原始标题与引用，不对文档用途添加额外说明。
 证据足够时返回 {"status":"answered","mode":"grounded","answer":"中文回答，每条站内事实后写 [1] 这样的原文编号","citations":[1]}。
-站内问题证据不足时返回 {"status":"no_evidence","answer":"","citations":[]}。不要把问候或一般交流当作证据不足。
+先逐条检查证据中的摘要、定义、定理、条件和结论是否回答问题。概括性问题可以根据明确的摘要或结论回答，不要求检索片段同时包含完整证明或所有推导。
+证据能支持部分答案时，回答可核实的部分并逐条引用，明确说明缺少哪些细节；不要补造未出现的公式、数值、条件或因果关系。
+仅当证据没有支持问题的实质内容时返回 {"status":"no_evidence","answer":"","citations":[]}。不要把“缺少完整证明”当作“没有依据”，也不要把问候或一般交流当作证据不足。
 引用编号必须来自本次 evidence，citations 列出 answer 中实际使用的全部编号。只返回 JSON，不输出链接、HTML 或额外说明。`
 
 var citationPattern = regexp.MustCompile(`\[(\d+)\]`)

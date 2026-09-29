@@ -68,7 +68,6 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 	chunksByID := map[int64][]domain.Chunk{}
 	for _, source := range sources {
 		sourceByID[source.MomentID] = source
-		chunksByID[source.MomentID] = infrarag.SplitMarkdownWithTuning(source.Title, source.Content, settings.tuning)
 	}
 	var result []domain.Evidence
 	perSource := map[int64]int{}
@@ -77,13 +76,20 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 		if !ok || source.SourceHash != candidate.SourceHash {
 			return nil, domain.ErrStaleSource
 		}
-		maxPerSource := 2
-		if plan.Strategy == "GLOBAL" {
+		// A factual answer can need several distant sections of the same paper.
+		maxPerSource := settings.tuning.TopK
+		switch plan.Strategy {
+		case "COMPARE":
+			maxPerSource = 2
+		case "GLOBAL":
 			maxPerSource = 1
 		}
 		base := candidate
 		base.Tokens = infrarag.CountTokens(base.ContextHeader + "\n\n" + base.Content)
 		if plan.Strategy != "FACT" || base.Tokens < settings.tuning.ChunkMinTokens {
+			if _, parsed := chunksByID[candidate.MomentID]; !parsed {
+				chunksByID[candidate.MomentID] = infrarag.SplitMarkdownWithTuning(source.Title, source.Content, settings.tuning)
+			}
 			candidate = infrarag.ExpandEvidence(candidate, source, chunksByID[candidate.MomentID], plan.Strategy != "FACT")
 		} else {
 			candidate = base
@@ -102,10 +108,16 @@ func (s *Service) buildContext(ctx context.Context, settings settings, plan quer
 					proposal[index] = merged
 					if evidenceTokens(proposal) <= settings.tuning.ContextMaxTokens {
 						result = proposal
+						duplicate = true
 					}
 				}
-				duplicate = true
-				break
+				// A failed merge must not discard the candidate's uncovered tail.
+				if previous.Start <= candidate.Start && previous.End >= candidate.End {
+					duplicate = true
+				}
+				if duplicate {
+					break
+				}
 			}
 			if strings.Join(strings.Fields(previous.Content), " ") == strings.Join(strings.Fields(candidate.Content), " ") {
 				duplicate = true

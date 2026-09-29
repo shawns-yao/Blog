@@ -87,6 +87,8 @@ type QueryTrace struct {
 	NeedMultiQuery        bool             `json:"needMultiQuery"`
 	RewriteDegraded       bool             `json:"rewriteDegraded"`
 	ContextTokens         int              `json:"contextTokens"`
+	ContextMs             int64            `json:"contextMs"`
+	UnderstandingMs       int64            `json:"understandingMs"`
 	HistoryTokens         int              `json:"historyTokens"`
 	TokenEncoding         string           `json:"tokenEncoding"`
 	UnderstandingProvider string           `json:"understandingProvider,omitempty"`
@@ -102,6 +104,7 @@ type QueryTrace struct {
 	FusedCandidates       int              `json:"fusedCandidates"`
 	RerankedCandidates    int              `json:"rerankedCandidates"`
 	EvidenceCount         int              `json:"evidenceCount"`
+	SubqueryAnchors       int              `json:"subqueryAnchors,omitempty"`
 	EvidenceSourceIDs     []int64          `json:"evidenceSourceIds,omitempty"`
 }
 

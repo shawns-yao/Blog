@@ -110,7 +110,13 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	trace.RerankedCandidates = len(candidates)
 	captureEvaluationStage(ctx, "reranked", nil, [][]domain.Evidence{candidates})
+	if plan.Strategy == "MULTI_HOP" && tuning.MultiQueryEnabled && len(queries) > 1 {
+		candidates, trace.SubqueryAnchors = prioritizeSubqueryEvidence(candidates, vector, keyword, tuning)
+		captureEvaluationStage(ctx, "coverage", queries, [][]domain.Evidence{candidates})
+	}
+	contextStarted := time.Now()
 	evidence, contextErr := s.buildContext(ctx, settings, plan, candidates)
+	trace.ContextMs = time.Since(contextStarted).Milliseconds()
 	if contextErr != nil {
 		return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
 	}
@@ -124,6 +130,43 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 		}
 	}
 	return evidence, false, nil
+}
+
+// Global reranking can favor the first step and bury another step's evidence.
+// Reserve the best already-admitted RRF hit for each derived query, then fill
+// from the original reranking. This uses no extra model call or new candidates.
+func prioritizeSubqueryEvidence(candidates []domain.Evidence, vector, keyword [][]domain.Evidence, tuning domain.Tuning) ([]domain.Evidence, int) {
+	admitted := make(map[int64]domain.Evidence, len(candidates))
+	for _, item := range candidates {
+		admitted[item.ID] = item
+	}
+	result := make([]domain.Evidence, 0, len(candidates))
+	seen := map[int64]bool{}
+	for query := 1; query < max(len(vector), len(keyword)); query++ {
+		var vectors, keywords []domain.Evidence
+		if query < len(vector) {
+			vectors = vector[query]
+		}
+		if query < len(keyword) {
+			keywords = keyword[query]
+		}
+		for _, hit := range infrarag.Fuse(vectors, keywords, tuning) {
+			if item, ok := admitted[hit.ID]; ok {
+				if !seen[item.ID] {
+					result = append(result, item)
+					seen[item.ID] = true
+				}
+				break
+			}
+		}
+	}
+	anchors := len(result)
+	for _, item := range candidates {
+		if !seen[item.ID] {
+			result = append(result, item)
+		}
+	}
+	return result, anchors
 }
 
 func catalogAnswer(evidence []domain.Evidence, profile string) (domain.Answer, error) {
