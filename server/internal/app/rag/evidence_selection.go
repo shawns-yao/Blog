@@ -24,33 +24,41 @@ func diversifyEvidence(candidates []domain.Evidence, anchors int, diversity floa
 	}
 	chosen := make([]int, 0, len(candidates))
 	used := make([]bool, len(candidates))
-	for i := 0; i < anchors; i++ {
-		chosen = append(chosen, i)
-		used[i] = true
-	}
-	for len(chosen) < len(candidates) {
-		best, bestUtility := -1, math.Inf(-1)
+	// Pairwise redundancy is independent of selection order. Each new choice
+	// updates the maximum once instead of rescanning the whole chosen prefix.
+	redundancies := make([]float64, len(candidates))
+	choose := func(index int) {
+		chosen = append(chosen, index)
+		used[index] = true
+		previous := candidates[index]
 		for i, candidate := range candidates {
 			if used[i] {
 				continue
 			}
-			redundancy := 0.0
-			for _, previous := range chosen {
-				redundancy = max(redundancy, lexicalOverlap(sets[i], sets[previous]))
-				other := candidates[previous]
-				if candidate.MomentID == other.MomentID {
-					shared := max(0, min(candidate.End, other.End)-max(candidate.Start, other.Start))
-					length := max(1, min(candidate.End-candidate.Start, other.End-other.Start))
-					redundancy = max(redundancy, float64(shared)/float64(length))
-				}
+			redundancy := lexicalOverlap(sets[i], sets[index])
+			if candidate.MomentID == previous.MomentID {
+				shared := max(0, min(candidate.End, previous.End)-max(candidate.Start, previous.Start))
+				length := max(1, min(candidate.End-candidate.Start, previous.End-previous.Start))
+				redundancy = max(redundancy, float64(shared)/float64(length))
 			}
-			utility := (1-diversity)/float64(i+1) + diversity*(1-redundancy)
+			redundancies[i] = max(redundancies[i], redundancy)
+		}
+	}
+	for i := 0; i < anchors; i++ {
+		choose(i)
+	}
+	for len(chosen) < len(candidates) {
+		best, bestUtility := -1, math.Inf(-1)
+		for i := range candidates {
+			if used[i] {
+				continue
+			}
+			utility := (1-diversity)/float64(i+1) + diversity*(1-redundancies[i])
 			if utility > bestUtility {
 				best, bestUtility = i, utility
 			}
 		}
-		chosen = append(chosen, best)
-		used[best] = true
+		choose(best)
 	}
 	result := make([]domain.Evidence, len(chosen))
 	for i, index := range chosen {

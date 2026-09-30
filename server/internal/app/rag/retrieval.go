@@ -129,7 +129,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	if tuning.EvidenceSelectionEnabled {
 		candidates = diversifyEvidence(candidates, trace.SubqueryAnchors, tuning.EvidenceDiversityWeight)
-		trace.EvidenceSelection = "subquery_anchors+lexical_diversity"
+		trace.EvidenceSelection = "rerank_leader+subquery_anchors+lexical_diversity"
 		captureEvaluationStage(ctx, "selection", nil, [][]domain.Evidence{candidates})
 	} else {
 		trace.EvidenceSelection = "rank_order"
@@ -154,8 +154,9 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 }
 
 // Global reranking can favor the first step and bury another step's evidence.
-// Reserve the best already-admitted RRF hit for each derived query, then fill
-// from the original reranking. This uses no extra model call or new candidates.
+// Keep the reranked leader, then reserve an already-admitted RRF hit for each
+// derived query. Coverage must not displace the best answer to the full question.
+// The protected prefix uses no extra model call or new candidates.
 func prioritizeSubqueryEvidence(candidates []domain.Evidence, vector, keyword [][]domain.Evidence, tuning domain.Tuning) ([]domain.Evidence, int) {
 	admitted := make(map[int64]domain.Evidence, len(candidates))
 	for _, item := range candidates {
@@ -163,6 +164,10 @@ func prioritizeSubqueryEvidence(candidates []domain.Evidence, vector, keyword []
 	}
 	result := make([]domain.Evidence, 0, len(candidates))
 	seen := map[int64]bool{}
+	if len(candidates) > 0 {
+		result = append(result, candidates[0])
+		seen[candidates[0].ID] = true
+	}
 	for query := 1; query < max(len(vector), len(keyword)); query++ {
 		var vectors, keywords []domain.Evidence
 		if query < len(vector) {
