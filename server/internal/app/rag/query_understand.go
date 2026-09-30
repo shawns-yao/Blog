@@ -281,9 +281,12 @@ func distinctQueries(queries ...string) []string {
 	seen := map[string]bool{}
 	for _, query := range queries {
 		query = strings.TrimSpace(query)
-		if validQuery(query) && !seen[query] {
+		// Literal fallback strips a final question mark. Keep the original text
+		// but avoid embedding the same question twice; internal punctuation stays intact.
+		key := strings.TrimSpace(strings.TrimRight(query, "?？"))
+		if validQuery(query) && !seen[key] {
 			result = append(result, query)
-			seen[query] = true
+			seen[key] = true
 		}
 	}
 	return result
