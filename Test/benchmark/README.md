@@ -59,6 +59,11 @@ node Test/benchmark/run-rag-benchmark.mjs beir-scifact --strategy-profile=adapti
 node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --strategy-profile=baseline
 node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --strategy-profile=adaptive
 
+# 查询阶段定向对照，不改变分块或重复建立向量；三项逐次运行。
+node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --sample-ids=dd1772ea-0e31-4981-b7f0-93e544a8cd89 --retrieval-profile=rrf
+node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --sample-ids=dd1772ea-0e31-4981-b7f0-93e544a8cd89 --retrieval-profile=rerank
+node Test/benchmark/run-rag-benchmark.mjs open-rag-bench --sample-ids=dd1772ea-0e31-4981-b7f0-93e544a8cd89 --retrieval-profile=selection
+
 # 停止／查看专用环境，不删除持久卷。
 node Test/benchmark/rag-test-environment.mjs stop beir-scifact
 node Test/benchmark/rag-test-environment.mjs status beir-scifact
@@ -95,6 +100,8 @@ Ragas 可以消费进行中的输出，也可以在项目测试完成后独立�
 `Test/rag-provider-preflight.mjs` 只核验供应商协议和相同输入的向量兼容性，不计入项目效果。默认显式请求 4096 维；设置 `RAG_PROVIDER_PREFLIGHT_DIMENSIONS=0` 可观察原生返回。`Test/rag-provider-failover.mjs` 从真实公开问答入口验证配置顺序、备用向量、备用重排、故障冷却以及 BM25／RRF 退路，并核对索引快照；不调用项目内部函数或注入候选。故障配置由专用 Compose 覆盖层提供，真实密钥仅在进程内读取已有本地环境文件。
 
 Open RAG 首次入库在完整公式 1053 token 处超过日常 800 的硬上限；1600 轮次随后遇到 2919 token 的公式，两次记录分别保留。历史长论文基线采用普通硬上限 4000，父范围同步为 4000。修复后较长原子结构有独立上限，新的策略对照继续使用日常普通上限 800／原子上限 4000／父范围 1600；不自动扩大普通上限来绕过缺陷，也不把不同预算的旧成绩当作匹配对照。临时配置由脚本记录、恢复，并等待原有公开内容重新完成日常索引。需要续评分时使用相同集合与运行 ID，并添加 `--resume`，已有分数只在评分契约相同时复用。
+
+`--retrieval-profile` 仅控制重排和多样性筛选，保留子查询覆盖、动态 TopK 与证据预算。专用环境保留最后选择，后续正式比较使用 `selection` 恢复。每次运行记录相关项目源文件指纹；`evidenceLoss` 按相同 K 与文档／章节单位列出损失分母，`refusalsWithRelevantContext` 不代表错误拒答率。2026-09-30 的复核和验证见 [优化记录](optimization_20260930.md)。
 
 ## 指标契约与结果
 

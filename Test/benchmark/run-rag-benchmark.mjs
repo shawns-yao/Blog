@@ -18,6 +18,8 @@ assert(Number.isInteger(indexTimeout) && indexTimeout > 0 && indexTimeout <= 120
 const profileArgument = process.argv.slice(3).find(value => value.startsWith('--strategy-profile='));
 const strategyProfile = profileArgument?.split('=')[1] ?? null;
 assert(strategyProfile === null || ['baseline', 'adaptive'].includes(strategyProfile), '策略对照只能是 baseline 或 adaptive');
+const retrievalProfile = process.argv.slice(3).find(value => value.startsWith('--retrieval-profile='))?.split('=')[1] ?? null;
+assert(retrievalProfile === null || ['rrf', 'rerank', 'selection'].includes(retrievalProfile), '检索对照只能是 rrf、rerank 或 selection');
 const environmentArgument = process.argv.slice(3).find(value => value.startsWith('--environment='));
 const environment = environmentArgument?.split('=')[1] ?? 'docker';
 assert(['daily', 'docker'].includes(environment), '环境只能是 daily 或 docker');
@@ -69,7 +71,7 @@ const results = [];
 const metadata = { objective: selectedIds ? 'Verify identified failures using original queries and the unchanged frozen corpus'
   : 'Establish a real-project retrieval/reranking/answer baseline on a frozen public dataset subset',
   testKind, selectedIds, testLevel: 'benchmark/end-to-end Markdown RAG',
-  strategyProfile, environment: target, providerConfig, indexTimeoutMinutes: indexTimeout,
+  strategyProfile, retrievalProfile, environment: target, providerConfig, indexTimeoutMinutes: indexTimeout,
   entrypoint: `POST ${target.endpoint}`, dataset,
   goldVisibility: 'Evaluator only; project receives corpus text and query only',
   primaryMetric: 'Final dispatched context macro recall over original document/section IDs; Recall@6 is reported separately; denominator: core project returns',
@@ -80,6 +82,12 @@ const metadata = { objective: selectedIds ? 'Verify identified failures using or
     : 'N/A: initial characterization without an invented acceptance threshold; decision INCONCLUSIVE',
   artifactDir: runDir, startedAt: new Date().toISOString(), status: 'running',
   evaluatorSha256: hash(await readFile(new URL(import.meta.url))),
+  projectSourceSha256: Object.fromEntries(await Promise.all([
+    'internal/app/rag/service.go', 'internal/app/rag/retrieval.go', 'internal/app/rag/evidence_selection.go',
+    'internal/app/rag/context.go', 'internal/app/rag/topk.go', 'internal/domain/rag/entity.go',
+    'internal/infra/ai/client.go', 'internal/infra/ai/openai.go', 'internal/infra/ai/rag_chat.go',
+    'internal/app/rag/query_understand.go',
+  ].map(async path => [path, hash(await readFile(join(root, 'server', path)))]))),
   limitations: ['Frozen subset changes corpus difficulty; scores are not directly comparable with official full-corpus leaderboards',
     'JSON-to-Markdown is input format adaptation; PDF parsing/OCR are outside this run',
     'BEIR provides relevance labels, not question-answer reference texts'], results: [] };
@@ -117,7 +125,7 @@ try {
   metadata.sourceSnapshot = sql(`SELECT COALESCE(jsonb_agg(jsonb_build_object('id',id,'hash',content_hash,'published',is_published) ORDER BY id),'[]'::jsonb) FROM moment WHERE ext_info->>'ragBenchmark' IS NULL;`);
   metadata.originalIndexProfiles = sql(`SELECT COALESCE(jsonb_agg(jsonb_build_object('id',m.id,'profile',s.active_profile)),'[]'::jsonb)
     FROM moment m JOIN rag_index_state s ON s.moment_id=m.id WHERE m.ext_info->>'ragBenchmark' IS NULL AND m.is_published=true AND m.deleted_at IS NULL;`);
-  if (requestedMaxTokens !== null || strategyProfile !== null) {
+  if (requestedMaxTokens !== null || strategyProfile !== null || retrievalProfile !== null) {
     if (requestedMaxTokens !== null) Object.assign(temporarySettings, { 'rag.chunkMaxTokens': String(requestedMaxTokens),
       'rag.parentMaxTokens': String(Math.max(requestedMaxTokens, Number(originalSettings['rag.parentMaxTokens']))) });
     if (strategyProfile !== null) {
@@ -125,6 +133,12 @@ try {
         assert(originalSettings[`rag.${key}`] !== undefined, '先在运行配置中登记新策略开关');
         temporarySettings[`rag.${key}`] = String(strategyProfile === 'adaptive');
       }
+    }
+    if (retrievalProfile !== null) {
+      // Only query-time settings change; corpus, chunking and embedding identity remain intact.
+      temporarySettings['rag.rerankEnabled'] = String(retrievalProfile !== 'rrf');
+      temporarySettings['rag.evidenceSelectionEnabled'] = String(retrievalProfile === 'selection');
+      for (const key of Object.keys(temporarySettings)) assert(originalSettings[key] !== undefined, '对照配置必须已经登记');
     }
     sql(`UPDATE sys_config s SET value=v.value,updated_at=now() FROM jsonb_each_text(${quote(JSON.stringify(temporarySettings))}::jsonb) v WHERE s.config_key=v.key AND s.is_sensitive=false;`);
     metadata.temporarySettings = temporarySettings;
@@ -241,6 +255,18 @@ try {
     averageRerankMs: mean(core.map(item => item.capture?.run?.RerankMs).filter(Number.isFinite)),
     averageGenerationMs: mean(core.map(item => item.capture?.run?.GenerationMs).filter(Number.isFinite)) };
   summary.answerStatus = results.reduce((sum,item) => { const key=item.answer?.status ?? 'failed'; sum[key]=(sum[key]??0)+1; return sum; }, {});
+  const stageLoss = (before, after, k) => {
+    const eligible = core.filter(item => item.stageMetrics[before]?.[k]?.hit === 1 && item.stageMetrics[after]?.[k]);
+    const lost = eligible.filter(item => item.stageMetrics[after][k].hit === 0);
+    return { k, relevantUnit: name === 'beir-scifact' ? 'document' : 'section', eligible: eligible.length,
+      lost: lost.length, rate: eligible.length ? lost.length / eligible.length : null, sampleIds: lost.map(item => item.id) };
+  };
+  summary.evidenceLoss = Object.fromEntries([1, 6].map(k => [k, {
+    rerank: stageLoss('fused', 'reranked', k), selection: stageLoss('reranked', 'selection', k),
+    context: stageLoss('reranked', 'context', k),
+  }]));
+  summary.refusalsWithRelevantContext = core.filter(item => item.answer?.status === 'no_evidence' && item.finalContextRecall > 0).map(item => item.id);
+  // A relevant document can lack the precise assertion; this count is not a false-refusal score.
   summary.metricQualification = summary.externalFailures / samples.length > .1 ? '受外部因素影响，仅供参考'
     : selectedIds ? 'Directed failures only; excluded from public benchmark aggregates' : 'Frozen subset baseline';
   await save(join(runDir, 'metrics.json'), summary);
