@@ -100,6 +100,7 @@ type QueryTrace struct {
 	TokenEncoding         string           `json:"tokenEncoding"`
 	UnderstandingProvider string           `json:"understandingProvider,omitempty"`
 	AnswerProvider        string           `json:"answerProvider,omitempty"`
+	AnswerCorrection      string           `json:"answerStatusCorrection,omitempty"`
 	AnswerAttempts        []string         `json:"answerAttempts,omitempty"`
 	AnswerFailures        []ChannelFailure `json:"answerFailures,omitempty"`
 	Intent                QueryIntent      `json:"intent"`

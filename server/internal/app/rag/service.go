@@ -337,7 +337,7 @@ func (s *Service) generateAnswer(ctx context.Context, settings settings, payload
 			}
 			continue
 		}
-		answer, err := parseAnswer(generated.Content, evidence, settings.profile)
+		answer, err := parseAnswer(generated.Content, evidence, settings.profile, trace)
 		if err == nil {
 			trace.AnswerProvider = channel.name
 			return answer, nil
@@ -366,15 +366,35 @@ documentDiscovery=true 表示用户在查找相关文档，不是在要求具体
 证据足够时返回 {"status":"answered","mode":"grounded","answer":"中文回答，每条站内事实后写 [1] 这样的原文编号","citations":[1]}。
 先逐条检查证据中的摘要、定义、定理、条件和结论是否回答问题。概括性问题可以根据明确的摘要或结论回答，不要求检索片段同时包含完整证明或所有推导。
 证据能支持部分答案时，回答可核实的部分并逐条引用，明确说明缺少哪些细节；不要补造未出现的公式、数值、条件或因果关系。
+先直接回答问题，再给必要依据。问题询问条件时，区分直接条件、定理适用范围与背景，不把背景或可选设计写成必要条件。
 核实陈述时区分“支持”“反驳”和“证据不足”。原文明示与陈述相反的结果也是有效依据，应解释反驳理由并引用，不能因陈述不成立而返回 no_evidence。
 同一主题或命中文档标题不等于能核实具体断言。实体、条件或比较对象缺失时，明确不能确认该断言，不以相关背景替代判断。
+answered 表示至少回答了问题的一项实质内容；相关背景本身不算部分答案。核实单一陈述时，若证据既不能支持也不能反驳该陈述，必须返回 no_evidence，不能一边声明“无法核实该陈述”一边返回 answered。
 仅当证据没有支持问题的实质内容时返回 {"status":"no_evidence","answer":"","citations":[]}。不要把“缺少完整证明”当作“没有依据”，也不要把问候或一般交流当作证据不足。
 数学表达式使用 Unicode 或普通文本，不输出带反斜杠命令的 LaTeX。answer 必须是合法 JSON 字符串，引号、反斜杠和换行必须正确转义。
 引用编号必须来自本次 evidence，citations 列出 answer 中实际使用的全部编号。只返回 JSON，不输出链接、HTML 或额外说明。`
 
 var citationPattern = regexp.MustCompile(`\[(\d+)\]`)
 
-func parseAnswer(raw string, evidence []domain.Evidence, profile string) (domain.Answer, error) {
+// Only unambiguous opening refusals of the whole question are normalized.
+// Local uncertainty, missing details and evidence that refutes a claim remain answers.
+var wholeQuestionRefusal = regexp.MustCompile(`^(?:(?:根据|基于)?(?:现有的?|当前的?|提供的?|检索到的?|所提供的?)?(?:知识库|站内|本站)?(?:资料|文档|证据|材料)(?:中)?[，,：:]?)?(?:无法|不能|未能)(?:核实|验证|回答|确认)(?:该|这个|这一|上述|此)?(?:问题|陈述|断言|说法)$`)
+var questionFirstRefusal = regexp.MustCompile(`^(?:该|这个|这一|上述|此)(?:问题|陈述|断言|说法)(?:目前|暂时)?(?:无法|不能|未能)(?:(?:通过|根据|基于)(?:现有的?|当前的?|提供的?|检索到的?|所提供的?)?(?:知识库|站内|本站)?(?:资料|文档|证据|材料))?(?:被)?(?:核实|验证|回答|确认)$`)
+var englishQuestionRefusal = regexp.MustCompile(`(?i)^(?:(?:the )?(?:available|provided|retrieved|current) (?:evidence|documents|materials) (?:cannot|can't)|(?:i|we) (?:cannot|can't|am unable to|are unable to)) (?:verify|confirm|answer) (?:this|the|that) (?:claim|statement|question)$`)
+
+func refusesWholeQuestion(text string) bool {
+	opening := strings.TrimSpace(text)
+	if end := strings.IndexAny(opening, "。.!！?？\n"); end >= 0 {
+		opening = opening[:end]
+	}
+	opening = strings.TrimSpace(opening)
+	if opening == "证据不足" || opening == "依据不足" || opening == "现有证据不足" {
+		return true
+	}
+	return wholeQuestionRefusal.MatchString(opening) || questionFirstRefusal.MatchString(opening) || englishQuestionRefusal.MatchString(opening)
+}
+
+func parseAnswer(raw string, evidence []domain.Evidence, profile string, trace *domain.QueryTrace) (domain.Answer, error) {
 	raw = strings.TrimSpace(raw)
 	if strings.HasPrefix(raw, "```") && strings.HasSuffix(raw, "```") {
 		if newline := strings.IndexByte(raw, '\n'); newline >= 0 {
@@ -410,6 +430,12 @@ func parseAnswer(raw string, evidence []domain.Evidence, profile string) (domain
 			return domain.Answer{}, fmt.Errorf("unexpected conversation citation")
 		}
 		return domain.Answer{Status: "answered", Mode: "conversation", Answer: generated.Answer, Citations: []domain.Citation{}}, nil
+	}
+	if (generated.Mode == "" || generated.Mode == "grounded") && refusesWholeQuestion(generated.Answer) {
+		// The body explicitly declines the whole question; related citations do not
+		// turn that refusal into a substantive answer or require another model call.
+		trace.AnswerCorrection = "answered_to_no_evidence"
+		return result("no_evidence", "站内现有内容未找到足够依据。"), nil
 	}
 	if (generated.Mode != "" && generated.Mode != "grounded") || len(generated.Citations) == 0 {
 		return domain.Answer{}, fmt.Errorf("missing answer evidence")
