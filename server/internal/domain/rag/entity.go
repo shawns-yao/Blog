@@ -100,7 +100,8 @@ type QueryTrace struct {
 	TokenEncoding         string           `json:"tokenEncoding"`
 	UnderstandingProvider string           `json:"understandingProvider,omitempty"`
 	AnswerProvider        string           `json:"answerProvider,omitempty"`
-	AnswerCorrection      string           `json:"answerStatusCorrection,omitempty"`
+	AnswerAssessment      string           `json:"answerAssessment,omitempty"`
+	AnswerFindings        []AnswerFinding  `json:"answerFindings,omitempty"`
 	AnswerAttempts        []string         `json:"answerAttempts,omitempty"`
 	AnswerFailures        []ChannelFailure `json:"answerFailures,omitempty"`
 	Intent                QueryIntent      `json:"intent"`
@@ -128,6 +129,13 @@ type QueryTrace struct {
 	TopKStoppedBy         string           `json:"topKStoppedBy,omitempty"`
 	SubqueryAnchors       int              `json:"subqueryAnchors,omitempty"`
 	EvidenceSourceIDs     []int64          `json:"evidenceSourceIds,omitempty"`
+}
+
+// Findings are model judgments; the server validates reference identities and structure.
+type AnswerFinding struct {
+	QuestionPart string `json:"questionPart"`
+	Relation     string `json:"relation"`
+	Citations    []int  `json:"citations"`
 }
 
 // Effective request policy is distinct from the configured resource ceilings.
