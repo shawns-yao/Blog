@@ -229,6 +229,7 @@ func (s *Service) understandingCall(ctx context.Context, settings settings, prom
 		}
 		channelCtx, cancelChannel := context.WithTimeout(stageCtx, budget)
 		response, err := channel.client.Chat(channelCtx, infraai.ChatRequest{Model: channel.model,
+			JSONMode:    channel.name == "gpt",
 			Temperature: &temperature, MaxTokens: &maxTokens, Messages: []infraai.ChatMessage{
 				{Role: "system", Content: prompt}, {Role: "user", Content: payload},
 			}}, sessionID)

@@ -38,10 +38,10 @@ func NewOpenAIClient(baseURL, apiKey string) *OpenAIClient {
 // openAI 请求/响应结构体
 
 type openAIRequest struct {
-	Model       string           `json:"model"`
-	Messages    []openAIMessage  `json:"messages"`
-	Temperature *float64         `json:"temperature,omitempty"`
-	MaxTokens   *int             `json:"max_tokens,omitempty"`
+	Model       string          `json:"model"`
+	Messages    []openAIMessage `json:"messages"`
+	Temperature *float64        `json:"temperature,omitempty"`
+	MaxTokens   *int            `json:"max_tokens,omitempty"`
 }
 
 type openAIMessage struct {
@@ -50,15 +50,16 @@ type openAIMessage struct {
 }
 
 type openAIResponse struct {
-	ID      string           `json:"id"`
-	Model   string           `json:"model"`
-	Choices []openAIChoice   `json:"choices"`
-	Error   *openAIError     `json:"error,omitempty"`
+	ID      string         `json:"id"`
+	Model   string         `json:"model"`
+	Choices []openAIChoice `json:"choices"`
+	Error   *openAIError   `json:"error,omitempty"`
 }
 
 type openAIChoice struct {
-	Index   int           `json:"index"`
-	Message openAIMessage `json:"message"`
+	Index        int           `json:"index"`
+	Message      openAIMessage `json:"message"`
+	FinishReason string        `json:"finish_reason"`
 }
 
 type openAIError struct {

@@ -71,6 +71,11 @@ func (c *RAGChatClient) Chat(ctx context.Context, request ChatRequest, sessionID
 	if request.Temperature != nil {
 		body["temperature"] = *request.Temperature
 	}
+	if request.JSONMode {
+		if _, configured := body["response_format"]; !configured {
+			body["response_format"] = map[string]string{"type": "json_object"}
+		}
+	}
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return nil, ErrRAGChatUnavailable
@@ -99,5 +104,6 @@ func (c *RAGChatClient) Chat(ctx context.Context, request ChatRequest, sessionID
 		generated.Error != nil || len(generated.Choices) == 0 || strings.TrimSpace(generated.Choices[0].Message.Content) == "" {
 		return nil, ErrRAGChatUnavailable
 	}
-	return &ChatResponse{Content: generated.Choices[0].Message.Content, Model: generated.Model}, nil
+	return &ChatResponse{Content: generated.Choices[0].Message.Content, Model: generated.Model,
+		FinishReason: generated.Choices[0].FinishReason}, nil
 }

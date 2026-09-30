@@ -4,7 +4,7 @@ import "context"
 
 // ChatMessage 表示一条对话消息。
 type ChatMessage struct {
-	Role    string `json:"role"`    // "system" / "user" / "assistant"
+	Role    string `json:"role"` // "system" / "user" / "assistant"
 	Content string `json:"content"`
 }
 
@@ -14,12 +14,14 @@ type ChatRequest struct {
 	Messages    []ChatMessage `json:"messages"`
 	Temperature *float64      `json:"temperature,omitempty"`
 	MaxTokens   *int          `json:"max_tokens,omitempty"`
+	JSONMode    bool          `json:"-"` // RAG OpenAI-compatible structured requests.
 }
 
 // ChatResponse 是统一的 AI 聊天响应。
 type ChatResponse struct {
-	Content string `json:"content"`
-	Model   string `json:"model"`
+	Content      string `json:"content"`
+	Model        string `json:"model"`
+	FinishReason string `json:"finish_reason,omitempty"`
 }
 
 // Client 是 AI 聊天补全的统一接口，所有提供商都需实现。

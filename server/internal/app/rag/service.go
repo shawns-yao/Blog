@@ -315,8 +315,10 @@ func (s *Service) generateAnswer(ctx context.Context, settings settings, payload
 			budget = min(30*time.Second, time.Until(deadline))
 		}
 		channelCtx, cancelChannel := context.WithTimeout(generationCtx, budget)
+		attemptStarted := time.Now()
 		generated, err := channel.client.Chat(channelCtx, infraai.ChatRequest{
 			Model: channel.model, Temperature: &temperature, MaxTokens: &maxTokens,
+			JSONMode: channel.name == "gpt",
 			Messages: []infraai.ChatMessage{
 				{Role: "system", Content: answerPrompt},
 				{Role: "user", Content: payload},
@@ -328,7 +330,8 @@ func (s *Service) generateAnswer(ctx context.Context, settings settings, payload
 		}
 		cancelChannel()
 		if err != nil || generated == nil {
-			trace.AnswerFailures = append(trace.AnswerFailures, domain.ChannelFailure{Provider: channel.name, Reason: failureReason})
+			trace.AnswerFailures = append(trace.AnswerFailures, domain.ChannelFailure{Provider: channel.name, Reason: failureReason,
+				DurationMs: time.Since(attemptStarted).Milliseconds()})
 			if channel.primary {
 				run.PrimaryFailed = true
 			}
@@ -339,7 +342,9 @@ func (s *Service) generateAnswer(ctx context.Context, settings settings, payload
 			trace.AnswerProvider = channel.name
 			return answer, nil
 		}
-		trace.AnswerFailures = append(trace.AnswerFailures, domain.ChannelFailure{Provider: channel.name, Reason: "invalid_answer"})
+		// Parser errors are fixed validation messages; no provider output or credentials are exposed.
+		trace.AnswerFailures = append(trace.AnswerFailures, domain.ChannelFailure{Provider: channel.name, Reason: "invalid_answer",
+			Detail: err.Error(), DurationMs: time.Since(attemptStarted).Milliseconds(), FinishReason: generated.FinishReason})
 		if channel.primary {
 			run.PrimaryFailed = true
 		}
@@ -361,7 +366,10 @@ documentDiscovery=true 表示用户在查找相关文档，不是在要求具体
 证据足够时返回 {"status":"answered","mode":"grounded","answer":"中文回答，每条站内事实后写 [1] 这样的原文编号","citations":[1]}。
 先逐条检查证据中的摘要、定义、定理、条件和结论是否回答问题。概括性问题可以根据明确的摘要或结论回答，不要求检索片段同时包含完整证明或所有推导。
 证据能支持部分答案时，回答可核实的部分并逐条引用，明确说明缺少哪些细节；不要补造未出现的公式、数值、条件或因果关系。
+核实陈述时区分“支持”“反驳”和“证据不足”。原文明示与陈述相反的结果也是有效依据，应解释反驳理由并引用，不能因陈述不成立而返回 no_evidence。
+同一主题或命中文档标题不等于能核实具体断言。实体、条件或比较对象缺失时，明确不能确认该断言，不以相关背景替代判断。
 仅当证据没有支持问题的实质内容时返回 {"status":"no_evidence","answer":"","citations":[]}。不要把“缺少完整证明”当作“没有依据”，也不要把问候或一般交流当作证据不足。
+数学表达式使用 Unicode 或普通文本，不输出带反斜杠命令的 LaTeX。answer 必须是合法 JSON 字符串，引号、反斜杠和换行必须正确转义。
 引用编号必须来自本次 evidence，citations 列出 answer 中实际使用的全部编号。只返回 JSON，不输出链接、HTML 或额外说明。`
 
 var citationPattern = regexp.MustCompile(`\[(\d+)\]`)
@@ -379,13 +387,19 @@ func parseAnswer(raw string, evidence []domain.Evidence, profile string) (domain
 		Answer    string `json:"answer"`
 		Citations []int  `json:"citations"`
 	}
-	if len(raw) > 24000 || json.Unmarshal([]byte(raw), &generated) != nil {
+	if len(raw) > 24000 {
+		return domain.Answer{}, fmt.Errorf("invalid answer format")
+	}
+	if err := json.Unmarshal([]byte(raw), &generated); err != nil {
+		// Classify syntax without logging provider text or echoing offending characters.
+		if strings.Contains(err.Error(), "in string escape code") {
+			return domain.Answer{}, fmt.Errorf("invalid JSON escaping")
+		}
 		return domain.Answer{}, fmt.Errorf("invalid answer format")
 	}
 	if generated.Status == "no_evidence" {
-		if strings.TrimSpace(generated.Answer) != "" || len(generated.Citations) != 0 {
-			return domain.Answer{}, fmt.Errorf("invalid refusal format")
-		}
+		// Refusals have a server-owned message and no citations. Discard extra
+		// provider text rather than spending another model call to produce emptier JSON.
 		return result("no_evidence", "站内现有内容未找到足够依据。"), nil
 	}
 	if generated.Status != "answered" || strings.TrimSpace(generated.Answer) == "" || utf8.RuneCountInString(generated.Answer) > 6000 {

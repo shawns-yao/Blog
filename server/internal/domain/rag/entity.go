@@ -143,8 +143,11 @@ type RetrievalPolicy struct {
 }
 
 type ChannelFailure struct {
-	Provider string `json:"provider"`
-	Reason   string `json:"reason"`
+	Provider     string `json:"provider"`
+	Reason       string `json:"reason"`
+	Detail       string `json:"detail,omitempty"`
+	DurationMs   int64  `json:"durationMs,omitempty"`
+	FinishReason string `json:"finishReason,omitempty"`
 }
 
 type HistoryPolicy struct {
