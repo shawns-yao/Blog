@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
 	import { ArrowUp, BookOpen, RotateCw, Search } from 'lucide-svelte';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
@@ -11,14 +11,16 @@
 
 	type Submission = { id: string; question: string; history: RagMessage[] };
 
-	let { question, sessionId, turns, onQuestionChange, onTurnsChange, onSearch } = $props<{
+	let { question, sessionId, greeting, turns, onQuestionChange, onTurnsChange, onSearch } = $props<{
 		question: string;
 		sessionId: string;
+		greeting: string;
 		turns: RagTurn[];
-		onQuestionChange: (value: string) => void;
-		onTurnsChange: (value: RagTurn[]) => void;
+		onQuestionChange: (value: string, sourceSessionId: string) => void;
+		onTurnsChange: (value: RagTurn[], sourceSessionId: string) => void;
 		onSearch: () => void;
 	}>();
+	const activeSessionId = untrack(() => sessionId);
 	let input: HTMLTextAreaElement | undefined = $state();
 	let controller: AbortController | undefined;
 	let pendingTurnId: string | undefined;
@@ -36,7 +38,7 @@
 		mutationFn: (value: Submission) => {
 			controller = new AbortController();
 			if (disposed) controller.abort();
-			return askRag(value.question, sessionId, controller.signal, value.history);
+			return askRag(value.question, activeSessionId, controller.signal, value.history);
 		},
 		retry: false,
 		gcTime: 0,
@@ -88,7 +90,10 @@
 	});
 
 	function completeTurn(id: string, answer: RagAnswer) {
-		onTurnsChange(turns.map((turn: RagTurn) => (turn.id === id ? { ...turn, answer } : turn)));
+		onTurnsChange(
+			turns.map((turn: RagTurn) => (turn.id === id ? { ...turn, answer } : turn)),
+			activeSessionId
+		);
 		pendingTurnId = undefined;
 	}
 
@@ -98,8 +103,8 @@
 		const history = conversationHistory(turns, availability.data?.history);
 		const id = crypto.randomUUID();
 		pendingTurnId = id;
-		onTurnsChange([...turns, { id, question: value, answer: null }]);
-		onQuestionChange('');
+		onTurnsChange([...turns, { id, question: value, answer: null }], activeSessionId);
+		onQuestionChange('', activeSessionId);
 		mutation.mutate({ id, question: value, history });
 	}
 
@@ -163,7 +168,7 @@
 			type="button"
 			disabled={!question || mutation.isPending}
 			onclick={() => {
-				onQuestionChange('');
+				onQuestionChange('', activeSessionId);
 				input?.focus();
 			}}
 			class="min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
@@ -174,7 +179,7 @@
 		id="rag-question"
 		bind:ref={input}
 		value={question}
-		oninput={() => onQuestionChange(input?.value ?? '')}
+		oninput={() => onQuestionChange(input?.value ?? '', activeSessionId)}
 		onkeydown={handleKeydown}
 		rows={2}
 		maxLength={1000}
