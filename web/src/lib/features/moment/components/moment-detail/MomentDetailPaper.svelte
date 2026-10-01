@@ -17,7 +17,12 @@
 		onContentRootChange: (node: HTMLElement | null) => void;
 	}
 
-	let { moment, dateStr, onActiveAnchorChange, onContentRootChange }: Props = $props();
+	let {
+		moment,
+		dateStr,
+		onActiveAnchorChange,
+		onContentRootChange
+	}: Props = $props();
 	const showUpdated = $derived(isDifferentDay(moment.createdAt, moment.contentUpdatedAt));
 	const monthLabel = $derived(
 		[
@@ -37,7 +42,11 @@
 	);
 </script>
 
-<div class="moment-detail-paper moment-vt" style:view-transition-name={`moment-${moment.id}`}>
+<div
+	class="moment-detail-paper moment-vt"
+	class:short-with-photo={!!moment.cover && moment.content.length < 240}
+	style:view-transition-name={`moment-${moment.id}`}
+>
 	<header class="article-header">
 		<div class="article-topline">
 			<div class="article-date" aria-label={dateStr}>
@@ -80,14 +89,21 @@
 		<div class="article-summary"><DetailAiSummary summary={moment.aiSummary} /></div>
 	{/if}
 
-	<div class="article-content">
-		<DetailMarkdownContent
-			content={moment.content}
-			toc={moment.toc}
-			className="max-w-none font-serif text-justify text-[15px]"
-			{onContentRootChange}
-			{onActiveAnchorChange}
-		/>
+	<div class:has-photo={!!moment.cover} class="article-body">
+		<div class="article-content">
+			<DetailMarkdownContent
+				content={moment.content}
+				toc={moment.toc}
+				className="max-w-none font-serif text-justify text-[15px]"
+				{onContentRootChange}
+				{onActiveAnchorChange}
+			/>
+		</div>
+		{#if moment.cover}
+			<figure class="article-photo">
+				<img src={moment.cover} alt={moment.title || '手记照片'} loading="lazy" />
+			</figure>
+		{/if}
 	</div>
 
 	{#if moment.topics?.length}
@@ -95,17 +111,17 @@
 	{/if}
 
 	<div class="article-actions">
-		<DetailActionBar
-			contentType="moment"
-			contentId={moment.id}
-			likes={moment.metrics?.likes ?? 0}
-			comments={moment.metrics?.comments ?? 0}
-			tone="cinnabar"
-			shareTitle={moment.title}
-			shareDescription={moment.summary}
-			shareImageUrl={moment.cover ?? ''}
-		/>
-	</div>
+			<DetailActionBar
+				contentType="moment"
+				contentId={moment.id}
+				likes={moment.metrics?.likes ?? 0}
+				comments={moment.metrics?.comments ?? 0}
+				tone="cinnabar"
+				shareTitle={moment.title}
+				shareDescription={moment.summary}
+				shareImageUrl={moment.cover ?? ''}
+			/>
+		</div>
 
 	<div class="article-seal" aria-hidden="true">
 		<span>{moment.contentKind === 'article' ? '图书馆' : '手记'}</span>
@@ -114,25 +130,29 @@
 	</div>
 
 	<div class="article-comments">
-		<DetailCommentSection
-			commentAreaId={moment.commentAreaId}
-			commentsCount={moment.metrics?.comments ?? 0}
-			fediverseObjectUrl={moment.activityPubObjectId}
-			containerClass="mt-16 pt-10 border-t"
-			fallbackText="正在展开评论……"
-			fallbackSize="w-6 h-6"
-			fallbackContainerClass="flex justify-center py-20"
-		/>
-	</div>
+			<DetailCommentSection
+				commentAreaId={moment.commentAreaId}
+				commentsCount={moment.metrics?.comments ?? 0}
+				fediverseObjectUrl={moment.activityPubObjectId}
+				containerClass="mt-16 pt-10 border-t"
+				fallbackText="正在展开评论……"
+				fallbackSize="w-6 h-6"
+				fallbackContainerClass="flex justify-center py-20"
+			/>
+		</div>
 </div>
 
 <style>
 	.moment-detail-paper {
 		position: relative;
+		flex: 1 0 auto;
 		max-width: 37rem;
-		min-height: 70vh;
+		width: 100%;
 		margin-inline: auto;
 		color: var(--book-ink);
+	}
+	.short-with-photo {
+		min-height: 25rem;
 	}
 
 	.article-header {
@@ -227,7 +247,7 @@
 	}
 
 	.article-tags {
-		margin: 3rem 0 1rem;
+		margin: 1.5rem 0 1rem;
 	}
 
 	.article-tags :global(*) {
@@ -250,15 +270,48 @@
 		color: var(--book-muted) !important;
 	}
 
+	.article-body {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 1rem;
+		margin-top: 1rem;
+	}
+	.article-body.has-photo {
+		grid-template-columns: minmax(0, 1fr) clamp(9rem, 22%, 13rem);
+		align-items: end;
+		gap: clamp(1rem, 3vw, 1.8rem);
+	}
 	.article-content {
+		min-width: 0;
 		max-width: 54rem;
-		margin: clamp(2.8rem, 6vw, 5.6rem) auto 0;
+		margin: 0 auto;
 	}
 
 	.article-content :global(.markdown-preview) {
 		color: var(--book-ink) !important;
 		font-size: clamp(0.94rem, 1.2vw, 1.04rem);
-		line-height: 2.15;
+		line-height: 1.72;
+	}
+	.article-content :global(.markdown-preview p) {
+		margin-bottom: 0.7rem;
+	}
+	.article-content :global(.markdown-preview p:last-child) {
+		margin-bottom: 0;
+	}
+	.article-photo {
+		width: 100%;
+		max-width: 13rem;
+		margin: 0 0 0 auto;
+		padding: 0.4rem 0.4rem 1.2rem;
+		background: #ead7b7;
+		box-shadow: 0 0.55rem 1.1rem rgba(63, 42, 25, 0.25);
+		transform: rotate(4deg);
+	}
+	.article-photo img {
+		display: block;
+		width: 100%;
+		aspect-ratio: 1 / 1;
+		object-fit: cover;
 	}
 
 	.article-content :global(.markdown-preview :where(p, li, strong, em, h1, h2, h3, h4, h5, h6)) {
@@ -301,19 +354,13 @@
 	}
 
 	.article-seal {
-		display: flex;
-		width: 5.4rem;
-		height: 5.4rem;
-		margin: 5rem auto 0;
-		flex-direction: column;
+		display: inline-flex;
+		width: fit-content;
 		align-items: center;
-		justify-content: center;
+		gap: 0.45rem;
+		margin: 1.2rem 0;
 		color: rgba(117, 50, 42, 0.63);
-		border: 1px solid currentColor;
-		border-radius: 50%;
-		outline: 1px dashed rgba(117, 50, 42, 0.38);
-		outline-offset: -0.35rem;
-		transform: rotate(8deg);
+		transform: rotate(-3deg);
 	}
 
 	.article-seal span,
@@ -324,9 +371,8 @@
 	}
 
 	.article-seal strong {
-		margin: 0.18rem 0;
 		font-family: var(--font-serif);
-		font-size: 1.25rem;
+		font-size: 1rem;
 	}
 
 	.article-comments :global([data-comment-area]) {
@@ -334,6 +380,9 @@
 	}
 
 	@media (max-width: 767px) {
+		.short-with-photo .article-photo {
+			position: static;
+		}
 		.article-topline {
 			padding-right: 2.8rem;
 		}
@@ -343,7 +392,14 @@
 		}
 
 		.article-content {
-			margin-top: 3rem;
+			margin-top: 1rem;
+		}
+		.article-body.has-photo {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.article-photo {
+			width: min(13rem, 48%);
+			margin-top: 0.2rem;
 		}
 	}
 </style>
