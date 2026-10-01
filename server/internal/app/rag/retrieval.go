@@ -2,8 +2,6 @@ package rag
 
 import (
 	"context"
-	"fmt"
-	"strings"
 	"time"
 
 	domain "github.com/shawns-yao/shawn-blog/server/internal/domain/rag"
@@ -13,29 +11,13 @@ import (
 
 type queryFailure struct{ reason, message string }
 
-func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan queryPlan, contentKind string, run *domain.QueryRun, trace *domain.QueryTrace) ([]domain.Evidence, bool, *queryFailure) {
+func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan queryPlan, contentKind string, run *domain.QueryRun, trace *domain.QueryTrace) ([]domain.Evidence, *queryFailure) {
 	stats, err := s.repo.Stats(ctx, settings.profile)
 	if err != nil {
-		return nil, false, &queryFailure{"index_unavailable", "索引服务暂时不可用，请稍后重试。"}
+		return nil, &queryFailure{"index_unavailable", "索引服务暂时不可用，请稍后重试。"}
 	}
 	if stats.Chunks == 0 {
-		return nil, false, &queryFailure{"index_not_ready", "公开内容索引尚未就绪，请稍后重试。"}
-	}
-	if plan.Intent == domain.IntentDocumentSearch {
-		started := time.Now()
-		matches, err := s.repo.DiscoverDocuments(ctx, settings.profile, discoveryTitlePattern(plan.Query), contentKind, settings.tuning.TopK)
-		run.RetrievalMs = elapsedMs(started)
-		if err != nil {
-			return nil, false, &queryFailure{"retrieval_unavailable", "文档检索暂时不可用，请稍后重试。"}
-		}
-		if len(matches) > 0 {
-			valid, err := s.repo.Validate(ctx, settings.profile, matches)
-			if err != nil || !valid {
-				return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
-			}
-			trace.KeywordCandidates, trace.EvidenceCount = len(matches), len(matches)
-			return matches, true, nil
-		}
+		return nil, &queryFailure{"index_not_ready", "公开内容索引尚未就绪，请稍后重试。"}
 	}
 	tuning, policy := createRetrievalPolicy(settings.tuning, plan)
 	settings.tuning = tuning
@@ -56,11 +38,11 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	if embedErr == nil && tuning.VectorTopK > 0 {
 		if len(vectors) != len(queries) {
-			return nil, false, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
+			return nil, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
 		}
 		for _, vector := range vectors {
 			if stats.EmbeddingDimension != len(vector) {
-				return nil, false, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
+				return nil, &queryFailure{"embedding_dimension_changed", "嵌入模型维度与索引不一致，需要重建索引。"}
 			}
 		}
 	} else if embedErr != nil {
@@ -75,7 +57,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	}
 	run.RetrievalMs = &elapsed
 	if err != nil {
-		return nil, false, &queryFailure{"retrieval_unavailable", "检索服务暂时不可用，请稍后重试。"}
+		return nil, &queryFailure{"retrieval_unavailable", "检索服务暂时不可用，请稍后重试。"}
 	}
 	for _, list := range vector {
 		trace.VectorCandidates += len(list)
@@ -86,7 +68,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	captureEvaluationStage(ctx, "vector", queries, vector)
 	captureEvaluationStage(ctx, "keyword", queries, keyword)
 	if embedErr != nil && trace.KeywordCandidates == 0 {
-		return nil, false, &queryFailure{"embedding_unavailable", "嵌入服务暂时不可用，请稍后重试。"}
+		return nil, &queryFailure{"embedding_unavailable", "嵌入服务暂时不可用，请稍后重试。"}
 	}
 	if embedErr != nil {
 		tuning.RRFVectorWeight, tuning.RRFKeywordWeight = 0, 1
@@ -97,7 +79,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	if len(candidates) > 0 {
 		valid, err := s.repo.Validate(ctx, settings.profile, candidates)
 		if err != nil || !valid {
-			return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
+			return nil, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
 		}
 	}
 	if tuning.RerankEnabled && len(candidates) > 0 {
@@ -115,7 +97,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 		} else if tuning.RerankFallback {
 			run.RerankDegraded = true
 		} else {
-			return nil, false, &queryFailure{"rerank_unavailable", "重排序服务暂时不可用，请稍后重试。"}
+			return nil, &queryFailure{"rerank_unavailable", "重排序服务暂时不可用，请稍后重试。"}
 		}
 	}
 	trace.RerankedCandidates = len(candidates)
@@ -139,7 +121,7 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	trace.TopKStoppedBy = stoppedBy
 	trace.ContextMs = time.Since(contextStarted).Milliseconds()
 	if contextErr != nil {
-		return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
+		return nil, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
 	}
 	trace.ContextTokens = evidenceTokens(evidence)
 	trace.EvidenceCount = len(evidence)
@@ -147,10 +129,10 @@ func (s *Service) retrieveEvidence(ctx context.Context, settings settings, plan 
 	if len(evidence) > 0 {
 		valid, err := s.repo.Validate(ctx, settings.profile, evidence)
 		if err != nil || !valid {
-			return nil, false, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
+			return nil, &queryFailure{"source_changed", "来源内容正在更新，请稍后重试。"}
 		}
 	}
-	return evidence, false, nil
+	return evidence, nil
 }
 
 // Global reranking can favor the first step and bury another step's evidence.
@@ -193,19 +175,4 @@ func prioritizeSubqueryEvidence(candidates []domain.Evidence, vector, keyword []
 		}
 	}
 	return result, anchors
-}
-
-func catalogAnswer(evidence []domain.Evidence, profile string) (domain.Answer, error) {
-	var lines []string
-	answer := domain.Answer{Status: "answered", Mode: "grounded", IndexVersion: profile, Citations: []domain.Citation{}}
-	for i, item := range evidence {
-		lines = append(lines, fmt.Sprintf("%s [%d]", item.Title, i+1))
-		citation, err := sourceCitation(i+1, item)
-		if err != nil {
-			return domain.Answer{}, err
-		}
-		answer.Citations = append(answer.Citations, citation)
-	}
-	answer.Answer = "找到这些相关文档：\n" + strings.Join(lines, "\n")
-	return answer, nil
 }

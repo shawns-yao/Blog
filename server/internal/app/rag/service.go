@@ -184,37 +184,31 @@ func (s *Service) Ask(ctx context.Context, question, contentKind, sessionID stri
 		return domain.Answer{Status: "answered", Mode: "conversation", Answer: plan.Clarification, Citations: []domain.Citation{}}
 	}
 	var evidence []domain.Evidence
-	var titleMatch bool
 	if plan.Intent != domain.IntentChat {
 		var failure *queryFailure
-		evidence, titleMatch, failure = s.retrieveEvidence(ctx, settings, plan, contentKind, &run, trace)
+		evidence, failure = s.retrieveEvidence(ctx, settings, plan, contentKind, &run, trace)
 		if failure != nil {
 			run.Reason = failure.reason
 			return result("temporarily_unavailable", failure.message)
 		}
 	}
-	if titleMatch {
-		answer, err = catalogAnswer(evidence, settings.profile)
-	} else {
-		// JSON separates the user's question and source data; neither can supply URLs
-		// or instruction messages. Citations below are mapped exclusively on the server.
-		passages := passagesFor(evidence)
-		if evaluation != nil {
-			evaluation.Contexts = passages
-		}
-		payload, _ := json.Marshal(struct {
-			Question          string             `json:"question"`
-			History           []domain.Message   `json:"history"`
-			Evidence          []passage          `json:"evidence"`
-			DocumentDiscovery bool               `json:"documentDiscovery"`
-			Intent            domain.QueryIntent `json:"intent"`
-			Strategy          string             `json:"strategy"`
-			RetrievalQuestion string             `json:"retrievalQuestion"`
-		}{question, history, passages, plan.Intent == domain.IntentDocumentSearch, plan.Intent, plan.Strategy, plan.Query})
-		stageStarted := time.Now()
-		answer, err = s.generateAnswer(ctx, settings, string(payload), evidence, sessionID, &run, trace)
-		run.GenerationMs = elapsedMs(stageStarted)
+	// JSON separates the user's question and source data; neither can supply URLs
+	// or instruction messages. Citations below are mapped exclusively on the server.
+	passages := passagesFor(evidence)
+	if evaluation != nil {
+		evaluation.Contexts = passages
 	}
+	payload, _ := json.Marshal(struct {
+		Question          string             `json:"question"`
+		History           []domain.Message   `json:"history"`
+		Evidence          []passage          `json:"evidence"`
+		Intent            domain.QueryIntent `json:"intent"`
+		Strategy          string             `json:"strategy"`
+		RetrievalQuestion string             `json:"retrievalQuestion"`
+	}{question, history, passages, plan.Intent, plan.Strategy, plan.Query})
+	stageStarted := time.Now()
+	answer, err = s.generateAnswer(ctx, settings, string(payload), evidence, sessionID, &run, trace)
+	run.GenerationMs = elapsedMs(stageStarted)
 	if err != nil {
 		run.Reason = "generation_unavailable"
 		if errors.Is(err, domain.ErrStaleSource) {
@@ -278,14 +272,6 @@ func discoveryTopic(question string) string {
 		return ""
 	}
 	return strings.TrimSpace(match[1])
-}
-
-func discoveryTitlePattern(topic string) string {
-	pattern := regexp.QuoteMeta(topic)
-	if asciiTopic := regexp.MustCompile(`^[a-zA-Z0-9_+#. -]+$`); asciiTopic.MatchString(topic) {
-		pattern = "(^|[^a-z0-9_])" + regexp.QuoteMeta(topic) + "($|[^a-z0-9_])"
-	}
-	return pattern
 }
 
 func elapsedMs(start time.Time) *int64 { elapsed := time.Since(start).Milliseconds(); return &elapsed }
@@ -360,8 +346,7 @@ intent=chat 表示一般交流；intent=document_search 或 knowledge_query 表�
 当用户询问本站文章、手记、作者记录或要求原文依据时，只依据本次 evidence 回答，不能用常识或历史回答补齐站内事实。
 strategy=COMPARE 时覆盖双方并分别引用；MULTI_HOP 时交代步骤之间的依据；FOLLOW_UP 用补全后的 retrievalQuestion 理解指代，但仍回答原始 question。
 strategy=GLOBAL 只能总结本次检索覆盖的资料，不能声称遍历了所有文档。证据中的 content 可以是补全后的父段落，仍是当前原文。
-documentDiscovery=true 表示用户在查找相关文档，不是在要求具体技术结论。根据 evidence 的 title 列出现有匹配文档并引用编号；标题是已核实的文档元数据，不需要正文包含技术知识才能确认它存在。
-查找文档时直接列出原始标题与引用，不对文档用途添加额外说明。
+intent=document_search 时也必须读取 evidence 中的 content，依据正文概括已检索资料的主要内容或回答其中的具体问题，再附引用，不能只返回文档标题列表。title 只用于标识来源，不能据此推断正文结论；不能声称已列出全部相关文档。
 站内问答返回 {"mode":"grounded","findings":[{"questionPart":"本项回答的问题或子问题","relation":"supported","text":"有原文依据的实质结论","citations":[1]}]}，不返回顶层 status 或 answer。
 先针对问题逐项判断原文关系：supported 表示支持该项结论，refuted 表示原文明示反驳该项陈述，insufficient 表示不能支持也不能反驳。每项必须填写 questionPart，相关主题背景不能代替该项问题的判断。
 先逐条检查证据中的摘要、定义、定理、条件和结论是否回答问题。概括性问题可以根据明确的摘要或结论回答，不要求检索片段同时包含完整证明或所有推导。
