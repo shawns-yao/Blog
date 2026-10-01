@@ -46,6 +46,7 @@
 
 	onMount(() => {
 		let transitionTimer: ReturnType<typeof setTimeout> | undefined;
+		let preloadedSceneSrc: string | undefined;
 
 		const syncScene = () => {
 			const sceneIndex = resolveSceneIndex(new Date().getHours());
@@ -60,8 +61,15 @@
 				}, 900);
 			}
 
-			const preload = new Image();
-			preload.src = HOME_SCENES[(sceneIndex + 1) % HOME_SCENES.length].src;
+			const upcomingScene = HOME_SCENES[(sceneIndex + 1) % HOME_SCENES.length];
+			const isPortrait = window.matchMedia('(max-aspect-ratio: 3/4)').matches;
+			const upcomingSrc = isPortrait ? portraitSceneSrc(upcomingScene) : upcomingScene.src;
+			const currentSrc = isPortrait ? portraitSceneSrc(currentScene) : currentScene.src;
+			if (upcomingSrc !== currentSrc && upcomingSrc !== preloadedSceneSrc) {
+				preloadedSceneSrc = upcomingSrc;
+				const preload = new Image();
+				preload.src = upcomingSrc;
+			}
 		};
 
 		const handleVisibilityChange = () => {
