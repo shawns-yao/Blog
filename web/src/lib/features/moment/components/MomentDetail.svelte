@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto, onNavigate } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { buildMomentBookSpreads, type MomentBookVisit } from '$lib/features/moment/book-pages';
 	import type { MomentDetail, MomentListResponse } from '$lib/features/moment/types';
 	import { detailHeroBgSrc } from '$lib/shared/stores/detailHeroBg';
@@ -14,12 +15,22 @@
 
 	let {
 		moment,
-		underlayMoments = { items: [], total: 0, page: 1, size: 20 }
-	}: { moment: MomentDetail; underlayMoments?: MomentListResponse } = $props();
+		underlayMoments = { items: [], total: 0, page: 1, size: 20 },
+		preview = false
+	}: {
+		moment: MomentDetail;
+		underlayMoments?: MomentListResponse;
+		preview?: boolean;
+	} = $props();
 	const dateStr = $derived(formatDateDotted(moment.createdAt));
 	const related = $derived(moment.relatedMoments ?? []);
-	const previousMoment = $derived(related[0] ?? null);
-	const nextMoment = $derived(related[1] ?? null);
+	const previewIndex = $derived(underlayMoments.items.findIndex((item) => item.id === moment.id));
+	const previousMoment = $derived(
+		preview ? (underlayMoments.items[previewIndex - 1] ?? null) : (related[0] ?? null)
+	);
+	const nextMoment = $derived(
+		preview ? (underlayMoments.items[previewIndex + 1] ?? null) : (related[1] ?? null)
+	);
 	let contentRoot: HTMLElement | null = $state(null);
 	let activeAnchor: string | null = $state(null);
 	let sheetElement: HTMLElement | null = $state(null);
@@ -38,7 +49,7 @@
 		);
 	});
 	const underlaySpread = $derived(visit?.spread ?? fallbackSpread);
-	const returnPath = $derived(visit?.returnPath ?? resolvePath('/moments'));
+	const returnPath = $derived(visit?.returnPath ?? `${base}/moments/`);
 
 	$effect(() => detailHeroBgSrc.set(moment.cover ?? ''));
 	onDestroy(() => detailHeroBgSrc.set(''));
@@ -48,12 +59,18 @@
 	}
 
 	function relatedHref(item: NonNullable<typeof previousMoment>) {
-		return resolvePath(buildMomentPath(item.shortUrl, item.createdAt));
+		return preview
+			? `${base}/moments/preview/${encodeURIComponent(item.shortUrl)}/`
+			: `${base}${buildMomentPath(item.shortUrl, item.createdAt)}`;
 	}
 
 	onNavigate(async (navigation) => {
 		const destination = navigation.to?.url.pathname;
-		if (!destination || /(?:^|\/)moments\/\d{4}\/\d{2}\/\d{2}\/[^/]+\/?$/.test(destination)) return;
+		if (
+			!destination ||
+			/(?:^|\/)moments\/(?:\d{4}\/\d{2}\/\d{2}|preview)\/[^/]+\/?$/.test(destination)
+		)
+			return;
 
 		if (visit && destination === new URL(returnPath, window.location.origin).pathname) {
 			try {
@@ -171,13 +188,17 @@
 				class="kraft-sheet"
 			>
 				<div class="paperclip" aria-hidden="true"><Paperclip size={44} strokeWidth={1.35} /></div>
-				<a class="close-sheet" href={returnPath} aria-label="放回手记" title="放回手记"
-					><X size={18} strokeWidth={1.5} /></a
+				<a
+					class="close-sheet"
+					href={returnPath}
+					aria-label="放回手记"
+					title="放回手记"><X size={18} strokeWidth={1.5} /></a
 				>
 				<div class="kraft-scroll">
 					<div id="moment-detail-title" class="sr-only">{moment.title || '无题手记'}</div>
 					<MomentDetailPaper
 						{moment}
+						{preview}
 						{dateStr}
 						onContentRootChange={(node) => (contentRoot = node)}
 						onActiveAnchorChange={(anchor) => (activeAnchor = anchor)}

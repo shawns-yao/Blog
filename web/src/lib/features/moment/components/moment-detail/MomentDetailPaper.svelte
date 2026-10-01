@@ -12,6 +12,7 @@
 
 	interface Props {
 		moment: MomentDetail;
+		preview?: boolean;
 		dateStr: string;
 		onActiveAnchorChange: (anchor: string | null) => void;
 		onContentRootChange: (node: HTMLElement | null) => void;
@@ -19,6 +20,7 @@
 
 	let {
 		moment,
+		preview = false,
 		dateStr,
 		onActiveAnchorChange,
 		onContentRootChange
@@ -58,6 +60,7 @@
 				<MomentAtmosphere atmosphere={moment.extInfo?.moment} />
 				<time datetime={moment.createdAt}>{moment.createdAt.slice(11, 16)}</time>
 				{#if showUpdated}<small>更新于 {formatDateCN(moment.contentUpdatedAt)}</small>{/if}
+				{#if preview}<small>版式预览</small>{/if}
 			</div>
 		</div>
 
@@ -65,11 +68,11 @@
 			<h1>{moment.title}</h1>
 		{/if}
 
-		{#if moment.summary && moment.contentKind === 'article'}
+		{#if moment.summary && moment.contentKind === 'article' && !preview}
 			<p class="article-deck">{moment.summary}</p>
 		{/if}
 
-		{#if moment.contentKind === 'article'}
+		{#if moment.contentKind === 'article' && !preview}
 			<div class="article-facts">
 				<span>浏览 <RollingNumber value={moment.metrics?.views ?? 0} /></span>
 				<i aria-hidden="true"></i>
@@ -110,7 +113,7 @@
 		<div class="article-tags"><TagList tags={moment.topics} /></div>
 	{/if}
 
-	<div class="article-actions">
+	{#if !preview}<div class="article-actions">
 			<DetailActionBar
 				contentType="moment"
 				contentId={moment.id}
@@ -121,7 +124,7 @@
 				shareDescription={moment.summary}
 				shareImageUrl={moment.cover ?? ''}
 			/>
-		</div>
+		</div>{/if}
 
 	<div class="article-seal" aria-hidden="true">
 		<span>{moment.contentKind === 'article' ? '图书馆' : '手记'}</span>
@@ -129,7 +132,7 @@
 		<small>{dateStr}</small>
 	</div>
 
-	<div class="article-comments">
+	{#if !preview}<div class="article-comments">
 			<DetailCommentSection
 				commentAreaId={moment.commentAreaId}
 				commentsCount={moment.metrics?.comments ?? 0}
@@ -139,7 +142,7 @@
 				fallbackSize="w-6 h-6"
 				fallbackContainerClass="flex justify-center py-20"
 			/>
-		</div>
+		</div>{/if}
 </div>
 
 <style>
