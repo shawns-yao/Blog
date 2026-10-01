@@ -228,7 +228,7 @@
 		inset: 0;
 		display: grid;
 		place-items: center;
-		padding: clamp(3.5rem, 6vh, 5rem) 1.2rem 1.4rem;
+		padding: 0.8rem 1.2rem;
 		pointer-events: none;
 	}
 	.kraft-sheet {
@@ -237,8 +237,10 @@
 		--open-scale-x: 0.24;
 		--open-scale-y: 0.24;
 		position: relative;
-		width: min(47rem, 88vw);
-		height: min(83vh, 58rem);
+		width: min(53rem, calc(100vw - 2rem));
+		height: min(64rem, calc(100dvh - 3rem));
+		min-height: min(36rem, calc(100dvh - 3rem));
+		max-height: calc(100dvh - 3rem);
 		pointer-events: auto;
 		color: #3e3025;
 		filter: drop-shadow(0 1.8rem 2.2rem rgba(26, 15, 9, 0.52));
@@ -257,39 +259,58 @@
 	.kraft-sheet::after {
 		content: '';
 		position: absolute;
-		right: 0.6rem;
-		left: 0.6rem;
+		right: -0.18rem;
+		left: -0.18rem;
 		z-index: 3;
-		height: 0.95rem;
+		height: 1.9rem;
 		pointer-events: none;
 	}
 	.kraft-sheet::before {
-		top: -0.43rem;
-		border-radius: 60% 54% 35% 40% / 80% 74% 28% 35%;
-		background: linear-gradient(180deg, #bc8e59 0%, #d5a975 48%, #c4945e 100%);
+		top: -0.72rem;
+		border-radius: 48% 44% 24% 28% / 72% 68% 30% 34%;
+		background: linear-gradient(
+			180deg,
+			#956238 0%,
+			#d4a776 18%,
+			#efd3a5 42%,
+			#d5a46e 70%,
+			#a06c3e 100%
+		);
 		box-shadow:
-			0 -0.1rem 0.22rem rgba(67, 40, 20, 0.12),
-			0 0.18rem 0.3rem rgba(63, 38, 19, 0.18);
-		transform: rotate(-0.25deg) perspective(260px) rotateX(-16deg);
+			0 -0.12rem 0.3rem rgba(67, 40, 20, 0.17),
+			0 0.35rem 0.48rem rgba(63, 38, 19, 0.23),
+			inset 0 0.18rem 0.28rem rgba(255, 233, 192, 0.42);
+		transform: rotate(-0.4deg) perspective(260px) rotateX(-14deg);
 	}
 	.kraft-sheet::after {
-		bottom: -0.45rem;
-		border-radius: 34% 38% 65% 58% / 28% 30% 78% 74%;
-		background: linear-gradient(180deg, #d4a670 0%, #be8e58 78%, #a97645 100%);
+		bottom: -0.76rem;
+		border-radius: 26% 30% 55% 52% / 28% 30% 76% 72%;
+		background: linear-gradient(180deg, #ecd0a0 0%, #d5a46c 38%, #b17c48 74%, #936035 100%);
 		box-shadow:
-			0 0.42rem 0.46rem rgba(43, 25, 14, 0.28),
-			inset 0 0.12rem 0.18rem rgba(255, 231, 183, 0.3);
-		transform: rotate(0.2deg) perspective(260px) rotateX(14deg);
+			0 0.55rem 0.6rem rgba(43, 25, 14, 0.34),
+			inset 0 0.15rem 0.22rem rgba(255, 231, 183, 0.36);
+		transform: rotate(0.25deg) perspective(260px) rotateX(14deg);
 	}
 	.kraft-scroll {
-		position: absolute;
-		inset: 0;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
+		max-height: none;
 		overflow-y: auto;
 		overscroll-behavior: contain;
-		padding: clamp(4.6rem, 7vh, 6rem) clamp(3.1rem, 6vw, 5.6rem) 3.4rem;
+		padding: clamp(3.9rem, 6vh, 5.2rem) clamp(3rem, 6vw, 5.6rem) 2.6rem;
 		border: 1px solid rgba(98, 62, 32, 0.36);
-		background-color: #d9bb8d;
+		background-color: #e3c79b;
 		background-image:
+			linear-gradient(
+				180deg,
+				rgba(88, 51, 24, 0.1),
+				transparent 6%,
+				transparent 92%,
+				rgba(84, 49, 24, 0.13)
+			),
 			linear-gradient(
 				90deg,
 				rgba(85, 48, 21, 0.055),
@@ -349,11 +370,12 @@
 	}
 	.sheet-navigation {
 		display: flex;
+		width: 100%;
 		max-width: 37rem;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin: 4.5rem auto 0;
+		margin: auto auto 0;
 		padding-top: 1rem;
 		border-top: 1px solid rgba(75, 51, 32, 0.22);
 		font-family: var(--font-serif);
@@ -427,9 +449,14 @@
 		.kraft-sheet {
 			width: 100%;
 			height: calc(100dvh - 5rem);
+			min-height: 0;
+			max-height: calc(100dvh - 5rem);
 			filter: drop-shadow(0 0.8rem 1.2rem rgba(26, 15, 9, 0.3));
 		}
 		.kraft-scroll {
+			height: 100%;
+			min-height: 0;
+			max-height: none;
 			padding: 4.3rem 1.45rem 2.7rem;
 		}
 		.paperclip {
@@ -440,8 +467,11 @@
 			right: 1rem;
 		}
 		.sheet-navigation {
-			align-items: flex-start;
-			flex-direction: column;
+			align-items: center;
+			gap: 0.45rem;
+		}
+		.sheet-navigation div {
+			gap: 0.55rem;
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
