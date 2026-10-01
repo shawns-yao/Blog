@@ -5,6 +5,7 @@
 	import { uiState } from '$lib/shared/stores/ui.svelte';
 	import QueryRoot from '$lib/ui/common/QueryRoot.svelte';
 	import type { RagTurn } from '../types';
+	import RagAvatar from './RagAvatar.svelte';
 
 	let open = $state(false);
 	let question = $state('');
@@ -36,11 +37,16 @@
 	<Dialog.Trigger
 		disabled={!sessionId}
 		aria-label="打开站内问答"
-		title="站内问答"
-		class="fixed right-0 top-1/2 z-50 flex -translate-y-1/2 flex-col items-center gap-2 rounded-l-default border border-r-0 border-ink-300 bg-ink-50 px-3 py-4 font-serif text-sm text-ink-700 shadow-float transition-colors hover:bg-ink-100 hover:text-jade-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200 dark:hover:bg-ink-800 dark:hover:text-jade-200 dark:focus-visible:outline-jade-400"
+		title="问问书灵"
+		class="group fixed right-4 bottom-6 z-50 flex size-20 flex-col items-center justify-center rounded-2xl bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 sm:right-7 sm:size-24 dark:focus-visible:outline-jade-400"
+		style="bottom: calc(var(--spacing) * 6 + env(safe-area-inset-bottom))"
 	>
-		<MessageSquare class="size-5" aria-hidden="true" />
-		<span>问答</span>
+		<span
+			aria-hidden="true"
+			class="pointer-events-none absolute right-0 -top-9 whitespace-nowrap rounded-full border border-ink-300 bg-ink-50 px-3 py-1.5 text-xs text-ink-700 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200"
+			>问问书灵</span
+		>
+		<RagAvatar class="size-20 sm:size-24" />
 	</Dialog.Trigger>
 	<Dialog.Portal>
 		<Dialog.Overlay
