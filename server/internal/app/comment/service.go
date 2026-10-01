@@ -337,6 +337,10 @@ func (s *Service) ImportComment(ctx context.Context, cmd ImportCommentCmd) (*dom
 	return entity, nil
 }
 
+func (s *Service) GetGuestbookArea(ctx context.Context) (*domaincomment.CommentArea, error) {
+	return s.repo.GetGuestbookArea(ctx)
+}
+
 func (s *Service) ListPublicComments(ctx context.Context, cmd ListPublicCommentsCmd) (*PublicCommentPage, error) {
 	area, err := s.repo.GetAreaByID(ctx, cmd.AreaID)
 	if err != nil {

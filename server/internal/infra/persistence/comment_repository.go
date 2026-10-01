@@ -86,6 +86,17 @@ func (r *CommentRepository) GetAreaByID(ctx context.Context, id int64) (*comment
 	return mapCommentAreaToDomain(*rec), nil
 }
 
+func (r *CommentRepository) GetGuestbookArea(ctx context.Context) (*comment.CommentArea, error) {
+	var rec model.CommentArea
+	if err := r.db.WithContext(ctx).Where("area_type = ? AND content_id = ?", "guestbook", 0).First(&rec).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, comment.ErrCommentAreaNotFound
+		}
+		return nil, err
+	}
+	return mapCommentAreaToDomain(rec), nil
+}
+
 func (r *CommentRepository) GetContentTitleByTypeAndID(ctx context.Context, areaType string, contentID int64) (string, error) {
 	normalizedType := strings.ToLower(strings.TrimSpace(areaType))
 	if normalizedType == "" || contentID <= 0 {
