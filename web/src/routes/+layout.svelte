@@ -378,7 +378,7 @@
 		<ShelfNav books={SHELF_BOOKS} />
 	</header>
 {/if}
-{#if !isMomentBookRoute}
+{#if !isMomentBookRoute && page.url.pathname !== '/'}
 	<MobileNavBar menuTree={mobileNavItems} />
 {/if}
 <!-- noise background -->
@@ -494,6 +494,18 @@
 
 	.desktop-shelf-header.home-shelf-header {
 		position: absolute;
+	}
+
+	@media (max-width: 1199px), (max-aspect-ratio: 3/2) {
+		.desktop-shelf-header.home-shelf-header {
+			top: calc(1.25rem + env(safe-area-inset-top, 0px));
+			right: max(0.75rem, env(safe-area-inset-right, 0px));
+			left: auto;
+			display: flex;
+			width: 90px;
+			min-height: 0;
+			padding: 0;
+		}
 	}
 
 	.desktop-shelf-header > :global(*) {

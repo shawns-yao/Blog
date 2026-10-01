@@ -276,6 +276,18 @@
 		}
 	}
 
+	@media (max-width: 1199px), (max-aspect-ratio: 3/2) {
+		.home-visual {
+			min-height: max(100svh, 500px);
+		}
+
+		.home-hero {
+			width: calc(100% - 114px);
+			margin: 0 114px 0 0;
+			padding: 0 0.75rem;
+		}
+	}
+
 	@media (max-aspect-ratio: 3/4) {
 		.home-backdrop-image img {
 			object-position: center;
