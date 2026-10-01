@@ -28,6 +28,7 @@ func registerCommentPublicRoutes(v2 fiber.Router, deps Dependencies) {
 	commentHandler := newCommentHandler(deps)
 
 	publicGroup := v2.Group("/comments")
+	publicGroup.Get("/guestbook", commentHandler.GetGuestbookArea)
 	publicGroup.Get("/areas/:areaId", commentHandler.ListCommentTree)
 	publicGroup.Put("/:id", commentHandler.EditOwnComment)
 	publicGroup.Delete("/:id", commentHandler.DeleteOwnComment)

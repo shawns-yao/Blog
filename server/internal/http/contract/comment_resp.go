@@ -2,6 +2,11 @@ package contract
 
 import "time"
 
+type GuestbookAreaResp struct {
+	ID       int64 `json:"id"`
+	IsClosed bool  `json:"isClosed"`
+}
+
 type CreateCommentResp struct {
 	ID                int64      `json:"id"`
 	AreaID            int64      `json:"areaId"`

@@ -25,6 +25,14 @@ func NewCommentHandler(svc *comment.Service, jwtManager *jwt.Manager) *CommentHa
 	return &CommentHandler{svc: svc, jwtManager: jwtManager}
 }
 
+func (h *CommentHandler) GetGuestbookArea(c *fiber.Ctx) error {
+	area, err := h.svc.GetGuestbookArea(c.Context())
+	if err != nil {
+		return h.mapCommentError(c, err)
+	}
+	return response.Success(c, contract.GuestbookAreaResp{ID: area.ID, IsClosed: area.IsClosed})
+}
+
 // CreateCommentLogin godoc
 // @Summary 创建评论（登录用户）
 // @Tags Comment
