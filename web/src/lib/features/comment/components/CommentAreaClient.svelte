@@ -16,11 +16,15 @@
 	let {
 		areaId,
 		commentsCount = 0,
-		fediverseObjectUrl = null
+		fediverseObjectUrl = null,
+		guestbook = false,
+		initialClosed = false
 	}: {
 		areaId: number;
 		commentsCount?: number;
 		fediverseObjectUrl?: string | null;
+		guestbook?: boolean;
+		initialClosed?: boolean;
 	} = $props();
 	const createInitialModel = () => ({
 		areaId,
@@ -38,7 +42,7 @@
 		total: commentsCount,
 		page: 1,
 		size: 10,
-		isClosed: false,
+		isClosed: initialClosed,
 		requireModeration: false
 	});
 
@@ -69,7 +73,7 @@
 	});
 	onDestroy(() => unsubscribeComment());
 
-	const displayCount = $derived(commentsCount);
+	const displayCount = $derived(guestbook ? ($commentAreaModel?.total ?? 0) : commentsCount);
 
 	$effect(() => {
 		const data = query.data;
@@ -160,7 +164,9 @@
 		<div class="flex items-center justify-between mb-12 text-ink-900 dark:text-ink-100">
 			<div class="flex items-center gap-3">
 				<MessageSquare size={18} strokeWidth={1.5} />
-				<h3 class="font-serif text-lg tracking-widest font-medium">发表评论</h3>
+				<h3 class="font-serif text-lg tracking-widest font-medium">
+					{guestbook ? '留下你的话' : '发表评论'}
+				</h3>
 				{#if displayCount > 0}
 					<span class="text-xs font-serif text-ink-800 dark:text-ink-200 opacity-60 ml-2"
 						>{displayCount} 条</span
@@ -172,11 +178,11 @@
 					onclick={() => authModalStore.open('comment-area')}
 					class="text-[10px] text-ink-800/40 dark:text-ink-200/40 hover:text-jade-600 dark:hover:text-jade-400 underline decoration-dotted underline-offset-4 font-serif transition-colors outline-none"
 				>
-					[ 登录后评论 ]
+					[ {guestbook ? '登录后留言' : '登录后评论'} ]
 				</button>
 			{:else}
 				<div class="text-[10px] text-jade-700 dark:text-jade-400 font-serif tracking-wide">
-					已登录，评论将自动使用账号身份
+					已登录，{guestbook ? '留言' : '评论'}将自动使用账号身份
 				</div>
 			{/if}
 		</div>
@@ -189,10 +195,12 @@
 					<div class="p-3 rounded-full bg-ink-100 dark:bg-ink-800">
 						<Lock size={20} />
 					</div>
-					<span class="text-sm font-serif tracking-widest">评论已关闭</span>
+					<span class="text-sm font-serif tracking-widest">
+						{guestbook ? '留言板已关闭' : '评论已关闭'}
+					</span>
 				</div>
 			{:else}
-				<CommentForm />
+				<CommentForm guided={guestbook} />
 			{/if}
 		</div>
 	</div>

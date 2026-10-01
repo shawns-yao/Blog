@@ -21,6 +21,12 @@ const isAuthError = (error: unknown): boolean => {
 	return false;
 };
 
+export const getGuestbookArea = async (): Promise<{ id: number; isClosed: boolean }> => {
+	const area = await getApi()<{ id: number; isClosed: boolean }>('/comments/guestbook');
+	if (!area?.id) throw new Error('留言板暂时无法加载，请稍后重试。');
+	return area;
+};
+
 export const getCommentTree = async (
 	fetcher: typeof fetch | undefined,
 	areaId: number,
