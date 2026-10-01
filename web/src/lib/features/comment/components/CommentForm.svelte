@@ -152,11 +152,18 @@
 			});
 		},
 		onSuccess: (created) => {
+			if (!created?.id) {
+				toast.error('提交结果尚未确认，请刷新后核对，草稿已保留');
+				return;
+			}
 			const status = created?.status?.toLowerCase?.() ?? '';
+			submittedStatus = status;
+			confirming = false;
+			if (guided) previewMode = false;
 			if (status === 'pending') {
-				toast.success('评论已提交，审核通过后公开展示');
+				toast.success(guided ? '留言已提交，审核通过后公开展示' : '评论已提交，审核通过后公开展示');
 			} else {
-				toast.success('评论发表成功');
+				toast.success(guided ? '留言已提交' : '评论发表成功');
 			}
 			clearCommentDraft(draftKey);
 			content = '';
@@ -181,6 +188,26 @@
 			toast.error(`评论内容不能超过 ${commentContentMaxLength} 字`);
 			return;
 		}
+		if (guided) {
+			if (!$userStore.isLogin) {
+				if (!$guestNameStore.trim() || Array.from($guestNameStore.trim()).length > 45) {
+					toast.error('请填写 1–45 字的称呼');
+					return;
+				}
+				if (
+					!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($guestEmailStore.trim()) ||
+					$guestEmailStore.length > 255
+				) {
+					toast.error('请填写有效邮箱，邮箱不会公开');
+					return;
+				}
+			}
+			if (!confirming) {
+				confirming = true;
+				previewMode = true;
+				return;
+			}
+		}
 		mutation.mutate();
 	};
 
@@ -193,6 +220,7 @@
 	};
 
 	const handleClearDraft = () => {
+		confirming = false;
 		clearCommentDraft(draftKey);
 		content = '';
 		isConfirmingClearDraft = false;
@@ -354,7 +382,7 @@
 			</div>
 		{/if}
 
-		<div class="flex items-center gap-2 text-xs">
+		<div class="flex items-center gap-2 text-xs" class:hidden={guided && confirming}>
 			<button
 				type="button"
 				onclick={() => (previewMode = false)}
@@ -408,7 +436,7 @@
 
 		<!-- Footer Actions -->
 		<div class="flex items-end justify-between mt-6 gap-4">
-			<div class="flex flex-col items-start gap-2">
+			<div class="flex flex-col items-start gap-2" class:hidden={guided && confirming}>
 				<div class="flex items-center gap-3">
 					<ClientOnly>
 						<CommentEmojiPickerClient onPick={handlePickEmoji} />
@@ -453,12 +481,32 @@
 				</div>
 			</div>
 
+			{#if guided && confirming}
+				<button
+					type="button"
+					disabled={isSubmitting}
+					onclick={() => {
+						confirming = false;
+						previewMode = false;
+					}}
+					class="min-h-10 text-xs underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-jade-600"
+					>返回修改</button
+				>
+			{/if}
 			<button
 				onclick={handleSubmit}
 				disabled={isSubmitting}
 				class="flex items-center gap-2 text-xs font-serif tracking-widest text-ink-50 bg-ink-900 dark:bg-ink-200 dark:text-ink-900 hover:bg-jade-600 dark:hover:bg-jade-600 dark:hover:text-white px-8 py-2.5 rounded-default transition-all shadow-sm hover:shadow-md outline-none disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-ink-900 dark:disabled:hover:bg-ink-200 dark:disabled:hover:text-ink-900"
 			>
-				<span>{isSubmitting ? '投递中...' : '投递'}</span>
+				<span
+					>{isSubmitting
+						? '投递中...'
+						: guided
+							? confirming
+								? '确认提交留言'
+								: '检查留言'
+							: '投递'}</span
+				>
 				<Send size={12} strokeWidth={2} class={isSubmitting ? 'animate-pulse' : ''} />
 			</button>
 		</div>
