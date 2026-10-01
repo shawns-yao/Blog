@@ -20,17 +20,21 @@
 		writeCommentGuestProfile
 	} from '$lib/features/comment/storage';
 	import CommentEmojiPickerClient from './CommentEmojiPickerClient.svelte';
+	import RagAvatar from '$lib/features/rag/components/RagAvatar.svelte';
 
 	interface Props {
 		parentId?: number;
+		guided?: boolean;
 	}
 
-	let { parentId }: Props = $props();
+	let { parentId, guided = false }: Props = $props();
 
 	const commentContentMaxLength = 500;
 	const queryClient = useQueryClient();
 	let content = $state('');
 	let previewMode = $state(false);
+	let confirming = $state(false);
+	let submittedStatus = $state('');
 	let isConfirmingClearDraft = $state(false);
 	const areaIdStore = commentAreaCtx.selectModelData((data) => data?.areaId ?? 0);
 	const guestNameStore = commentAreaCtx.selectModelData((data) => data?.guestName ?? '');
@@ -49,6 +53,21 @@
 		$userStore.userInfo?.nickname || $userStore.userInfo?.username || '已登录用户'
 	);
 	const loginAccount = $derived($userStore.userInfo?.username || '');
+	const guideText = $derived(
+		confirming
+			? '这是你准备留下的话。确认无误后，我就帮你提交。'
+			: submittedStatus && !content
+				? submittedStatus === 'pending'
+					? '留言已经收到，审核通过后就会展示在这里。'
+					: '留言已经收到，谢谢你留下这段话。'
+				: !content.trim()
+					? '想留下什么话？聊聊读后感、提个建议，或者和我打声招呼吧。'
+					: !$userStore.isLogin && !$guestNameStore.trim()
+						? '我该怎么称呼你？填写一个昵称，让大家知道这段话来自谁。'
+						: !$userStore.isLogin && !$guestEmailStore.trim()
+							? '再留一个邮箱，方便接收回复通知。邮箱不会公开展示。'
+							: '准备好了。先检查一遍留言，再确认提交。'
+	);
 	const contentCount = $derived(Array.from(content).length);
 	const hasPreviewContent = $derived(content.trim().length > 0);
 	const isRootForm = $derived(parentId == null);
@@ -196,6 +215,15 @@
 </script>
 
 <div class="w-full font-serif text-ink-900 dark:text-ink-100">
+	{#if guided}
+		<div class="mb-7 flex items-start gap-3" role="status" aria-live="polite">
+			<RagAvatar class="size-10 shrink-0" />
+			<div>
+				<p class="mb-1 text-xs text-ink-500 dark:text-ink-400">书灵</p>
+				<p class="text-sm leading-7">{guideText}</p>
+			</div>
+		</div>
+	{/if}
 	<!-- User Info / Guest Form -->
 	{#if $userStore.isLogin}
 		<div
@@ -237,11 +265,17 @@
 		>
 			<!-- Name -->
 			<div class="group">
+				{#if guided}<label
+						for="guestbook-name"
+						class="mb-2 block text-xs text-ink-600 dark:text-ink-300">称呼</label
+					>{/if}
 				{#snippet nameIcon()}
 					<User size={14} class="text-ink-300 dark:text-ink-600" />
 				{/snippet}
 				<Input
 					type="text"
+					id={guided ? 'guestbook-name' : undefined}
+					disabled={guided && (confirming || isSubmitting)}
 					value={$guestNameStore}
 					oninput={updateGuestField('guestName')}
 					placeholder="称呼 *"
@@ -253,11 +287,17 @@
 
 			<!-- Email -->
 			<div class="group">
+				{#if guided}<label
+						for="guestbook-email"
+						class="mb-2 block text-xs text-ink-600 dark:text-ink-300">邮箱（不公开）</label
+					>{/if}
 				{#snippet mailIcon()}
 					<Mail size={14} class="text-ink-300 dark:text-ink-600" />
 				{/snippet}
 				<Input
 					type="email"
+					id={guided ? 'guestbook-email' : undefined}
+					disabled={guided && (confirming || isSubmitting)}
 					value={$guestEmailStore}
 					oninput={updateGuestField('guestEmail')}
 					placeholder="邮箱 (保密) *"
@@ -269,11 +309,17 @@
 
 			<!-- Website -->
 			<div class="group">
+				{#if guided}<label
+						for="guestbook-site"
+						class="mb-2 block text-xs text-ink-600 dark:text-ink-300">站点（可选）</label
+					>{/if}
 				{#snippet linkIcon()}
 					<Link size={14} class="text-ink-300 dark:text-ink-600" />
 				{/snippet}
 				<Input
 					type="url"
+					id={guided ? 'guestbook-site' : undefined}
+					disabled={guided && (confirming || isSubmitting)}
 					value={$guestSiteStore}
 					oninput={updateGuestField('guestSite')}
 					placeholder="站点"
@@ -344,7 +390,13 @@
 				{/if}
 			</div>
 		{:else}
+			{#if guided}<label
+					for="guestbook-content"
+					class="block text-xs text-ink-600 dark:text-ink-300">留言内容</label
+				>{/if}
 			<Textarea
+				id={guided ? 'guestbook-content' : undefined}
+				disabled={guided && isSubmitting}
 				bind:value={content}
 				placeholder="在此留下您的思绪..."
 				rows={6}
