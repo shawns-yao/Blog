@@ -65,7 +65,6 @@
 	<Dialog.Trigger
 		disabled={!sessionId}
 		aria-label="打开站内问答"
-		title="问问书灵"
 		class="shuling-entry group fixed right-4 bottom-6 z-50 flex size-20 flex-col items-center justify-center rounded-2xl bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 sm:right-7 sm:size-24 dark:focus-visible:outline-jade-400"
 		style="bottom: calc(var(--spacing) * 6 + env(safe-area-inset-bottom))"
 	>
