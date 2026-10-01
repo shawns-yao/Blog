@@ -1,56 +1,60 @@
 <script lang="ts">
 	import type { MomentSummary } from '$lib/features/moment/types';
 	import type { MomentBookVisit } from '$lib/features/moment/book-pages';
+	import { base } from '$app/paths';
 	import { buildMomentPath } from '$lib/shared/utils/content-path';
-	import { resolvePath } from '$lib/shared/utils/resolve-path';
 	import { ArrowUpRight } from 'lucide-svelte';
 
 	let {
 		moment,
 		preview = false,
-		openContext
+		openContext,
+		onOpen
 	}: {
 		moment: MomentSummary;
 		preview?: boolean;
 		openContext?: Omit<MomentBookVisit, 'momentId' | 'at'>;
+		onOpen?: (moment: MomentSummary, href: string, link: HTMLAnchorElement) => void;
 	} = $props();
 	const href = $derived(
 		preview
-			? `#preview-entry-${Math.abs(moment.id)}`
-			: resolvePath(buildMomentPath(moment.shortUrl, moment.createdAt))
+			? `${base}/moments/preview/${encodeURIComponent(moment.shortUrl)}/`
+			: `${base}${buildMomentPath(moment.shortUrl, moment.createdAt)}`
 	);
 	const time = $derived(moment.createdAt.slice(11, 16));
 
-	function rememberOpenOrigin(event: MouseEvent) {
-		if (
-			preview ||
-			event.button !== 0 ||
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey
-		)
+	function handleOpen(event: MouseEvent) {
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
 			return;
-		const card = (event.currentTarget as HTMLElement).closest<HTMLElement>('.leaf-entry');
+		const link = event.currentTarget as HTMLAnchorElement;
+		const card = link.closest<HTMLElement>('.leaf-entry');
 		if (!card) return;
 		const rect = card.getBoundingClientRect();
-		sessionStorage.setItem(
-			'moment:open-origin',
-			JSON.stringify({
-				x: rect.left,
-				y: rect.top,
-				width: rect.width,
-				height: rect.height,
-				at: Date.now(),
-				...(openContext ? { ...openContext, momentId: moment.id } : {})
-			})
-		);
+		try {
+			sessionStorage.setItem(
+				'moment:open-origin',
+				JSON.stringify({
+					x: rect.left,
+					y: rect.top,
+					width: rect.width,
+					height: rect.height,
+					at: Date.now(),
+					...(openContext ? { ...openContext, momentId: moment.id } : {})
+				})
+			);
+		} catch {
+			// Continue opening the note when browser storage is unavailable.
+		}
+		if (onOpen) {
+			event.preventDefault();
+			onOpen(moment, href, link);
+		}
 	}
 </script>
 
-<article class="leaf-entry" id={preview ? `preview-entry-${Math.abs(moment.id)}` : undefined}>
+<article class="leaf-entry">
 	<span class="margin-dot" aria-hidden="true"></span>
-	<a class="entry-link" {href} onclick={rememberOpenOrigin}>
+	<a class="entry-link" {href} onclick={handleOpen}>
 		<div class="entry-copy">
 			<div class="entry-heading">
 				<time datetime={moment.createdAt}>{time || '片刻'}</time>
@@ -66,7 +70,7 @@
 						moment.columnName ||
 						'日常'}</span
 				>
-				<em>{preview ? '版式预览' : '翻开此页'} <ArrowUpRight size={12} strokeWidth={1.6} /></em>
+				<em>翻开此页 <ArrowUpRight size={12} strokeWidth={1.6} /></em>
 			</div>
 		</div>
 		{#if moment.cover}

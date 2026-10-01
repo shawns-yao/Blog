@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { MomentBookVisit, MomentDateLeaf } from '$lib/features/moment/book-pages';
+	import type { MomentSummary } from '$lib/features/moment/types';
 	import { formatLeafPageLabel } from '$lib/features/moment/book-pages';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
 	import { ArrowLeft, ArrowRight, Search, X } from 'lucide-svelte';
@@ -14,6 +15,7 @@
 		preview?: boolean;
 		showBlankNote?: boolean;
 		openContext?: Omit<MomentBookVisit, 'momentId' | 'at'>;
+		onOpen?: (moment: MomentSummary, href: string, link: HTMLAnchorElement) => void;
 		kicker?: string;
 		canTurn?: boolean;
 		turnLabel?: string;
@@ -29,6 +31,7 @@
 		preview = false,
 		showBlankNote = true,
 		openContext,
+		onOpen,
 		kicker,
 		canTurn = false,
 		turnLabel = '',
@@ -82,6 +85,7 @@
 					{moment}
 					{preview}
 					{openContext}
+					{onOpen}
 				/>{/each}
 		{:else if showBlankNote}
 			<div class="blank-note">
