@@ -10,10 +10,11 @@
 		directory: Snippet;
 		children: Snippet;
 		overlay?: Snippet;
+		overlayOnly?: boolean;
 		pageLabel?: string;
 	}
 
-	let { directory, children, overlay, pageLabel = '手记' }: Props = $props();
+	let { directory, children, overlay, overlayOnly = false, pageLabel = '手记' }: Props = $props();
 	let isReturningHome = $state(false);
 	const homePath = resolvePath('/');
 
@@ -66,6 +67,7 @@
 	}
 
 	onMount(() => {
+		if (overlayOnly) return;
 		let transitionTimer: ReturnType<typeof setTimeout> | undefined;
 
 		const syncScene = () => {
@@ -102,100 +104,104 @@
 
 <section
 	class="moment-book-room"
+	class:detail-view={!!overlay}
+	class:overlay-only={overlayOnly}
 	data-scene={currentScene.key}
 	aria-label={`${pageLabel}书页，当前为${currentScene.label}场景`}
 >
-	<div class="moment-room-backdrop" aria-hidden="true">
-		{#if previousScene}
-			<div
-				class="moment-room-image moment-room-image-previous"
-				style:background-image={`url('${previousScene.src}')`}
-			></div>
+	{#if !overlayOnly}
+		<div class="moment-room-backdrop" aria-hidden="true">
+			{#if previousScene}
+				<div
+					class="moment-room-image moment-room-image-previous"
+					style:background-image={`url('${previousScene.src}')`}
+				></div>
+			{/if}
+			{#key currentScene.key}
+				<div
+					class="moment-room-image moment-room-image-current"
+					style:background-image={`url('${currentScene.src}')`}
+				></div>
+			{/key}
+		</div>
+
+		{#if currentScene.key === 'night'}
+			<span class="shooting-star" aria-hidden="true"></span>
 		{/if}
-		{#key currentScene.key}
-			<div
-				class="moment-room-image moment-room-image-current"
-				style:background-image={`url('${currentScene.src}')`}
-			></div>
-		{/key}
-	</div>
 
-	{#if currentScene.key === 'night'}
-		<span class="shooting-star" aria-hidden="true"></span>
+		{#if currentScene.key === 'late-night'}
+			<img class="cat-paw" src="/moments/scenes/cat-paw.png" alt="" aria-hidden="true" />
+		{/if}
+		<header class="moment-book-topbar" inert={!!overlay}>
+			<a
+				class:ladybug-is-flying={isReturningHome}
+				class="back-to-shelf"
+				href={homePath}
+				aria-label="回到书架"
+				onclick={returnToShelf}
+			>
+				<span class="ladybug-flight" aria-hidden="true">
+					<svg class="ladybug" viewBox="0 0 48 34" role="presentation">
+						<g class="ladybug-legs" fill="none" stroke="currentColor" stroke-linecap="round">
+							<path d="M17 18 10 13M16 22 8 22M18 26 11 31M31 18l7-5M32 22h8M30 26l7 5" />
+						</g>
+						<g class="ladybug-wings">
+							<ellipse class="ladybug-wing ladybug-wing-left" cx="21" cy="18" rx="11" ry="6" />
+							<ellipse class="ladybug-wing ladybug-wing-right" cx="27" cy="18" rx="11" ry="6" />
+						</g>
+						<ellipse class="ladybug-body" cx="24" cy="21" rx="13" ry="10" />
+						<g class="ladybug-shell-half ladybug-shell-left">
+							<path
+								class="ladybug-shell"
+								d="M23.6 11.2C16.5 11.4 11 15.4 11 21c0 5.5 5.4 9.5 12.6 9.8Z"
+							/>
+							<circle class="ladybug-spot" cx="18.3" cy="17" r="1.8" />
+							<circle class="ladybug-spot" cx="17.2" cy="24.7" r="1.55" />
+							<path class="ladybug-shell-shine" d="M15.2 16.2c1.4-1.8 3.1-2.6 5.1-2.9" />
+						</g>
+						<g class="ladybug-shell-half ladybug-shell-right">
+							<path
+								class="ladybug-shell"
+								d="M24.4 11.2C31.5 11.4 37 15.4 37 21c0 5.5-5.4 9.5-12.6 9.8Z"
+							/>
+							<circle class="ladybug-spot" cx="29.7" cy="17" r="1.8" />
+							<circle class="ladybug-spot" cx="30.8" cy="24.7" r="1.55" />
+							<path class="ladybug-shell-shine" d="M27.7 13.3c2 0.3 3.7 1.1 5.1 2.9" />
+						</g>
+						<circle class="ladybug-head" cx="24" cy="9.5" r="6" />
+						<g class="ladybug-eyes">
+							<circle cx="21.5" cy="7.8" r="0.85" />
+							<circle cx="26.5" cy="7.8" r="0.85" />
+						</g>
+						<g class="ladybug-antennae" fill="none" stroke="currentColor" stroke-linecap="round">
+							<path d="M21 5.1c-2.2-3-4.4-2.7-5.4-1.4M27 5.1c2.2-3 4.4-2.7 5.4-1.4" />
+						</g>
+					</svg>
+				</span>
+				<span>回到书架</span>
+			</a>
+			<div class="book-identity" aria-label="当前书籍：手记">
+				<BookOpenText size={15} strokeWidth={1.5} aria-hidden="true" />
+				<span>手记</span>
+				<i aria-hidden="true"></i>
+				<small>NOTEBOOK</small>
+			</div>
+		</header>
+
+		<div class:under-overlay={!!overlay} class="moment-book-spread" inert={!!overlay}>
+			<OpenBookFrame />
+			<aside class="moment-book-directory" aria-label="左侧书页" role="region">
+				<div class="directory-sticky">{@render directory()}</div>
+			</aside>
+			<div class="moment-book-page" aria-label="右侧书页" role="region">
+				{@render children()}
+			</div>
+			<div class="book-ribbon" aria-hidden="true">
+				<span>生活很长<br />记得慢慢记录。</span>
+				<i>Shawn</i>
+			</div>
+		</div>
 	{/if}
-
-	{#if currentScene.key === 'late-night'}
-		<img class="cat-paw" src="/moments/scenes/cat-paw.png" alt="" aria-hidden="true" />
-	{/if}
-	<header class="moment-book-topbar" inert={!!overlay}>
-		<a
-			class:ladybug-is-flying={isReturningHome}
-			class="back-to-shelf"
-			href={homePath}
-			aria-label="回到书架"
-			onclick={returnToShelf}
-		>
-			<span class="ladybug-flight" aria-hidden="true">
-				<svg class="ladybug" viewBox="0 0 48 34" role="presentation">
-					<g class="ladybug-legs" fill="none" stroke="currentColor" stroke-linecap="round">
-						<path d="M17 18 10 13M16 22 8 22M18 26 11 31M31 18l7-5M32 22h8M30 26l7 5" />
-					</g>
-					<g class="ladybug-wings">
-						<ellipse class="ladybug-wing ladybug-wing-left" cx="21" cy="18" rx="11" ry="6" />
-						<ellipse class="ladybug-wing ladybug-wing-right" cx="27" cy="18" rx="11" ry="6" />
-					</g>
-					<ellipse class="ladybug-body" cx="24" cy="21" rx="13" ry="10" />
-					<g class="ladybug-shell-half ladybug-shell-left">
-						<path
-							class="ladybug-shell"
-							d="M23.6 11.2C16.5 11.4 11 15.4 11 21c0 5.5 5.4 9.5 12.6 9.8Z"
-						/>
-						<circle class="ladybug-spot" cx="18.3" cy="17" r="1.8" />
-						<circle class="ladybug-spot" cx="17.2" cy="24.7" r="1.55" />
-						<path class="ladybug-shell-shine" d="M15.2 16.2c1.4-1.8 3.1-2.6 5.1-2.9" />
-					</g>
-					<g class="ladybug-shell-half ladybug-shell-right">
-						<path
-							class="ladybug-shell"
-							d="M24.4 11.2C31.5 11.4 37 15.4 37 21c0 5.5-5.4 9.5-12.6 9.8Z"
-						/>
-						<circle class="ladybug-spot" cx="29.7" cy="17" r="1.8" />
-						<circle class="ladybug-spot" cx="30.8" cy="24.7" r="1.55" />
-						<path class="ladybug-shell-shine" d="M27.7 13.3c2 0.3 3.7 1.1 5.1 2.9" />
-					</g>
-					<circle class="ladybug-head" cx="24" cy="9.5" r="6" />
-					<g class="ladybug-eyes">
-						<circle cx="21.5" cy="7.8" r="0.85" />
-						<circle cx="26.5" cy="7.8" r="0.85" />
-					</g>
-					<g class="ladybug-antennae" fill="none" stroke="currentColor" stroke-linecap="round">
-						<path d="M21 5.1c-2.2-3-4.4-2.7-5.4-1.4M27 5.1c2.2-3 4.4-2.7 5.4-1.4" />
-					</g>
-				</svg>
-			</span>
-			<span>回到书架</span>
-		</a>
-		<div class="book-identity" aria-label="当前书籍：手记">
-			<BookOpenText size={15} strokeWidth={1.5} aria-hidden="true" />
-			<span>手记</span>
-			<i aria-hidden="true"></i>
-			<small>NOTEBOOK</small>
-		</div>
-	</header>
-
-	<div class:under-overlay={!!overlay} class="moment-book-spread" inert={!!overlay}>
-		<OpenBookFrame />
-		<aside class="moment-book-directory" aria-label="左侧书页" role="region">
-			<div class="directory-sticky">{@render directory()}</div>
-		</aside>
-		<div class="moment-book-page" aria-label="右侧书页" role="region">
-			{@render children()}
-		</div>
-		<div class="book-ribbon" aria-hidden="true">
-			<span>生活很长<br />记得慢慢记录。</span>
-			<i>Shawn</i>
-		</div>
-	</div>
 
 	{#if overlay}
 		<div class="moment-book-overlay" role="presentation">{@render overlay()}</div>
@@ -220,6 +226,23 @@
 		color: var(--book-ink);
 		color-scheme: light;
 		background-color: #17110d;
+	}
+	.moment-book-room.overlay-only {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+		min-height: 0;
+		background: transparent;
+		pointer-events: none;
+	}
+	.overlay-only .moment-room-backdrop,
+	.overlay-only .moment-book-topbar,
+	.overlay-only .moment-book-spread,
+	.overlay-only::after {
+		display: none;
+	}
+	.overlay-only .moment-book-overlay {
+		pointer-events: auto;
 	}
 
 	.moment-book-room[data-scene='dawn'] {
@@ -278,6 +301,10 @@
 	.moment-room-image-current {
 		z-index: 1;
 		animation: scene-crossfade 900ms ease-out both;
+	}
+	.moment-book-room.detail-view .moment-room-image-current,
+	.moment-book-room.detail-view .moment-book-spread {
+		animation: none;
 	}
 
 	.moment-book-room::after {
