@@ -619,4 +619,178 @@
 			transform-origin: top right;
 		}
 	}
+
+	@media (max-width: 1199px), (max-aspect-ratio: 3/2) {
+		.shelf-scene.home-shelf-scene {
+			flex: 0 0 90px;
+			width: 90px;
+			height: auto;
+			margin: 0;
+			transform: none;
+		}
+
+		.home-shelf-scene .shelf-stage {
+			position: relative;
+			width: 100%;
+			padding: 12px 8px 14px;
+			border: 3px solid #765139;
+			border-radius: 3px 3px 2px 2px;
+			background:
+				repeating-linear-gradient(91deg, rgb(255 220 170 / 0.035) 0 1px, transparent 1px 9px),
+				linear-gradient(90deg, #4b3021, #68452f 45%, #503423);
+			box-shadow:
+				3px 5px 10px rgb(42 27 17 / 0.28),
+				inset 2px 0 3px rgb(246 209 164 / 0.12),
+				inset -2px 0 4px rgb(27 17 11 / 0.2);
+		}
+
+		.home-shelf-scene .shelf-books {
+			position: relative;
+			bottom: auto;
+			left: auto;
+			flex-direction: column;
+			align-items: center;
+			gap: 0;
+			height: auto;
+		}
+
+		.home-shelf-scene .book,
+		.home-shelf-scene .book.flat,
+		.home-shelf-scene .book.active:not(.flat) {
+			flex: 0 0 var(--stack-thickness, 24px);
+			align-self: center;
+			width: var(--stack-width, 68px);
+			height: var(--stack-thickness, 24px);
+			margin: 0;
+			transform: translateX(var(--stack-shift, 0px)) perspective(260px) rotateX(-3deg);
+			transform-origin: center;
+			border-radius: 5px 2px 2px 5px;
+			box-shadow:
+				1px 3px 3px rgb(42 27 17 / 0.25),
+				inset 0 2px rgb(255 255 255 / 0.1),
+				inset 0 -3px rgb(0 0 0 / 0.18);
+		}
+
+		.home-shelf-scene .book:nth-of-type(1) {
+			--stack-width: 68px;
+			--stack-thickness: 24px;
+			--stack-shift: -1px;
+		}
+
+		.home-shelf-scene .book:nth-of-type(2) {
+			--stack-width: 64px;
+			--stack-thickness: 27px;
+			--stack-shift: 2px;
+		}
+
+		.home-shelf-scene .book:nth-of-type(3) {
+			--stack-width: 70px;
+			--stack-thickness: 25px;
+		}
+
+		.home-shelf-scene .book:nth-of-type(4) {
+			--stack-width: 66px;
+			--stack-thickness: 28px;
+			--stack-shift: -2px;
+		}
+
+		.home-shelf-scene .book:nth-of-type(5) {
+			--stack-width: 62px;
+			--stack-thickness: 24px;
+			--stack-shift: 1px;
+		}
+
+		.home-shelf-scene .book:nth-of-type(6) {
+			--stack-width: 67px;
+			--stack-thickness: 26px;
+			--stack-shift: -1px;
+		}
+
+		.home-shelf-scene .book:hover,
+		.home-shelf-scene .book:focus-visible,
+		.home-shelf-scene .book.flat:hover,
+		.home-shelf-scene .book.flat:focus-visible,
+		.home-shelf-scene .book.active:not(.flat):hover,
+		.home-shelf-scene .book.active:not(.flat):focus-visible {
+			transform: translateX(-3px);
+		}
+
+		.home-shelf-scene .book::after {
+			display: none;
+		}
+
+		.home-shelf-scene .shelf-books::after {
+			content: '';
+			position: absolute;
+			right: -8px;
+			bottom: -7px;
+			left: -8px;
+			height: 5px;
+			border-radius: 1px;
+			background: linear-gradient(180deg, #ae7e53, #70492e 55%, #523421);
+			box-shadow: 0 3px 4px rgb(29 17 10 / 0.25);
+			pointer-events: none;
+		}
+
+		.home-shelf-scene .book-pages,
+		.home-shelf-scene .book.flat .book-pages {
+			top: 4px;
+			right: -3px;
+			bottom: 4px;
+			left: auto;
+			width: 4px;
+			height: auto;
+			transform: skewY(-12deg);
+			background: repeating-linear-gradient(90deg, #e9dfce 0 1px, #c9bca7 1px 2px);
+		}
+
+		.home-shelf-scene .book-edge,
+		.home-shelf-scene .book.flat .book-edge {
+			inset: 4px auto 4px 0;
+			width: 6px;
+			border-radius: 4px 0 0 4px;
+		}
+
+		.home-shelf-scene .book-frame,
+		.home-shelf-scene .book.flat .book-frame {
+			inset: 3px 8px;
+			border: none;
+			box-shadow: none;
+		}
+
+		.home-shelf-scene .book-frame::before,
+		.home-shelf-scene .book-frame::after {
+			top: 50%;
+			bottom: auto;
+			width: 1px;
+			height: 14px;
+			transform: translateY(-50%);
+			box-shadow: 3px 0 0 -0.2px rgb(231 201 143 / 0.35);
+		}
+
+		.home-shelf-scene .book-frame::before {
+			left: 0;
+		}
+
+		.home-shelf-scene .book-frame::after {
+			right: 0;
+			left: auto;
+		}
+
+		.home-shelf-scene .book-name,
+		.home-shelf-scene .book.flat .book-name {
+			margin: 0;
+			font-size: 0.8125rem;
+			line-height: 1.2;
+			letter-spacing: 0.08em;
+			writing-mode: horizontal-tb;
+		}
+
+		.home-shelf-scene .book-ornament,
+		.home-shelf-scene .shelf-plant,
+		.home-shelf-scene .shelf-theme-toggle,
+		.home-shelf-scene .shelf-board {
+			display: none;
+		}
+	}
 </style>
