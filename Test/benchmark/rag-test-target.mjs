@@ -2,10 +2,14 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 
 export function testTarget(dataset, dedicated = false) {
-  assert(['beir-scifact', 'open-rag-bench'].includes(dataset), '指定已有测试集合');
-  const suffix = dataset === 'beir-scifact' ? 'scifact' : 'open-rag';
+  const targets = {
+    'beir-scifact': { suffix: 'scifact', port: 18080 },
+    'open-rag-bench': { suffix: 'open-rag', port: 18081 },
+    'bagu-obsidian': { suffix: 'bagu', port: 18082 },
+  };
+  assert(Object.hasOwn(targets, dataset), '指定已有独立数据集合');
+  const { suffix, port } = targets[dataset];
   const project = `grtblog-rag-test-${suffix}`;
-  const port = dataset === 'beir-scifact' ? 18080 : 18081;
   return dedicated ? { dedicated, project, port, databaseContainer: `${project}-postgres`,
     serverContainer: `${project}-server`, endpoint: `http://127.0.0.1:${port}/api/v2/public/ask` }
     : { dedicated, databaseContainer: 'shawn-blog-postgres', serverContainer: 'shawn-blog-server-dev',
