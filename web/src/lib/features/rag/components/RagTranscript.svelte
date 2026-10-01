@@ -4,6 +4,7 @@
 	import { LoaderCircle } from 'lucide-svelte';
 	import { scrollToElementById } from '$lib/shared/dom/scroll-to-element';
 	import type { RagTurn } from '../types';
+	import RagAvatar from './RagAvatar.svelte';
 
 	let { turns } = $props<{ turns: RagTurn[] }>();
 	$effect(() => {
@@ -25,20 +26,17 @@
 					<div class="max-w-[85%] min-w-0">
 						<p class="mb-1.5 text-right text-xs text-ink-600 dark:text-ink-400">你</p>
 						<div
-							class="rounded-2xl rounded-tr-sm bg-jade-700 px-4 py-3 text-ink-50 dark:bg-jade-800"
+							class="rounded-2xl rounded-tr-sm bg-ink-200/80 px-4 py-3 text-ink-900 dark:bg-ink-800 dark:text-ink-100"
 						>
 							<p class="whitespace-pre-wrap break-words text-sm leading-7">{turn.question}</p>
 						</div>
 					</div>
 				</div>
-				<div class="flex justify-start" data-message-role="assistant">
-					<div class="max-w-[95%] min-w-0">
-						<p class="mb-1.5 text-xs text-ink-600 dark:text-ink-400">
-							AI 助手{turn.answer?.mode === 'conversation' ? ' · 一般交流' : ''}
-						</p>
-						<div
-							class="rounded-2xl rounded-tl-sm border border-ink-200/70 bg-ink-100/70 px-4 py-3 dark:border-ink-700/70 dark:bg-ink-800/70"
-						>
+				<div class="flex items-start gap-3" data-message-role="assistant">
+					<RagAvatar class="size-8 shrink-0" />
+					<div class="min-w-0 flex-1">
+						<p class="mb-1.5 text-xs text-ink-600 dark:text-ink-400">书灵</p>
+						<div class="border-l border-jade-600/40 pl-3 dark:border-jade-400/40">
 							{#if !turn.answer}
 								<p
 									class="flex items-center gap-2 text-sm leading-7 text-ink-600 dark:text-ink-300"
