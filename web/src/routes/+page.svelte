@@ -29,6 +29,11 @@
 		{ startHour: 23, src: '/home-scenes/23.webp', label: '深夜' }
 	];
 
+	const portraitSceneSrc = (scene: HomeScene) =>
+		scene.startHour < 6 || scene.startHour >= 20
+			? '/home-scenes/portrait-night_20261001.jpg'
+			: '/home-scenes/portrait-day_20261001.jpg';
+
 	const resolveSceneIndex = (hour: number) => {
 		for (let index = HOME_SCENES.length - 1; index >= 0; index -= 1) {
 			if (hour >= HOME_SCENES[index].startHour) return index;
@@ -80,22 +85,22 @@
 <div class="homepage-container">
 	<div class="home-backdrop" data-scene={currentScene.label} aria-hidden="true">
 		{#if previousScene}
-			<div
-				class="home-backdrop-image home-backdrop-previous"
-				style:background-image={`url('${previousScene.src}')`}
-			></div>
+			<picture class="home-backdrop-image home-backdrop-previous">
+				<source media="(max-aspect-ratio: 3/4)" srcset={portraitSceneSrc(previousScene)} />
+				<img src={previousScene.src} alt="" decoding="async" />
+			</picture>
 		{/if}
-		<div
-			class="home-backdrop-image home-backdrop-current"
-			style:background-image={`url('${currentScene.src}')`}
-		></div>
+		<picture class="home-backdrop-image home-backdrop-current">
+			<source media="(max-aspect-ratio: 3/4)" srcset={portraitSceneSrc(currentScene)} />
+			<img src={currentScene.src} alt="" decoding="async" />
+		</picture>
 	</div>
 
-		<div class="home-visual" use:scrollFade={{ distance: 420 }}>
-			<div class="home-hero">
-				<Hero config={data.homeTheme?.hero} />
-			</div>
+	<div class="home-visual" use:scrollFade={{ distance: 420 }}>
+		<div class="home-hero">
+			<Hero config={data.homeTheme?.hero} />
 		</div>
+	</div>
 
 	<div class="home-content max-w-300 mx-auto px-6 py-12 md:py-20">
 		<!-- Recent Moments -->
@@ -171,9 +176,14 @@
 	.home-backdrop-image {
 		position: absolute;
 		inset: 0;
-		background-position: center top;
-		background-size: cover;
-		background-repeat: no-repeat;
+		display: block;
+	}
+
+	.home-backdrop-image img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center top;
 	}
 
 	.home-backdrop-previous {
@@ -253,8 +263,8 @@
 	}
 
 	@media (max-width: 767px) {
-		.home-backdrop-image {
-			background-position: 57% center;
+		.home-backdrop-image img {
+			object-position: 57% center;
 		}
 
 		.home-visual {
@@ -263,6 +273,12 @@
 
 		.home-hero {
 			padding: 0 1rem;
+		}
+	}
+
+	@media (max-aspect-ratio: 3/4) {
+		.home-backdrop-image img {
+			object-position: center;
 		}
 	}
 
