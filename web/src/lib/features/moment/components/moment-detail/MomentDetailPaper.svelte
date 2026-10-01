@@ -13,51 +13,67 @@
 	interface Props {
 		moment: MomentDetail;
 		dateStr: string;
-		dateNo: string;
 		onActiveAnchorChange: (anchor: string | null) => void;
 		onContentRootChange: (node: HTMLElement | null) => void;
 	}
 
-	let { moment, dateStr, dateNo, onActiveAnchorChange, onContentRootChange }: Props = $props();
+	let { moment, dateStr, onActiveAnchorChange, onContentRootChange }: Props = $props();
 	const showUpdated = $derived(isDifferentDay(moment.createdAt, moment.contentUpdatedAt));
+	const monthLabel = $derived(
+		[
+			'JAN.',
+			'FEB.',
+			'MAR.',
+			'APR.',
+			'MAY.',
+			'JUN.',
+			'JUL.',
+			'AUG.',
+			'SEP.',
+			'OCT.',
+			'NOV.',
+			'DEC.'
+		][Number(moment.createdAt.slice(5, 7)) - 1] ?? ''
+	);
 </script>
 
 <div class="moment-detail-paper moment-vt" style:view-transition-name={`moment-${moment.id}`}>
 	<header class="article-header">
-		<div class="article-meta-line">
-			<div class="article-meta">
-				<span>NO. {dateNo}</span>
-				<i aria-hidden="true"></i>
-				<strong>{moment.contentKind === 'article' ? '图书馆' : '手记'}</strong>
-				<i aria-hidden="true"></i>
-				<time datetime={moment.createdAt}>{dateStr} · {moment.createdAt.slice(11, 16)}</time>
-				{#if showUpdated}
-					<small>更新于 {formatDateCN(moment.contentUpdatedAt)}</small>
-				{/if}
+		<div class="article-topline">
+			<div class="article-date" aria-label={dateStr}>
+				<span>{monthLabel}</span>
+				<strong>{Number(moment.createdAt.slice(8, 10))}</strong>
+				<small>{moment.createdAt.slice(0, 4)}</small>
 			</div>
-			<MomentAtmosphere atmosphere={moment.extInfo?.moment} />
+			<div class="article-weather">
+				<MomentAtmosphere atmosphere={moment.extInfo?.moment} />
+				<time datetime={moment.createdAt}>{moment.createdAt.slice(11, 16)}</time>
+				{#if showUpdated}<small>更新于 {formatDateCN(moment.contentUpdatedAt)}</small>{/if}
+			</div>
 		</div>
 
 		{#if moment.title}
 			<h1>{moment.title}</h1>
 		{/if}
 
-		{#if moment.summary}
+		{#if moment.summary && moment.contentKind === 'article'}
 			<p class="article-deck">{moment.summary}</p>
 		{/if}
 
-		<div class="article-facts">
-			<span>浏览 <RollingNumber value={moment.metrics?.views ?? 0} /></span>
-			<i aria-hidden="true"></i>
-			<ContentLikeButton
-				contentType="moment"
-				contentId={moment.id}
-				likes={moment.metrics?.likes ?? 0}
-				className="inline-flex items-center gap-1.5"
-			/>
-			<i aria-hidden="true"></i>
-			<span>评论 <RollingNumber value={moment.metrics?.comments ?? 0} /></span>
-		</div>
+		{#if moment.contentKind === 'article'}
+			<div class="article-facts">
+				<span>浏览 <RollingNumber value={moment.metrics?.views ?? 0} /></span>
+				<i aria-hidden="true"></i>
+				<ContentLikeButton
+					contentType="moment"
+					contentId={moment.id}
+					likes={moment.metrics?.likes ?? 0}
+					className="inline-flex items-center gap-1.5"
+				/>
+				<i aria-hidden="true"></i>
+				<span>评论 <RollingNumber value={moment.metrics?.comments ?? 0} /></span>
+			</div>
+		{/if}
 	</header>
 
 	{#if moment.aiSummary}
@@ -120,31 +136,57 @@
 	}
 
 	.article-header {
-		padding-bottom: clamp(2.4rem, 5vw, 4.5rem);
-		border-bottom: 1px solid var(--book-rule);
+		padding-bottom: 0.15rem;
 	}
 
-	.article-meta-line {
+	.article-topline {
 		display: flex;
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 1rem;
-		padding-bottom: 1rem;
-		border-bottom: 1px solid var(--book-rule);
 	}
 
-	.article-meta {
+	.article-date {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.55rem;
+		flex-direction: column;
+		align-items: flex-start;
+		line-height: 1;
+		color: var(--book-ink);
+	}
+	.article-date span,
+	.article-date small {
 		font-family: var(--font-mono);
-		font-size: 0.57rem;
-		letter-spacing: 0.08em;
+		font-size: 0.72rem;
+		letter-spacing: 0.18em;
 		color: var(--book-faint);
 	}
+	.article-date strong {
+		margin: 0.12rem 0 0.22rem;
+		font-family: var(--font-serif);
+		font-size: clamp(2.6rem, 4vw, 3.4rem);
+		font-weight: 400;
+		line-height: 0.95;
+	}
+	.article-weather {
+		display: flex;
+		align-items: flex-end;
+		flex-direction: column;
+		gap: 0.45rem;
+		padding-top: 0.3rem;
+		font-family: var(--font-mono);
+		font-size: 0.67rem;
+		letter-spacing: 0.08em;
+		color: var(--book-muted);
+	}
+	.article-weather small {
+		font-size: 0.6rem;
+	}
+	.article-weather :global(span.inline-flex) {
+		border: 0;
+		border-radius: 0;
+		padding: 0;
+	}
 
-	.article-meta i,
 	.article-facts i {
 		display: inline-block;
 		width: 1.2rem;
@@ -152,21 +194,11 @@
 		background: var(--book-rule);
 	}
 
-	.article-meta strong {
-		font-family: var(--font-serif);
-		font-weight: 600;
-		color: var(--book-accent);
-	}
-
-	.article-meta small {
-		font-size: inherit;
-	}
-
 	.article-header h1 {
 		max-width: 55rem;
-		margin-top: clamp(2.4rem, 5vw, 4.6rem);
+		margin-top: clamp(0.8rem, 1.8vw, 1.35rem);
 		font-family: var(--font-serif);
-		font-size: clamp(2.1rem, 4vw, 3.4rem);
+		font-size: clamp(1.8rem, 2.8vw, 2.55rem);
 		font-weight: 600;
 		line-height: 1.32;
 		letter-spacing: 0.045em;
@@ -175,7 +207,7 @@
 
 	.article-deck {
 		max-width: 46rem;
-		margin-top: 1.5rem;
+		margin-top: 0.8rem;
 		font-family: var(--font-serif);
 		font-size: clamp(0.9rem, 1.2vw, 1.04rem);
 		line-height: 2;
@@ -187,7 +219,7 @@
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.65rem;
-		margin-top: 1.6rem;
+		margin-top: 0.9rem;
 		font-family: var(--font-mono);
 		font-size: 0.57rem;
 		letter-spacing: 0.11em;
@@ -302,7 +334,7 @@
 	}
 
 	@media (max-width: 767px) {
-		.article-meta-line {
+		.article-topline {
 			padding-right: 2.8rem;
 		}
 

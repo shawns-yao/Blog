@@ -4,7 +4,7 @@
 	import type { MomentDetail, MomentListResponse } from '$lib/features/moment/types';
 	import { detailHeroBgSrc } from '$lib/shared/stores/detailHeroBg';
 	import { buildMomentPath } from '$lib/shared/utils/content-path';
-	import { formatDateCompact, formatDateDotted } from '$lib/shared/utils/date';
+	import { formatDateDotted } from '$lib/shared/utils/date';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
 	import { ArrowLeft, ArrowRight, Paperclip, X } from 'lucide-svelte';
 	import { onDestroy, onMount } from 'svelte';
@@ -17,7 +17,6 @@
 		underlayMoments = { items: [], total: 0, page: 1, size: 20 }
 	}: { moment: MomentDetail; underlayMoments?: MomentListResponse } = $props();
 	const dateStr = $derived(formatDateDotted(moment.createdAt));
-	const dateNo = $derived(formatDateCompact(moment.createdAt));
 	const related = $derived(moment.relatedMoments ?? []);
 	const previousMoment = $derived(related[0] ?? null);
 	const nextMoment = $derived(related[1] ?? null);
@@ -180,7 +179,6 @@
 					<MomentDetailPaper
 						{moment}
 						{dateStr}
-						{dateNo}
 						onContentRootChange={(node) => (contentRoot = node)}
 						onActiveAnchorChange={(anchor) => (activeAnchor = anchor)}
 					/>
