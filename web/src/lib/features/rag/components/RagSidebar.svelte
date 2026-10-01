@@ -66,7 +66,7 @@
 		disabled={!sessionId}
 		aria-label="打开站内问答"
 		title="问问书灵"
-		class="group fixed right-4 bottom-6 z-50 flex size-20 flex-col items-center justify-center rounded-2xl bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 sm:right-7 sm:size-24 dark:focus-visible:outline-jade-400"
+		class="shuling-entry group fixed right-4 bottom-6 z-50 flex size-20 flex-col items-center justify-center rounded-2xl bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 sm:right-7 sm:size-24 dark:focus-visible:outline-jade-400"
 		style="bottom: calc(var(--spacing) * 6 + env(safe-area-inset-bottom))"
 	>
 		<span
@@ -74,7 +74,15 @@
 			class="pointer-events-none absolute right-0 -top-9 whitespace-nowrap rounded-full border border-ink-300 bg-ink-50 px-3 py-1.5 text-xs text-ink-700 opacity-0 shadow-sm transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200"
 			>问问书灵</span
 		>
-		<RagAvatar class="size-20 sm:size-24" />
+		<span
+			class="shuling-pose relative z-10 transition-transform duration-200 group-hover:-rotate-6 group-hover:scale-105 group-active:scale-95 motion-reduce:transform-none"
+		>
+			<span class="shuling-float block"><RagAvatar class="size-20 sm:size-24" /></span>
+		</span>
+		<span
+			class="shuling-shadow absolute bottom-0 h-1.5 w-9 rounded-full bg-ink-800/15 blur-sm dark:bg-ink-400/15"
+			aria-hidden="true"
+		></span>
 	</Dialog.Trigger>
 	<Dialog.Portal>
 		<Dialog.Overlay
@@ -91,7 +99,7 @@
 				style:padding-top="calc(var(--spacing) * 6 + env(safe-area-inset-top))"
 			>
 				<div class="flex min-w-0 items-center gap-3">
-					<RagAvatar class="size-20 shrink-0" />
+					<RagAvatar class="size-20 shrink-0" animated />
 					<div class="min-w-0 pt-4">
 						<Dialog.Title class="font-serif text-base font-medium"
 							>{greeting}，我是书灵</Dialog.Title
@@ -146,3 +154,45 @@
 	</Dialog.Portal>
 </Dialog.Root>
 
+<style>
+	.shuling-float {
+		animation: shuling-float 3.6s ease-in-out infinite;
+	}
+	.shuling-shadow {
+		animation: shuling-shadow 3.6s ease-in-out infinite;
+	}
+	:global(.shuling-entry):hover .shuling-float,
+	:global(.shuling-entry):focus-visible .shuling-float {
+		animation-play-state: paused;
+	}
+	@keyframes shuling-float {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-6px);
+		}
+	}
+	@keyframes shuling-shadow {
+		0%,
+		100% {
+			transform: scaleX(1);
+			opacity: 1;
+		}
+		50% {
+			transform: scaleX(0.75);
+			opacity: 0.6;
+		}
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.shuling-float,
+		.shuling-shadow {
+			animation: none;
+		}
+		.shuling-pose {
+			transition: none;
+			transform: none;
+		}
+	}
+</style>
