@@ -16,11 +16,19 @@
 	let {
 		moment,
 		underlayMoments = { items: [], total: 0, page: 1, size: 20 },
-		preview = false
+		preview = false,
+		embedded = false,
+		shallowOpen = true,
+		returnPathOverride,
+		onRelatedNavigate
 	}: {
 		moment: MomentDetail;
 		underlayMoments?: MomentListResponse;
 		preview?: boolean;
+		embedded?: boolean;
+		shallowOpen?: boolean;
+		returnPathOverride?: string;
+		onRelatedNavigate?: (href: string) => void;
 	} = $props();
 	const dateStr = $derived(formatDateDotted(moment.createdAt));
 	const related = $derived(moment.relatedMoments ?? []);
@@ -49,13 +57,44 @@
 		);
 	});
 	const underlaySpread = $derived(visit?.spread ?? fallbackSpread);
-	const returnPath = $derived(visit?.returnPath ?? `${base}/moments/`);
+	const returnPath = $derived(visit?.returnPath ?? returnPathOverride ?? `${base}/moments/`);
 
 	$effect(() => detailHeroBgSrc.set(moment.cover ?? ''));
 	onDestroy(() => detailHeroBgSrc.set(''));
 
 	function closeDetail() {
-		if (!isClosing) void goto(returnPath);
+		if (isClosing || !shallowOpen) return;
+		if (embedded) window.history.back();
+		else void goto(returnPath);
+	}
+
+	function handleCloseLink(event: MouseEvent) {
+		if (
+			!embedded ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		)
+			return;
+		event.preventDefault();
+		closeDetail();
+	}
+
+	function handleRelatedLink(event: MouseEvent, href: string) {
+		if (
+			!embedded ||
+			!onRelatedNavigate ||
+			event.button !== 0 ||
+			event.metaKey ||
+			event.ctrlKey ||
+			event.shiftKey ||
+			event.altKey
+		)
+			return;
+		event.preventDefault();
+		onRelatedNavigate(href);
 	}
 
 	function relatedHref(item: NonNullable<typeof previousMoment>) {
@@ -65,6 +104,7 @@
 	}
 
 	onNavigate(async (navigation) => {
+		if (embedded) return;
 		const destination = navigation.to?.url.pathname;
 		if (
 			!destination ||
@@ -146,7 +186,7 @@
 	});
 </script>
 
-<MomentBookShell pageLabel={moment.title || '手记详情'}>
+<MomentBookShell pageLabel={moment.title || '手记详情'} overlayOnly={embedded}>
 	{#snippet directory()}
 		<div class="underlay-date-page" aria-hidden="true">
 			<MomentDatePage
@@ -168,7 +208,7 @@
 	{#snippet overlay()}
 		<button
 			class="detail-backdrop"
-			class:closing={isClosing}
+			class:closing={isClosing || (embedded && !shallowOpen)}
 			type="button"
 			aria-label="关闭手记正文"
 			onclick={closeDetail}
@@ -184,7 +224,7 @@
 			<article
 				bind:this={sheetElement}
 				class:from-card={enteringFromCard}
-				class:closing={isClosing}
+				class:closing={isClosing || (embedded && !shallowOpen)}
 				class="kraft-sheet"
 			>
 				<div class="paperclip" aria-hidden="true"><Paperclip size={44} strokeWidth={1.35} /></div>
@@ -192,7 +232,8 @@
 					class="close-sheet"
 					href={returnPath}
 					aria-label="放回手记"
-					title="放回手记"><X size={18} strokeWidth={1.5} /></a
+					title="放回手记"
+					onclick={handleCloseLink}><X size={18} strokeWidth={1.5} /></a
 				>
 				<div class="kraft-scroll">
 					<div id="moment-detail-title" class="sr-only">{moment.title || '无题手记'}</div>
@@ -205,17 +246,19 @@
 					/>
 
 					<nav class="sheet-navigation" aria-label="手记前后篇">
-						<a class="return-index" href={returnPath}
+						<a class="return-index" href={returnPath} onclick={handleCloseLink}
 							><ArrowLeft size={15} /><span>放回手记</span></a
 						>
 						<div>
 							{#if previousMoment}<a
 									href={relatedHref(previousMoment)}
+									onclick={(event) => handleRelatedLink(event, relatedHref(previousMoment))}
 									aria-label={`上一篇：${previousMoment.title}`}
 									><ArrowLeft size={14} /><span>上一篇</span></a
 								>{/if}
 							{#if nextMoment}<a
 									href={relatedHref(nextMoment)}
+									onclick={(event) => handleRelatedLink(event, relatedHref(nextMoment))}
 									aria-label={`下一篇：${nextMoment.title}`}
 									><span>下一篇</span><ArrowRight size={14} /></a
 								>{/if}
