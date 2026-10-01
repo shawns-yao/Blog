@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Dialog } from 'bits-ui';
+	import { page } from '$app/state';
 	import { ChevronsRight, MessageCirclePlus } from 'lucide-svelte';
 	import { uiState } from '$lib/shared/stores/ui.svelte';
 	import QueryRoot from '$lib/ui/common/QueryRoot.svelte';
@@ -55,7 +56,9 @@
 	<Dialog.Trigger
 		disabled={!sessionId}
 		aria-label="打开站内问答"
-		class="shuling-entry group fixed right-4 bottom-6 z-50 flex size-20 flex-col items-center justify-center rounded-2xl bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 sm:right-7 sm:size-24 dark:focus-visible:outline-jade-400"
+		class="shuling-entry {page.url.pathname === '/'
+			? 'shuling-home-entry'
+			: ''} group fixed right-4 bottom-6 z-50 flex size-20 flex-col items-center justify-center rounded-2xl bg-transparent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-jade-700 sm:right-7 sm:size-24 dark:focus-visible:outline-jade-400"
 		style="bottom: calc(var(--spacing) * 6 + env(safe-area-inset-bottom))"
 	>
 		<span
@@ -143,6 +146,14 @@
 </Dialog.Root>
 
 <style>
+	@media (max-width: 1199px) and (max-height: 500px),
+		(max-aspect-ratio: 3/2) and (max-height: 500px) {
+		:global(.shuling-home-entry) {
+			right: auto;
+			left: max(1rem, env(safe-area-inset-left, 0px));
+		}
+	}
+
 	.shuling-float {
 		animation: shuling-float 3.6s ease-in-out infinite;
 	}
