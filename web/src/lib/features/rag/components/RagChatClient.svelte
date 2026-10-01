@@ -1,15 +1,43 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { ArrowUp, BookOpen, RotateCw, Search } from 'lucide-svelte';
+	import { ArrowUp, BookOpen, Brain, Code2, RotateCw, Search } from 'lucide-svelte';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import Textarea from '$lib/ui/primitives/textarea/Textarea.svelte';
 	import { askRag, getRagAvailability } from '../api';
 	import { conversationHistory } from '../conversation';
 	import type { RagAnswer, RagMessage, RagTurn } from '../types';
 	import RagTranscript from './RagTranscript.svelte';
+	import RagAvatar from './RagAvatar.svelte';
 
 	type Submission = { id: string; question: string; history: RagMessage[] };
+	const suggestedQuestions = [
+		{
+			label: 'RAG 如何工作',
+			shortcut: 'RAG 原理',
+			question: 'RAG 的工作原理是什么？',
+			icon: BookOpen
+		},
+		{
+			label: 'Java 值传递',
+			shortcut: 'Java 基础',
+			question: 'Java 是值传递还是引用传递？',
+			icon: Code2
+		},
+		{
+			label: 'Agent 长期记忆',
+			shortcut: '长期记忆',
+			question: 'Agent 如何实现长期记忆？',
+			icon: Brain
+		},
+		{
+			label: 'RAG 与微调',
+			shortcut: 'RAG 与微调',
+			question: 'RAG 和微调分别适合解决什么问题？',
+			icon: BookOpen
+		}
+	];
+
 
 	let { question, sessionId, greeting, turns, onQuestionChange, onTurnsChange, onSearch } = $props<{
 		question: string;
@@ -97,8 +125,8 @@
 		pendingTurnId = undefined;
 	}
 
-	function send() {
-		const value = question.trim();
+	function send(selectedQuestion?: string) {
+		const value = (selectedQuestion ?? question).trim();
 		if (!ready || !value || mutation.isPending) return;
 		const history = conversationHistory(turns, availability.data?.history);
 		const id = crypto.randomUUID();
@@ -125,13 +153,35 @@
 	{#if turns.length > 0}
 		<RagTranscript {turns} />
 	{:else}
-		<div class="py-6">
-			<BookOpen class="mb-6 size-8 text-jade-800 dark:text-jade-300" aria-hidden="true" />
-			<h2 class="font-serif text-2xl leading-relaxed">{ready ? '向书房提问' : '站内问答'}</h2>
-			<p class="mt-3 text-sm leading-7 text-ink-600 dark:text-ink-300" role="status">
-				{availabilityText}
+		<div class="mb-5" aria-label="书灵的问候">
+			<div class="mb-1 flex items-center gap-2">
+				<RagAvatar class="size-7 shrink-0" />
+				<p class="text-xs text-ink-600 dark:text-ink-300">书灵</p>
+			</div>
+			<p class="ml-3 border-l border-jade-600/40 pl-5 text-sm leading-7 dark:border-jade-400/40">
+				{greeting}，我是书灵。有什么问题想问我？
 			</p>
 		</div>
+		<section aria-labelledby="rag-suggestions" class="ml-4">
+			<h2 id="rag-suggestions" class="mb-3 text-xs text-ink-600 dark:text-ink-400">猜你喜欢</h2>
+			<ul class="grid w-fit max-w-full grid-cols-2 gap-x-3 gap-y-2">
+				{#each suggestedQuestions as suggestion (suggestion.question)}
+					<li class="max-w-full">
+						<Button
+							variant="ghost"
+							type="button"
+							disabled={!ready || mutation.isPending}
+							onclick={() => send(suggestion.question)}
+							aria-label={suggestion.question}
+							title={suggestion.question}
+							class="min-h-9 w-full rounded-full! border border-ink-300/80 px-4! text-xs! text-ink-800 hover:border-jade-600 hover:bg-jade-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:border-ink-600 dark:text-ink-200 dark:hover:border-jade-500 dark:hover:bg-ink-800 dark:focus-visible:outline-jade-400"
+						>
+							{suggestion.label}
+						</Button>
+					</li>
+				{/each}
+			</ul>
+		</section>
 	{/if}
 	{#if !ready && !availability.isPending}
 		<Button
