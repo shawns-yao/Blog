@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { ArrowUp, BookOpen, Brain, Code2, RotateCw, Search } from 'lucide-svelte';
+	import { ArrowUp, BookOpen, Brain, Code2, Eraser, MessageCircle, RotateCw, Search } from 'lucide-svelte';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import Textarea from '$lib/ui/primitives/textarea/Textarea.svelte';
 	import { askRag, getRagAvailability } from '../api';
@@ -207,51 +207,79 @@
 
 <form
 	onsubmit={submit}
-	class="shrink-0 border-t border-ink-200 bg-ink-100/50 p-5 dark:border-ink-700 dark:bg-ink-800/30"
-	style:padding-bottom="calc(var(--spacing) * 5 + env(safe-area-inset-bottom))"
+	class="shrink-0 px-2 pt-3 pb-3 sm:px-3"
+	style:padding-bottom="calc(var(--spacing) * 3 + env(safe-area-inset-bottom))"
 >
-	<div class="mb-3 flex items-center justify-between gap-3">
-		<label for="rag-question" class="font-serif text-sm">你的问题</label>
-		<Button
-			variant="ghost"
-			size="sm"
-			type="button"
-			disabled={!question || mutation.isPending}
-			onclick={() => {
-				onQuestionChange('', activeSessionId);
-				input?.focus();
-			}}
-			class="min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
-			>清空草稿</Button
-		>
+	<nav aria-label="快捷问题入口" class="mb-2 flex flex-wrap gap-2">
+		{#each suggestedQuestions.slice(0, 3) as suggestion (suggestion.question)}
+			<Button
+				variant="ghost"
+				size="sm"
+				type="button"
+				disabled={!ready || mutation.isPending}
+				onclick={() => send(suggestion.question)}
+				aria-label={`快捷发送：${suggestion.question}`}
+				title={suggestion.question}
+				class="min-h-8 gap-1.5! rounded-full! border border-ink-300/80 bg-white/60 px-3! text-xs! text-ink-600 hover:border-jade-500 hover:bg-jade-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:border-ink-700 dark:bg-ink-800/40 dark:text-ink-300 dark:hover:border-jade-600 dark:hover:bg-ink-800 dark:focus-visible:outline-jade-400"
+			>
+				<suggestion.icon class="size-3.5 text-jade-700 dark:text-jade-300" aria-hidden="true" />
+				{suggestion.shortcut}
+			</Button>
+		{/each}
+	</nav>
+	<label for="rag-question" class="sr-only">你的问题</label>
+	<div
+		class="rounded-xl border border-ink-300 bg-white/90 p-2.5 shadow-sm transition-colors focus-within:border-jade-700 dark:border-ink-600 dark:bg-ink-900/80 dark:focus-within:border-jade-400"
+	>
+		<div class="relative">
+			<Textarea
+				id="rag-question"
+				bind:ref={input}
+				value={question}
+				oninput={() => onQuestionChange(input?.value ?? '', activeSessionId)}
+				onkeydown={handleKeydown}
+				rows={2}
+				maxLength={1000}
+				resize="none"
+				disabled={mutation.isPending}
+				aria-describedby="rag-availability rag-keyboard-help"
+				placeholder="请问有什么问题？"
+				textareaClass="block border-0! bg-transparent! py-1! pr-1! pl-7! text-sm leading-6 placeholder:text-ink-500! focus:ring-0! disabled:opacity-60 dark:placeholder:text-ink-400!"
+			/>
+			<MessageCircle
+				class="pointer-events-none absolute top-2 left-1 size-4 text-ink-500 dark:text-ink-400"
+				aria-hidden="true"
+			/>
+		</div>
+		<div class="mt-1 flex items-center justify-between gap-3">
+			<Button
+				variant="ghost"
+				size="sm"
+				type="button"
+				aria-label="清空草稿"
+				title="清空草稿"
+				disabled={!question || mutation.isPending}
+				onclick={() => {
+					onQuestionChange('', activeSessionId);
+					input?.focus();
+				}}
+				class="size-10 rounded-full! p-0! focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
+			>
+				<Eraser class="size-4" aria-hidden="true" />
+			</Button>
+			<Button
+				type="submit"
+				loading={mutation.isPending}
+				disabled={!ready || !question.trim() || mutation.isPending}
+				aria-label={mutation.isPending ? '书灵正在回答' : '发送问题'}
+				title={mutation.isPending ? '书灵正在回答' : '发送问题'}
+				aria-describedby="rag-availability"
+				class="size-10 shrink-0 rounded-full! bg-jade-600! p-0! hover:bg-jade-500! hover:text-ink-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
+			>
+				{#if !mutation.isPending}<ArrowUp class="size-5" aria-hidden="true" />{/if}
+			</Button>
+		</div>
 	</div>
-	<Textarea
-		id="rag-question"
-		bind:ref={input}
-		value={question}
-		oninput={() => onQuestionChange(input?.value ?? '', activeSessionId)}
-		onkeydown={handleKeydown}
-		rows={2}
-		maxLength={1000}
-		resize="none"
-		disabled={mutation.isPending}
-		aria-describedby="rag-availability rag-keyboard-help"
-		placeholder="输入你的问题…"
-		textareaClass="block text-sm leading-6 disabled:opacity-60"
-	/>
 	<p id="rag-availability" class="sr-only">{availabilityText}</p>
-	<div class="mt-3 flex items-center justify-between gap-3">
-		<p id="rag-keyboard-help" class="text-xs leading-5 text-ink-600 dark:text-ink-400">
-			Enter 发送 · Shift+Enter 换行
-		</p>
-		<Button
-			type="submit"
-			loading={mutation.isPending}
-			disabled={!ready || !question.trim() || mutation.isPending}
-			aria-describedby="rag-availability"
-			class="min-h-10 shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
-		>
-			{mutation.isPending ? '正在回答' : '发送问题'}<ArrowUp class="size-4" aria-hidden="true" />
-		</Button>
-	</div>
+	<p id="rag-keyboard-help" class="sr-only">Enter 发送 · Shift+Enter 换行</p>
 </form>
