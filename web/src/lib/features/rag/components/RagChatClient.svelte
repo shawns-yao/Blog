@@ -53,6 +53,9 @@
 	let controller: AbortController | undefined;
 	let pendingTurnId: string | undefined;
 	let disposed = false;
+	let historyCount = $state(0);
+	let showHistory = $state(false);
+	let visibleTurns = $derived(showHistory ? turns : turns.slice(historyCount));
 
 	const availability = createQuery(() => ({
 		queryKey: ['rag-availability'],
@@ -103,7 +106,10 @@
 		!ready || (turns.at(-1)?.answer && turns.at(-1)?.answer?.status !== 'answered')
 	);
 
-	onMount(() => input?.focus());
+	onMount(() => {
+		historyCount = turns.length;
+		input?.focus();
+	});
 	onDestroy(() => {
 		disposed = true;
 		controller?.abort();
@@ -149,9 +155,30 @@
 	}
 </script>
 
+<div class="flex shrink-0 items-center gap-2 px-3 text-xs text-ink-500 sm:px-5 dark:text-ink-400">
+	<span class="h-px min-w-3 flex-1 bg-ink-300/70 dark:bg-ink-700" aria-hidden="true"></span>
+	{#if historyCount > 0}
+		<span>最近对话记录已{showHistory ? '展开' : '收起'}</span>
+		<Button
+			variant="ghost"
+			type="button"
+			aria-expanded={showHistory}
+			aria-controls="rag-visible-conversation"
+			onclick={() => {
+				showHistory = !showHistory;
+			}}
+			class="min-h-8 p-0! text-xs! text-jade-800 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:text-jade-200 dark:focus-visible:outline-jade-400"
+			>点击{showHistory ? '收起' : '展开'}</Button
+		>
+	{:else}
+		<span>本次对话</span>
+	{/if}
+	<span class="h-px min-w-3 flex-1 bg-ink-300/70 dark:bg-ink-700" aria-hidden="true"></span>
+</div>
+
 <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
-	{#if turns.length > 0}
-		<RagTranscript {turns} />
+	{#if visibleTurns.length > 0}
+		<div id="rag-visible-conversation"><RagTranscript turns={visibleTurns} /></div>
 	{:else}
 		<div class="mb-5" aria-label="书灵的问候">
 			<div class="mb-1 flex items-center gap-2">
