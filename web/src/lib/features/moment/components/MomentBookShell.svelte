@@ -48,7 +48,7 @@
 		return 0;
 	};
 
-	let currentScene = $state(MOMENT_SCENES[2]);
+	let currentScene = $state(MOMENT_SCENES[resolveSceneIndex(new Date())]);
 	let previousScene = $state<MomentScene | null>(null);
 
 	function returnToShelf(event: MouseEvent) {
