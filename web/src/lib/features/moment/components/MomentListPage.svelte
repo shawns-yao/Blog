@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { dev } from '$app/environment';
-	import { goto } from '$app/navigation';
+	import { goto, preloadData, pushState, replaceState } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import { buildMomentBookSpreads, formatLeafPageLabel } from '$lib/features/moment/book-pages';
-	import { layoutPreviewMoments } from '$lib/features/moment/layout-preview';
 	import { momentListCtx } from '$lib/features/moment/context';
-	import type { MomentListResponse, MomentSummary } from '$lib/features/moment/types';
+	import { layoutPreviewMoments } from '$lib/features/moment/layout-preview';
+	import type { MomentDetail, MomentListResponse, MomentSummary } from '$lib/features/moment/types';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
 	import MomentBookShell from './MomentBookShell.svelte';
 	import MomentDatePage from './MomentDatePage.svelte';
-	import { onMount } from 'svelte';
+	import MomentDetailView from './MomentDetail.svelte';
+	import { onDestroy, onMount } from 'svelte';
 
 	interface Props {
 		moments: MomentListResponse;
@@ -37,6 +38,29 @@
 	let currentDatasetKey = $state('');
 	let touchStartX: number | null = null;
 	let touchStartY: number | null = null;
+	let visibleOverlay = $state<MomentOverlay | null>(null);
+	let closeTimer: ReturnType<typeof setTimeout> | undefined;
+	let openRequestId = 0;
+	let lastOpenedLink: HTMLAnchorElement | null = null;
+	const routeOverlay = $derived(
+		(page.state as { momentOverlay?: MomentOverlay }).momentOverlay ?? null
+	);
+
+	$effect(() => {
+		if (routeOverlay) {
+			clearTimeout(closeTimer);
+			closeTimer = undefined;
+			visibleOverlay = routeOverlay;
+		} else if (visibleOverlay && !closeTimer) {
+			const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 430;
+			closeTimer = setTimeout(() => {
+				visibleOverlay = null;
+				closeTimer = undefined;
+				lastOpenedLink?.focus();
+			}, delay);
+		}
+	});
+	onDestroy(() => clearTimeout(closeTimer));
 
 	$effect(() => {
 		const nextKey = `${staggerKey}-${search}-${visibleMoments.map((item) => item.id).join(',')}`;
@@ -85,6 +109,35 @@
 		return `${path}${search ? `?${new URLSearchParams({ q: search })}` : ''}`;
 	}
 
+	async function openDetail(href: string, replace = false, link?: HTMLAnchorElement) {
+		const requestId = ++openRequestId;
+		const returnPath = routeOverlay?.returnPath ?? page.url.pathname + page.url.search;
+		if (link) lastOpenedLink = link;
+		try {
+			const result = await preloadData(href);
+			if (requestId !== openRequestId) return;
+			if (result.type !== 'loaded' || result.status !== 200 || !result.data.moment) {
+				void goto(href);
+				return;
+			}
+			const overlay: MomentOverlay = {
+				moment: result.data.moment as MomentDetail,
+				underlayMoments: (result.data.underlayMoments as MomentListResponse | undefined) ?? moments,
+				preview: (result.data.moment as MomentDetail).id < 0,
+				returnPath
+			};
+			const nextState = { ...page.state, momentOverlay: overlay } as App.PageState;
+			if (replace) replaceState(href, nextState);
+			else pushState(href, nextState);
+		} catch {
+			if (requestId === openRequestId) void goto(href);
+		}
+	}
+
+	function openEntry(_moment: MomentSummary, href: string, link: HTMLAnchorElement) {
+		void openDetail(href, false, link);
+	}
+
 	function animateTurn(direction: 'older' | 'newer') {
 		turnDirection = direction;
 		window.setTimeout(() => (turnDirection = null), 520);
@@ -125,69 +178,87 @@
 	}
 </script>
 
-<MomentBookShell pageLabel="手记列表">
-	{#snippet directory()}
+<div inert={!!visibleOverlay} aria-hidden={!!visibleOverlay}>
+	<MomentBookShell pageLabel="手记列表">
+		{#snippet directory()}
+			<div
+				class="leaf-motion"
+				class:turn-older={turnDirection === 'older'}
+				class:turn-newer={turnDirection === 'newer'}
+				role="region"
+				aria-label="左侧日期书页"
+				aria-busy={!!navigating.to}
+				ontouchstart={rememberTouch}
+				ontouchend={turnFromSwipe}
+			>
+				{#key `${currentSpread.left?.dateKey ?? 'blank'}-${currentSpread.left?.part ?? 0}`}
+					<MomentDatePage
+						leaf={currentSpread.left}
+						side="left"
+						{search}
+						{basePath}
+						preview={isLayoutPreview}
+						{openContext}
+						onOpen={openEntry}
+						kicker={currentSpread.left?.dateKey &&
+						currentSpread.left.dateKey === currentSpread.right?.dateKey
+							? `SAME DAY / ${String(currentSpread.left.part).padStart(2, '0')}`
+							: 'YESTERDAY / NOTES'}
+						canTurn={canTurnOlder}
+						turnLabel="翻到更早的手记"
+						turnPageLabel={olderLeaf ? formatLeafPageLabel(olderLeaf) : '更早的手记'}
+						onTurn={turnOlder}
+					/>
+				{/key}
+			</div>
+		{/snippet}
+
 		<div
 			class="leaf-motion"
 			class:turn-older={turnDirection === 'older'}
 			class:turn-newer={turnDirection === 'newer'}
 			role="region"
-			aria-label="左侧日期书页"
+			aria-label="右侧日期书页"
 			aria-busy={!!navigating.to}
 			ontouchstart={rememberTouch}
 			ontouchend={turnFromSwipe}
 		>
-			{#key `${currentSpread.left?.dateKey ?? 'blank'}-${currentSpread.left?.part ?? 0}`}
+			{#key `${currentSpread.right?.dateKey ?? 'blank'}-${currentSpread.right?.part ?? 0}`}
 				<MomentDatePage
-					leaf={currentSpread.left}
-					side="left"
+					leaf={currentSpread.right}
+					side="right"
 					{search}
 					{basePath}
 					preview={isLayoutPreview}
 					{openContext}
-					kicker={currentSpread.left?.dateKey &&
-					currentSpread.left.dateKey === currentSpread.right?.dateKey
-						? `SAME DAY / ${String(currentSpread.left.part).padStart(2, '0')}`
-						: 'YESTERDAY / NOTES'}
-					canTurn={canTurnOlder}
-					turnLabel="翻到更早的手记"
-					turnPageLabel={olderLeaf ? formatLeafPageLabel(olderLeaf) : '更早的手记'}
-					onTurn={turnOlder}
+					onOpen={openEntry}
+					kicker={currentSpread.right?.dateKey &&
+					currentSpread.right.dateKey === currentSpread.left?.dateKey
+						? `SAME DAY / ${String(currentSpread.right.part).padStart(2, '0')}`
+						: 'TODAY / NOTES'}
+					canTurn={canTurnNewer}
+					turnLabel="翻到更新的手记"
+					turnPageLabel={newerLeaf ? formatLeafPageLabel(newerLeaf) : '更新的手记'}
+					onTurn={turnNewer}
 				/>
 			{/key}
 		</div>
-	{/snippet}
+	</MomentBookShell>
+</div>
 
-	<div
-		class="leaf-motion"
-		class:turn-older={turnDirection === 'older'}
-		class:turn-newer={turnDirection === 'newer'}
-		role="region"
-		aria-label="右侧日期书页"
-		aria-busy={!!navigating.to}
-		ontouchstart={rememberTouch}
-		ontouchend={turnFromSwipe}
-	>
-		{#key `${currentSpread.right?.dateKey ?? 'blank'}-${currentSpread.right?.part ?? 0}`}
-			<MomentDatePage
-				leaf={currentSpread.right}
-				side="right"
-				{search}
-				{basePath}
-				preview={isLayoutPreview}
-				{openContext}
-				kicker={currentSpread.right?.dateKey &&
-				currentSpread.right.dateKey === currentSpread.left?.dateKey
-					? `SAME DAY / ${String(currentSpread.right.part).padStart(2, '0')}`
-					: 'TODAY / NOTES'}
-				canTurn={canTurnNewer}
-				turnLabel="翻到更新的手记"
-				turnPageLabel={newerLeaf ? formatLeafPageLabel(newerLeaf) : '更新的手记'}
-				onTurn={turnNewer}
-			/>
-		{/key}
-	</div>
-</MomentBookShell>
+{#if visibleOverlay}
+	{#key visibleOverlay.moment.id}
+		<MomentDetailView
+			moment={visibleOverlay.moment}
+			underlayMoments={visibleOverlay.underlayMoments}
+			preview={visibleOverlay.preview}
+			embedded
+			shallowOpen={!!routeOverlay}
+			returnPathOverride={visibleOverlay.returnPath}
+			onRelatedNavigate={(href) => void openDetail(href, true)}
+		/>
+	{/key}
+{/if}
 
 <style>
 	.leaf-motion {
