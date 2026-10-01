@@ -13,7 +13,6 @@
 	let sessionId = $state('');
 	let turns = $state<RagTurn[]>([]);
 	let greeting = $state('你好');
-	let searchAfterClose = false;
 	// 销毁旧组件时可能读取旧状态，使用当前标识隔离中止回调。
 	let currentSessionId = '';
 	onMount(() => {
@@ -47,17 +46,8 @@
 		if (uiState.isSearchOpen) open = false;
 	});
 
-	function useSearch() {
-		searchAfterClose = true;
-		open = false;
-	}
-
 	function handleOpenChangeComplete(isOpen: boolean) {
 		if (isOpen) updateGreeting();
-		if (!isOpen && searchAfterClose) {
-			searchAfterClose = false;
-			uiState.openSearch();
-		}
 	}
 </script>
 
@@ -90,7 +80,7 @@
 		<Dialog.Content
 			class="fixed inset-y-0 right-0 z-(--z-index-rag-panel) flex h-dvh w-full max-w-rag flex-col border-l border-ink-200 bg-linear-to-b from-ink-100 via-ink-50 to-white text-ink-900 shadow-deep outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right duration-150 motion-reduce:animate-none dark:border-ink-700 dark:from-ink-900 dark:via-ink-900 dark:to-ink-950 dark:text-ink-100"
 			onCloseAutoFocus={(event) => {
-				if (searchAfterClose || uiState.isSearchOpen) event.preventDefault();
+				if (uiState.isSearchOpen) event.preventDefault();
 			}}
 		>
 			<header
@@ -138,8 +128,7 @@
 						greeting,
 						turns,
 						onTurnsChange: updateTurns,
-						onQuestionChange: updateQuestion,
-						onSearch: useSearch
+						onQuestionChange: updateQuestion
 					}}
 				>
 					{#snippet fallback()}

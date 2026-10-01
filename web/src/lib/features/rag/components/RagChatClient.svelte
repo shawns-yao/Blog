@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { ArrowUp, BookOpen, Brain, Code2, Eraser, MessageCircle, RotateCw, Search } from 'lucide-svelte';
+	import { ArrowUp, BookOpen, Brain, Code2, Eraser, MessageCircle, RotateCw } from 'lucide-svelte';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import Textarea from '$lib/ui/primitives/textarea/Textarea.svelte';
 	import { askRag, getRagAvailability } from '../api';
@@ -38,15 +38,13 @@
 		}
 	];
 
-
-	let { question, sessionId, greeting, turns, onQuestionChange, onTurnsChange, onSearch } = $props<{
+	let { question, sessionId, greeting, turns, onQuestionChange, onTurnsChange } = $props<{
 		question: string;
 		sessionId: string;
 		greeting: string;
 		turns: RagTurn[];
 		onQuestionChange: (value: string, sourceSessionId: string) => void;
 		onTurnsChange: (value: RagTurn[], sourceSessionId: string) => void;
-		onSearch: () => void;
 	}>();
 	const activeSessionId = untrack(() => sessionId);
 	let input: HTMLTextAreaElement | undefined = $state();
@@ -82,7 +80,7 @@
 			completeTurn(value.id, {
 				status: 'temporarily_unavailable',
 				answer: '',
-				reason: '请求暂时未能完成，请稍后重试或使用站内搜索。',
+				reason: '请求暂时未能完成，请稍后重试。',
 				citations: []
 			});
 		},
@@ -95,15 +93,12 @@
 		availability.isPending
 			? '正在检查问答服务…'
 			: availability.isError
-				? '暂时无法连接问答服务，可以先用搜索查找文章与手记。'
+				? '暂时无法连接问答服务，请稍后重试。'
 				: ready
 					? '可以与我交流，也可以提问本站文章与手记。'
 					: availability.data?.reason === 'index_not_ready'
 						? '公开内容正在准备中，请稍后重试。'
-						: '问答服务尚未开放，可以先用搜索查找文章与手记。'
-	);
-	let offerSearch = $derived(
-		!ready || (turns.at(-1)?.answer && turns.at(-1)?.answer?.status !== 'answered')
+						: '问答服务尚未开放，请稍后重试。'
 	);
 
 	onMount(() => {
@@ -176,10 +171,8 @@
 	<span class="h-px min-w-3 flex-1 bg-ink-300/70 dark:bg-ink-700" aria-hidden="true"></span>
 </div>
 
-<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
-	{#if visibleTurns.length > 0}
-		<div id="rag-visible-conversation"><RagTranscript turns={visibleTurns} /></div>
-	{:else}
+<div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-5 pb-5 sm:px-5">
+	{#if visibleTurns.length === 0}
 		<div class="mb-5" aria-label="书灵的问候">
 			<div class="mb-1 flex items-center gap-2">
 				<RagAvatar class="size-7 shrink-0" />
@@ -210,6 +203,14 @@
 			</ul>
 		</section>
 	{/if}
+	<div id="rag-visible-conversation">
+		{#if visibleTurns.length > 0}<RagTranscript turns={visibleTurns} />{/if}
+	</div>
+	{#if !ready && !availability.isPending}
+		<p class="mt-5 text-xs leading-6 text-ink-600 dark:text-ink-300" role="status">
+			{availabilityText}
+		</p>
+	{/if}
 	{#if !ready && !availability.isPending}
 		<Button
 			variant="ghost"
@@ -218,16 +219,6 @@
 			class="mt-4 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
 		>
 			<RotateCw class="size-4" aria-hidden="true" />重新检查
-		</Button>
-	{/if}
-	{#if offerSearch && !mutation.isPending}
-		<Button
-			variant="secondary"
-			type="button"
-			onclick={onSearch}
-			class="mt-4 min-h-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
-		>
-			<Search class="size-4" aria-hidden="true" />使用站内搜索
 		</Button>
 	{/if}
 </div>
