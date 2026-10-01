@@ -131,7 +131,10 @@
 						greeting,
 						turns,
 						onTurnsChange: updateTurns,
-						onQuestionChange: updateQuestion
+						onQuestionChange: updateQuestion,
+						onNavigate: () => {
+							open = false;
+						}
 					}}
 				>
 					{#snippet fallback()}

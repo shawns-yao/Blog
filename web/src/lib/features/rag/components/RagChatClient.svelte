@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick, untrack } from 'svelte';
 	import { createMutation, createQuery } from '@tanstack/svelte-query';
-	import { ArrowUp, BookOpen, Brain, Code2, Eraser, MessageCircle, RotateCw } from 'lucide-svelte';
+	import { ArrowUp, Eraser, Link2, MessageCircle, RotateCw, UserRound } from 'lucide-svelte';
+	import { resolveHref } from '$lib/shared/utils/resolve-path';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import Textarea from '$lib/ui/primitives/textarea/Textarea.svelte';
 	import { askRag, getRagAvailability } from '../api';
@@ -14,38 +15,38 @@
 	const suggestedQuestions = [
 		{
 			label: 'RAG 如何工作',
-			shortcut: 'RAG 原理',
-			question: 'RAG 的工作原理是什么？',
-			icon: BookOpen
+			question: 'RAG 的工作原理是什么？'
 		},
 		{
 			label: 'Java 值传递',
-			shortcut: 'Java 基础',
-			question: 'Java 是值传递还是引用传递？',
-			icon: Code2
+			question: 'Java 是值传递还是引用传递？'
 		},
 		{
 			label: 'Agent 长期记忆',
-			shortcut: '长期记忆',
-			question: 'Agent 如何实现长期记忆？',
-			icon: Brain
+			question: 'Agent 如何实现长期记忆？'
 		},
 		{
 			label: 'RAG 与微调',
-			shortcut: 'RAG 与微调',
-			question: 'RAG 和微调分别适合解决什么问题？',
-			icon: BookOpen
+			question: 'RAG 和微调分别适合解决什么问题？'
 		}
 	];
 
-	let { question, sessionId, greeting, turns, onQuestionChange, onTurnsChange } = $props<{
-		question: string;
-		sessionId: string;
-		greeting: string;
-		turns: RagTurn[];
-		onQuestionChange: (value: string, sourceSessionId: string) => void;
-		onTurnsChange: (value: RagTurn[], sourceSessionId: string) => void;
-	}>();
+	const siteShortcuts = [
+		{ label: '留言', href: '/message', icon: MessageCircle },
+		{ label: '关于', href: '/about', icon: UserRound },
+		{ label: '友链', href: '/friends', icon: Link2 }
+	];
+
+	let { question, sessionId, greeting, turns, onQuestionChange, onTurnsChange, onNavigate } =
+		$props<{
+			question: string;
+			sessionId: string;
+			greeting: string;
+			turns: RagTurn[];
+			onQuestionChange: (value: string, sourceSessionId: string) => void;
+			onTurnsChange: (value: RagTurn[], sourceSessionId: string) => void;
+			onNavigate: () => void;
+		}>();
 	const activeSessionId = untrack(() => sessionId);
 	let input: HTMLTextAreaElement | undefined = $state();
 	let controller: AbortController | undefined;
@@ -148,6 +149,11 @@
 		event.preventDefault();
 		send();
 	}
+
+	function handleShortcut(event: MouseEvent) {
+		if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey)
+			onNavigate();
+	}
 </script>
 
 <div class="flex shrink-0 items-center gap-2 px-3 text-xs text-ink-500 sm:px-5 dark:text-ink-400">
@@ -228,20 +234,17 @@
 	class="shrink-0 px-2 pt-3 pb-3 sm:px-3"
 	style:padding-bottom="calc(var(--spacing) * 3 + env(safe-area-inset-bottom))"
 >
-	<nav aria-label="快捷问题入口" class="mb-2 flex flex-wrap gap-2">
-		{#each suggestedQuestions.slice(0, 3) as suggestion (suggestion.question)}
+	<nav aria-label="博客功能" class="mb-2 flex flex-wrap gap-2">
+		{#each siteShortcuts as shortcut (shortcut.href)}
 			<Button
 				variant="ghost"
 				size="sm"
-				type="button"
-				disabled={!ready || mutation.isPending}
-				onclick={() => send(suggestion.question)}
-				aria-label={`快捷发送：${suggestion.question}`}
-				title={suggestion.question}
+				href={resolveHref(shortcut.href)}
+				onclick={handleShortcut}
 				class="min-h-8 gap-1.5! rounded-full! border border-ink-300/80 bg-white/60 px-3! text-xs! text-ink-600 hover:border-jade-500 hover:bg-jade-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:border-ink-700 dark:bg-ink-800/40 dark:text-ink-300 dark:hover:border-jade-600 dark:hover:bg-ink-800 dark:focus-visible:outline-jade-400"
 			>
-				<suggestion.icon class="size-3.5 text-jade-700 dark:text-jade-300" aria-hidden="true" />
-				{suggestion.shortcut}
+				<shortcut.icon class="size-3.5 text-jade-700 dark:text-jade-300" aria-hidden="true" />
+				{shortcut.label}
 			</Button>
 		{/each}
 	</nav>
