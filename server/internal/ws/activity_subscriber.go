@@ -156,7 +156,13 @@ func resolveCommentTarget(
 		return "", "", false
 	}
 	area, err := commentRepo.GetAreaByID(ctx, areaID)
-	if err != nil || area == nil || area.ContentID == nil || *area.ContentID <= 0 {
+	if err != nil || area == nil {
+		return "", "", false
+	}
+	if area.Type == "guestbook" {
+		return "留言板", "/message", true
+	}
+	if area.ContentID == nil || *area.ContentID <= 0 {
 		return "", "", false
 	}
 

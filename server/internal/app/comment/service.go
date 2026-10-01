@@ -625,6 +625,9 @@ func (s *Service) loadReplyContentMeta(ctx context.Context, areaID int64) (strin
 
 	rawContentType := strings.TrimSpace(area.Type)
 	contentType := commentAreaTypeLabel(rawContentType)
+	if rawContentType == "guestbook" {
+		return "留言", "留言板", "/message"
+	}
 	contentTitle := ""
 	viewURL := ""
 	if area.ContentID != nil && *area.ContentID > 0 && rawContentType != "" {
@@ -663,6 +666,8 @@ func commentAreaTypeLabel(areaType string) string {
 	switch strings.ToLower(strings.TrimSpace(areaType)) {
 	case "moment":
 		return "手记"
+	case "guestbook":
+		return "留言"
 	default:
 		return strings.TrimSpace(areaType)
 	}
