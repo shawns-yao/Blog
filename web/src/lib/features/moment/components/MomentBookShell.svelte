@@ -358,9 +358,7 @@
 		font-size: 0.78rem;
 		letter-spacing: 0.14em;
 		cursor: pointer;
-		transition:
-			color 180ms ease,
-			transform 180ms ease;
+		transition: color 180ms ease;
 	}
 
 	.ladybug-flight {
@@ -371,6 +369,7 @@
 		place-items: center;
 		transform-origin: 50% 60%;
 		filter: drop-shadow(0 0.28rem 0.25rem rgba(26, 15, 8, 0.48));
+		will-change: transform, opacity;
 	}
 
 	.ladybug {
@@ -459,7 +458,7 @@
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug-flight {
-		animation: ladybug-takeoff 1150ms cubic-bezier(0.32, 0.02, 0.18, 1) both;
+		animation: ladybug-takeoff 1150ms cubic-bezier(0.42, 0, 0.24, 1) both;
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug {
@@ -475,17 +474,16 @@
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug-wing-left {
-		animation: ladybug-wing-left-flutter 92ms ease-in-out 120ms infinite alternate;
+		animation: ladybug-wing-left-flutter 140ms ease-in-out 120ms infinite alternate;
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug-wing-right {
-		animation: ladybug-wing-right-flutter 92ms ease-in-out 120ms infinite alternate;
+		animation: ladybug-wing-right-flutter 140ms ease-in-out 120ms infinite alternate;
 	}
 
 	.back-to-shelf:hover,
 	.back-to-shelf:focus-visible {
 		color: #fff7e9;
-		transform: translateX(-0.16rem);
 	}
 
 	.back-to-shelf:focus-visible {
@@ -705,109 +703,84 @@
 
 	@keyframes ladybug-shell-left-open {
 		to {
-			transform: translate(-0.08rem, -0.04rem) rotate(-52deg);
+			transform: rotate(-28deg);
 		}
 	}
 
 	@keyframes ladybug-shell-right-open {
 		to {
-			transform: translate(0.08rem, -0.04rem) rotate(52deg);
+			transform: rotate(28deg);
 		}
 	}
 
 	@keyframes ladybug-wing-left-flutter {
 		from {
-			opacity: 0.9;
-			transform: rotate(-20deg) scaleX(0.82);
+			opacity: 0.75;
+			transform: rotate(-18deg);
 		}
 		to {
-			opacity: 0.55;
-			transform: rotate(-68deg) scaleX(1.08);
+			opacity: 0.9;
+			transform: rotate(-42deg);
 		}
 	}
 
 	@keyframes ladybug-wing-right-flutter {
 		from {
-			opacity: 0.9;
-			transform: rotate(20deg) scaleX(0.82);
+			opacity: 0.75;
+			transform: rotate(18deg);
 		}
 		to {
-			opacity: 0.55;
-			transform: rotate(68deg) scaleX(1.08);
+			opacity: 0.9;
+			transform: rotate(42deg);
 		}
 	}
 
 	@keyframes ladybug-takeoff {
-		0%,
+		0% {
+			opacity: 1;
+			transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+		}
 		14% {
 			opacity: 1;
-			transform: translate(0, 0) scale(1);
+			transform: translate3d(3vw, -1vh, 0) rotate(8deg) scale(1.02);
 		}
-		28% {
+		31% {
 			opacity: 1;
-			transform: translate(12vw, 1vh) scale(1.16);
+			transform: translate3d(10vw, 4vh, 0) rotate(22deg) scale(1.03);
 		}
-		43% {
+		49% {
 			opacity: 1;
-			transform: translate(18vw, 18vh) scale(1.42);
+			transform: translate3d(19vw, 6vh, 0) rotate(46deg) scale(1);
 		}
-		50% {
-			opacity: 1;
-			transform: translate(13vw, 24vh) scale(1.55);
+		67% {
+			opacity: 0.96;
+			transform: translate3d(29vw, 1vh, 0) rotate(78deg) scale(0.94);
 		}
-		57% {
-			opacity: 1;
-			transform: translate(18vw, 29vh) scale(1.68);
-		}
-		65% {
-			opacity: 1;
-			transform: translate(29vw, 25vh) scale(1.92);
-		}
-		72% {
-			opacity: 1;
-			transform: translate(34vw, 22vh) scale(2.16);
-		}
-		86% {
-			opacity: 0.92;
-			transform: translate(40vw, 34vh) scale(2.82);
+		84% {
+			opacity: 0.75;
+			transform: translate3d(37vw, -6vh, 0) rotate(108deg) scale(0.82);
 		}
 		100% {
-			opacity: 0.18;
-			transform: translate(calc(46vw - 1rem), 39vh) scale(3.9);
+			opacity: 0;
+			transform: translate3d(45vw, -13vh, 0) rotate(132deg) scale(0.68);
 		}
 	}
 
 	@keyframes ladybug-heading {
-		0%,
-		8% {
+		0% {
 			transform: rotate(0deg);
 		}
-		14% {
-			transform: rotate(94deg);
-		}
-		28% {
-			transform: rotate(125deg);
-		}
-		43% {
-			transform: rotate(180deg);
+		20% {
+			transform: rotate(52deg);
 		}
 		50% {
-			transform: rotate(205deg);
+			transform: rotate(112deg);
 		}
-		57% {
-			transform: rotate(145deg);
-		}
-		65% {
-			transform: rotate(74deg);
-		}
-		72% {
-			transform: rotate(92deg);
-		}
-		86% {
-			transform: rotate(128deg);
+		75% {
+			transform: rotate(65deg);
 		}
 		100% {
-			transform: rotate(112deg);
+			transform: rotate(43deg);
 		}
 	}
 
