@@ -60,9 +60,7 @@
 		if (isReturningHome) return;
 		isReturningHome = true;
 		void preloadData(homePath).catch(() => undefined);
-		const navigationDelay = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-			? 0
-			: 1150;
+		const navigationDelay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650;
 		window.setTimeout(() => void goto(homePath), navigationDelay);
 	}
 
@@ -79,9 +77,6 @@
 				clearTimeout(transitionTimer);
 				transitionTimer = setTimeout(() => (previousScene = null), 900);
 			}
-
-			const preload = new Image();
-			preload.src = MOMENT_SCENES[(sceneIndex + 1) % MOMENT_SCENES.length].src;
 		};
 
 		const handleVisibilityChange = () => {
@@ -137,7 +132,7 @@
 				class:ladybug-is-flying={isReturningHome}
 				class="back-to-shelf"
 				href={homePath}
-				aria-label="回到书架"
+				aria-label="返回首页"
 				onclick={returnToShelf}
 			>
 				<span class="ladybug-flight" aria-hidden="true">
@@ -178,7 +173,7 @@
 						</g>
 					</svg>
 				</span>
-				<span>回到书架</span>
+				<span>返回首页</span>
 			</a>
 			<div class="book-identity" aria-label="当前书籍：手记">
 				<BookOpenText size={15} strokeWidth={1.5} aria-hidden="true" />
@@ -210,18 +205,18 @@
 
 <style>
 	.moment-book-room {
-		--paper: #eee1c5;
-		--paper-deep: #dfcfac;
+		--paper: #f7f1e5;
+		--paper-deep: #e6d9c3;
 		--paper-edge: #c3a878;
 		--book-ink: #382f28;
-		--book-muted: #7a6958;
-		--book-faint: #9b8970;
+		--book-muted: #756654;
+		--book-faint: #827361;
 		--book-rule: rgba(76, 58, 43, 0.16);
 		--book-accent: #8d382d;
 		position: relative;
 		z-index: 2;
 		height: 100dvh;
-		min-height: 42rem;
+		min-height: 36rem;
 		overflow: hidden;
 		color: var(--book-ink);
 		color-scheme: light;
@@ -246,24 +241,24 @@
 	}
 
 	.moment-book-room[data-scene='dawn'] {
-		--paper: #eee0c7;
-		--paper-deep: #dac8a7;
+		--paper: #f7f1e5;
+		--paper-deep: #e6d9c3;
 	}
 
 	.moment-book-room[data-scene='morning'],
 	.moment-book-room[data-scene='noon'] {
-		--paper: #f1e7d0;
-		--paper-deep: #dfcfaf;
+		--paper: #faf5ea;
+		--paper-deep: #e9ddc8;
 	}
 
 	.moment-book-room[data-scene='afternoon'] {
-		--paper: #f0e1c3;
-		--paper-deep: #ddc8a2;
+		--paper: #f8f2e6;
+		--paper-deep: #e5d6bd;
 	}
 
 	.moment-book-room[data-scene='sunset'] {
-		--paper: #eddbba;
-		--paper-deep: #d9bf96;
+		--paper: #f5ecdd;
+		--paper-deep: #e3d0b5;
 	}
 
 	.moment-room-backdrop,
@@ -485,11 +480,11 @@
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug-flight {
-		animation: ladybug-takeoff 1150ms cubic-bezier(0.42, 0, 0.24, 1) both;
+		animation: ladybug-takeoff 650ms cubic-bezier(0.42, 0, 0.24, 1) both;
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug {
-		animation: ladybug-heading 1150ms linear both;
+		animation: ladybug-heading 650ms ease-out both;
 	}
 
 	.back-to-shelf.ladybug-is-flying .ladybug-shell-left {
@@ -539,18 +534,18 @@
 
 	.moment-book-spread {
 		position: absolute;
-		bottom: 6vh;
+		bottom: 8vh;
 		left: 50%;
 		z-index: 2;
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		width: min(92vw, 106rem);
-		height: 90vh;
+		width: min(90vw, 90rem);
+		height: min(78dvh, 50rem);
 		min-height: 31rem;
 		isolation: isolate;
 		transform: translateX(-50%) perspective(1900px) rotateX(3.2deg);
 		transform-origin: center bottom;
-		animation: book-arrive 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+		animation: book-arrive 280ms ease-out both;
 	}
 
 	.moment-book-directory,
@@ -611,11 +606,11 @@
 	.book-ribbon {
 		position: absolute;
 		top: 0.7rem;
-		right: 1.4rem;
+		right: 0.2rem;
 		z-index: 4;
 		display: flex;
-		width: 3.6rem;
-		height: 10.8rem;
+		width: 2.5rem;
+		height: 8.5rem;
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
@@ -680,12 +675,10 @@
 	@keyframes book-arrive {
 		from {
 			opacity: 0;
-			filter: blur(4px);
 			transform: translateX(-50%) translateY(2.2rem) perspective(1900px) rotateX(7deg) scale(0.97);
 		}
 		to {
 			opacity: 1;
-			filter: blur(0);
 			transform: translateX(-50%) perspective(1900px) rotateX(3.2deg) scale(1);
 		}
 	}
@@ -767,29 +760,17 @@
 			opacity: 1;
 			transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
 		}
-		14% {
+		20% {
 			opacity: 1;
-			transform: translate3d(3vw, -1vh, 0) rotate(8deg) scale(1.02);
+			transform: translate3d(-0.8vw, -0.8vh, 0) rotate(-8deg) scale(1.02);
 		}
-		31% {
+		50% {
 			opacity: 1;
-			transform: translate3d(10vw, 4vh, 0) rotate(22deg) scale(1.03);
-		}
-		49% {
-			opacity: 1;
-			transform: translate3d(19vw, 6vh, 0) rotate(46deg) scale(1);
-		}
-		67% {
-			opacity: 0.96;
-			transform: translate3d(29vw, 1vh, 0) rotate(78deg) scale(0.94);
-		}
-		84% {
-			opacity: 0.75;
-			transform: translate3d(37vw, -6vh, 0) rotate(108deg) scale(0.82);
+			transform: translate3d(-8vw, -5vh, 0) rotate(-18deg) scale(0.94);
 		}
 		100% {
-			opacity: 0;
-			transform: translate3d(45vw, -13vh, 0) rotate(132deg) scale(0.68);
+			opacity: 1;
+			transform: translate3d(-55vw, -20vh, 0) rotate(-18deg) scale(0.8);
 		}
 	}
 
@@ -797,17 +778,8 @@
 		0% {
 			transform: rotate(0deg);
 		}
-		20% {
-			transform: rotate(52deg);
-		}
-		50% {
-			transform: rotate(112deg);
-		}
-		75% {
-			transform: rotate(65deg);
-		}
 		100% {
-			transform: rotate(43deg);
+			transform: rotate(-32deg);
 		}
 	}
 
@@ -837,19 +809,23 @@
 
 	@media (min-width: 768px) and (max-height: 760px) {
 		.moment-book-spread {
-			bottom: 1vh;
+			bottom: 8vh;
 			height: 78vh;
-			min-height: 29rem;
+			min-height: 27rem;
 		}
 
 		.moment-book-directory,
 		.moment-book-page {
-			padding-top: 2.8rem;
-			padding-bottom: 3.6rem;
+			padding-top: 2.5rem;
+			padding-bottom: 2.2rem;
 		}
 	}
 
 	@media (max-width: 767px) {
+		.moment-book-directory:has(:global(.empty-leaf)) {
+			display: none;
+		}
+
 		.moment-book-room {
 			height: auto;
 			min-height: 100dvh;

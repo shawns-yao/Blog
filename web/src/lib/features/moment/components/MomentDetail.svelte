@@ -1,34 +1,23 @@
 <script lang="ts">
-	import { goto, onNavigate } from '$app/navigation';
+	import { onNavigate } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { buildMomentBookSpreads, type MomentBookVisit } from '$lib/features/moment/book-pages';
+	import type { MomentBookVisit } from '$lib/features/moment/book-pages';
 	import type { MomentDetail, MomentListResponse } from '$lib/features/moment/types';
-	import { detailHeroBgSrc } from '$lib/shared/stores/detailHeroBg';
 	import { buildMomentPath } from '$lib/shared/utils/content-path';
 	import { formatDateDotted } from '$lib/shared/utils/date';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
-	import { ArrowLeft, ArrowRight, Paperclip, X } from 'lucide-svelte';
-	import { onDestroy, onMount } from 'svelte';
-	import MomentBookShell from './MomentBookShell.svelte';
-	import MomentDatePage from './MomentDatePage.svelte';
+	import { ArrowLeft, ArrowRight, BookOpenText, Paperclip } from 'lucide-svelte';
+	import { onMount } from 'svelte';
 	import MomentDetailPaper from './moment-detail/MomentDetailPaper.svelte';
 
 	let {
 		moment,
 		underlayMoments = { items: [], total: 0, page: 1, size: 20 },
-		preview = false,
-		embedded = false,
-		shallowOpen = true,
-		returnPathOverride,
-		onRelatedNavigate
+		preview = false
 	}: {
 		moment: MomentDetail;
 		underlayMoments?: MomentListResponse;
 		preview?: boolean;
-		embedded?: boolean;
-		shallowOpen?: boolean;
-		returnPathOverride?: string;
-		onRelatedNavigate?: (href: string) => void;
 	} = $props();
 	const dateStr = $derived(formatDateDotted(moment.createdAt));
 	const related = $derived(moment.relatedMoments ?? []);
@@ -39,63 +28,8 @@
 	const nextMoment = $derived(
 		preview ? (underlayMoments.items[previewIndex + 1] ?? null) : (related[1] ?? null)
 	);
-	let contentRoot: HTMLElement | null = $state(null);
-	let activeAnchor: string | null = $state(null);
-	let sheetElement: HTMLElement | null = $state(null);
-	let dialogElement: HTMLElement | null = $state(null);
-	let enteringFromCard = $state(false);
-	let isClosing = $state(false);
 	let visit = $state<MomentBookVisit | null>(null);
-	const fallbackSpread = $derived.by(() => {
-		const spreads = buildMomentBookSpreads(underlayMoments.items);
-		return (
-			spreads.find((spread) =>
-				[spread.left, spread.right].some((leaf) =>
-					leaf?.items.some((item) => item.id === moment.id)
-				)
-			) ?? spreads[spreads.length - 1]
-		);
-	});
-	const underlaySpread = $derived(visit?.spread ?? fallbackSpread);
-	const returnPath = $derived(visit?.returnPath ?? returnPathOverride ?? `${base}/moments/`);
-
-	$effect(() => detailHeroBgSrc.set(moment.cover ?? ''));
-	onDestroy(() => detailHeroBgSrc.set(''));
-
-	function closeDetail() {
-		if (isClosing || !shallowOpen) return;
-		if (embedded) window.history.back();
-		else void goto(returnPath);
-	}
-
-	function handleCloseLink(event: MouseEvent) {
-		if (
-			!embedded ||
-			event.button !== 0 ||
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey
-		)
-			return;
-		event.preventDefault();
-		closeDetail();
-	}
-
-	function handleRelatedLink(event: MouseEvent, href: string) {
-		if (
-			!embedded ||
-			!onRelatedNavigate ||
-			event.button !== 0 ||
-			event.metaKey ||
-			event.ctrlKey ||
-			event.shiftKey ||
-			event.altKey
-		)
-			return;
-		event.preventDefault();
-		onRelatedNavigate(href);
-	}
+	const returnPath = $derived(visit?.returnPath ?? resolvePath('/moments/'));
 
 	function relatedHref(item: NonNullable<typeof previousMoment>) {
 		return preview
@@ -103,349 +37,157 @@
 			: `${base}${buildMomentPath(item.shortUrl, item.createdAt)}`;
 	}
 
-	onNavigate(async (navigation) => {
-		if (embedded) return;
-		const destination = navigation.to?.url.pathname;
-		if (
-			!destination ||
-			/(?:^|\/)moments\/(?:\d{4}\/\d{2}\/\d{2}|preview)\/[^/]+\/?$/.test(destination)
-		)
-			return;
-
-		if (visit && destination === new URL(returnPath, window.location.origin).pathname) {
-			try {
-				sessionStorage.setItem(
-					'moment:return-spread',
-					JSON.stringify({
-						returnPath: visit.returnPath,
-						spreadIndex: visit.spreadIndex,
-						at: Date.now()
-					})
-				);
-			} catch {
-				// Navigation remains available when browser storage is disabled.
-			}
-		}
-		if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-		isClosing = true;
-		await new Promise<void>((resolve) => window.setTimeout(resolve, 430));
-	});
-
 	onMount(() => {
-		dialogElement?.focus();
-		const handleKeyDown = (event: KeyboardEvent) => {
-			if (event.key === 'Escape') closeDetail();
-		};
-		window.addEventListener('keydown', handleKeyDown);
-
 		try {
 			const raw = sessionStorage.getItem('moment:open-origin');
 			sessionStorage.removeItem('moment:open-origin');
-			if (raw && sheetElement) {
-				const origin = JSON.parse(raw) as MomentBookVisit & {
-					x: number;
-					y: number;
-					width: number;
-					height: number;
-					at: number;
-				};
-				if (
-					Date.now() - origin.at < 5000 &&
-					(!origin.momentId || origin.momentId === moment.id) &&
-					origin.width > 0 &&
-					origin.height > 0
-				) {
-					const sheetRect = sheetElement.getBoundingClientRect();
-					const centerX = origin.x + origin.width / 2;
-					const centerY = origin.y + origin.height / 2;
-					sheetElement.style.setProperty(
-						'--open-x',
-						`${centerX - sheetRect.left - sheetRect.width / 2}px`
-					);
-					sheetElement.style.setProperty(
-						'--open-y',
-						`${centerY - sheetRect.top - sheetRect.height / 2}px`
-					);
-					sheetElement.style.setProperty('--open-scale-x', `${origin.width / sheetRect.width}`);
-					sheetElement.style.setProperty('--open-scale-y', `${origin.height / sheetRect.height}`);
-					enteringFromCard = true;
-					if (
-						origin.momentId === moment.id &&
-						origin.returnPath?.startsWith(resolvePath('/moments')) &&
-						origin.spread
-					) {
-						visit = origin;
-					}
-				}
+			if (!raw) return;
+			const origin = JSON.parse(raw) as MomentBookVisit;
+			if (
+				origin.momentId === moment.id &&
+				Date.now() - origin.at < 60_000 &&
+				origin.returnPath?.startsWith(resolvePath('/moments')) &&
+				Number.isInteger(origin.spreadIndex) &&
+				origin.spreadIndex >= 0
+			) {
+				visit = origin;
 			}
 		} catch {
-			sessionStorage.removeItem('moment:open-origin');
+			// The standard directory link also works without browser storage.
 		}
+	});
 
-		return () => window.removeEventListener('keydown', handleKeyDown);
+	onNavigate((navigation) => {
+		if (!visit || !navigation.to) return;
+		const destination = navigation.to.url.pathname + navigation.to.url.search;
+		if (destination !== visit.returnPath) return;
+		try {
+			sessionStorage.setItem(
+				'moment:return-spread',
+				JSON.stringify({
+					returnPath: visit.returnPath,
+					spreadIndex: visit.spreadIndex,
+					at: Date.now()
+				})
+			);
+		} catch {
+			// Navigation does not depend on saving the current book spread.
+		}
 	});
 </script>
 
-<MomentBookShell pageLabel={moment.title || '手记详情'} overlayOnly={embedded}>
-	{#snippet directory()}
-		<div class="underlay-date-page" aria-hidden="true">
-			<MomentDatePage
-				leaf={underlaySpread.left}
-				side="left"
-				showBlankNote={!!visit || underlayMoments.items.length > 0}
-			/>
-		</div>
-	{/snippet}
-
-	<div class="underlay-date-page" aria-hidden="true">
-		<MomentDatePage
-			leaf={underlaySpread.right}
-			side="right"
-			showBlankNote={!!visit || underlayMoments.items.length > 0}
-		/>
-	</div>
-
-	{#snippet overlay()}
-		<button
-			class="detail-backdrop"
-			class:closing={isClosing || (embedded && !shallowOpen)}
-			type="button"
-			aria-label="关闭手记正文"
-			onclick={closeDetail}
-		></button>
-		<div
-			class="kraft-stage"
-			bind:this={dialogElement}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="moment-detail-title"
-			tabindex="-1"
-		>
-			<article
-				bind:this={sheetElement}
-				class:from-card={enteringFromCard}
-				class:closing={isClosing || (embedded && !shallowOpen)}
-				class="kraft-sheet"
-			>
-				<div class="paperclip" aria-hidden="true"><Paperclip size={44} strokeWidth={1.35} /></div>
-				<a
-					class="close-sheet"
-					href={returnPath}
-					aria-label="放回手记"
-					title="放回手记"
-					onclick={handleCloseLink}><X size={18} strokeWidth={1.5} /></a
-				>
-				<div class="kraft-scroll">
-					<div id="moment-detail-title" class="sr-only">{moment.title || '无题手记'}</div>
-					<MomentDetailPaper
-						{moment}
-						{preview}
-						{dateStr}
-						onContentRootChange={(node) => (contentRoot = node)}
-						onActiveAnchorChange={(anchor) => (activeAnchor = anchor)}
-					/>
-
-					<nav class="sheet-navigation" aria-label="手记前后篇">
-						<a class="return-index" href={returnPath} onclick={handleCloseLink}
-							><ArrowLeft size={15} /><span>放回手记</span></a
+<section class="moment-reading-page" aria-label="手记阅读">
+	<nav class="reading-header" aria-label="手记导航">
+		<a href={returnPath}><ArrowLeft size={17} strokeWidth={1.5} /><span>返回手记</span></a>
+		<span class="reading-identity"><BookOpenText size={17} strokeWidth={1.4} />手记</span>
+	</nav>
+	<article class="reading-sheet">
+		<div class="paperclip" aria-hidden="true"><Paperclip size={30} strokeWidth={1.3} /></div>
+		<div class="reading-content">
+			<MomentDetailPaper {moment} {preview} {dateStr} />
+			<nav class="sheet-navigation" aria-label="手记前后篇">
+				<a href={returnPath}><ArrowLeft size={15} /><span>返回手记</span></a>
+				<div>
+					{#if previousMoment}<a
+							href={relatedHref(previousMoment)}
+							aria-label={`上一篇：${previousMoment.title}`}
 						>
-						<div>
-							{#if previousMoment}<a
-									href={relatedHref(previousMoment)}
-									onclick={(event) => handleRelatedLink(event, relatedHref(previousMoment))}
-									aria-label={`上一篇：${previousMoment.title}`}
-									><ArrowLeft size={14} /><span>上一篇</span></a
-								>{/if}
-							{#if nextMoment}<a
-									href={relatedHref(nextMoment)}
-									onclick={(event) => handleRelatedLink(event, relatedHref(nextMoment))}
-									aria-label={`下一篇：${nextMoment.title}`}
-									><span>下一篇</span><ArrowRight size={14} /></a
-								>{/if}
-						</div>
-					</nav>
+							<ArrowLeft size={14} /><span>上一篇</span>
+						</a>{/if}
+					{#if nextMoment}<a
+							href={relatedHref(nextMoment)}
+							aria-label={`下一篇：${nextMoment.title}`}
+						>
+							<span>下一篇</span><ArrowRight size={14} />
+						</a>{/if}
 				</div>
-			</article>
+			</nav>
 		</div>
-	{/snippet}
-</MomentBookShell>
+	</article>
+</section>
 
 <style>
-	.underlay-date-page {
-		min-height: 100%;
+	.moment-reading-page {
+		--book-ink: #37342f;
+		--book-muted: #70695f;
+		--book-faint: #8b8378;
+		--book-rule: rgba(91, 80, 65, 0.16);
+		min-height: 100dvh;
+		padding: 1.25rem 1.5rem 3rem;
+		color: var(--book-ink);
+		color-scheme: light;
+		background: #f0ede6;
 	}
-	.detail-backdrop {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		border: 0;
-		background: rgba(24, 15, 10, 0.43);
-		backdrop-filter: blur(2.2px);
-		animation: backdrop-arrive 280ms ease-out both;
+	.reading-header {
+		display: flex;
+		max-width: 54rem;
+		align-items: center;
+		justify-content: space-between;
+		margin: 0 auto 1.5rem;
+		font-family: var(--font-serif);
+		font-size: 0.85rem;
+		color: var(--book-muted);
 	}
-	.detail-backdrop.closing {
-		animation: backdrop-leave 430ms ease-in both;
+	.reading-header a,
+	.reading-identity {
+		display: inline-flex;
+		min-height: 2.75rem;
+		align-items: center;
+		gap: 0.6rem;
 	}
-	.kraft-stage {
-		position: absolute;
-		inset: 0;
-		display: grid;
-		place-items: center;
-		padding: 0.8rem 1.2rem;
-		pointer-events: none;
-	}
-	.kraft-sheet {
-		--open-x: 0px;
-		--open-y: 0px;
-		--open-scale-x: 0.24;
-		--open-scale-y: 0.24;
+	.reading-sheet {
 		position: relative;
-		width: min(53rem, calc(100vw - 2rem));
-		height: min(64rem, calc(100dvh - 3rem));
-		min-height: min(36rem, calc(100dvh - 3rem));
-		max-height: calc(100dvh - 3rem);
-		pointer-events: auto;
-		color: #3e3025;
-		filter: drop-shadow(0 1.8rem 2.2rem rgba(26, 15, 9, 0.52));
-		animation: paper-unfold 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+		max-width: 54rem;
+		margin-inline: auto;
+		border: 1px solid rgba(98, 82, 60, 0.16);
+		background: #fbf8f0;
+		box-shadow: 0 0.7rem 2rem rgba(63, 48, 30, 0.09);
 	}
-	.kraft-sheet.from-card {
-		animation-name: paper-from-card;
-	}
-	.kraft-sheet.closing {
-		animation: paper-to-spine 430ms cubic-bezier(0.65, 0, 0.84, 0.2) both;
-	}
-	.kraft-sheet.closing.from-card {
-		animation-name: paper-to-card;
-	}
-	.kraft-sheet::before,
-	.kraft-sheet::after {
+	.reading-sheet::before,
+	.reading-sheet::after {
 		content: '';
 		position: absolute;
-		right: -0.18rem;
-		left: -0.18rem;
-		z-index: 3;
-		height: 1.9rem;
+		right: -0.15rem;
+		left: -0.15rem;
+		z-index: 1;
+		height: 0.6rem;
 		pointer-events: none;
 	}
-	.kraft-sheet::before {
-		top: -0.72rem;
+	.reading-sheet::before {
+		top: -0.25rem;
 		border-radius: 48% 44% 24% 28% / 72% 68% 30% 34%;
-		background: linear-gradient(
-			180deg,
-			#956238 0%,
-			#d4a776 18%,
-			#efd3a5 42%,
-			#d5a46e 70%,
-			#a06c3e 100%
-		);
-		box-shadow:
-			0 -0.12rem 0.3rem rgba(67, 40, 20, 0.17),
-			0 0.35rem 0.48rem rgba(63, 38, 19, 0.23),
-			inset 0 0.18rem 0.28rem rgba(255, 233, 192, 0.42);
-		transform: rotate(-0.4deg) perspective(260px) rotateX(-14deg);
+		background: linear-gradient(180deg, #e3dacb, #fffdf7 48%, #e6ddcd);
+		box-shadow: 0 0.12rem 0.2rem rgba(63, 38, 19, 0.08);
 	}
-	.kraft-sheet::after {
-		bottom: -0.76rem;
+	.reading-sheet::after {
+		bottom: -0.25rem;
 		border-radius: 26% 30% 55% 52% / 28% 30% 76% 72%;
-		background: linear-gradient(180deg, #ecd0a0 0%, #d5a46c 38%, #b17c48 74%, #936035 100%);
-		box-shadow:
-			0 0.55rem 0.6rem rgba(43, 25, 14, 0.34),
-			inset 0 0.15rem 0.22rem rgba(255, 231, 183, 0.36);
-		transform: rotate(0.25deg) perspective(260px) rotateX(14deg);
+		background: linear-gradient(180deg, #fffdf7, #e3d9c8);
+		box-shadow: 0 0.2rem 0.25rem rgba(43, 25, 14, 0.08);
 	}
-	.kraft-scroll {
-		position: relative;
-		display: flex;
-		flex-direction: column;
-		height: 100%;
-		min-height: 0;
-		max-height: none;
-		overflow-y: auto;
-		overscroll-behavior: contain;
-		padding: clamp(3.9rem, 6vh, 5.2rem) clamp(3rem, 6vw, 5.6rem) 2.6rem;
-		border: 1px solid rgba(98, 62, 32, 0.36);
-		background-color: #e3c79b;
-		background-image:
-			linear-gradient(
-				180deg,
-				rgba(88, 51, 24, 0.1),
-				transparent 6%,
-				transparent 92%,
-				rgba(84, 49, 24, 0.13)
-			),
-			linear-gradient(
-				90deg,
-				rgba(85, 48, 21, 0.055),
-				transparent 8%,
-				transparent 92%,
-				rgba(85, 48, 21, 0.055)
-			),
-			radial-gradient(circle at 24% 11%, rgba(255, 235, 196, 0.24), transparent 32%);
-		box-shadow: inset 0 0 2.3rem rgba(91, 52, 25, 0.08);
-		clip-path: polygon(
-			0.3% 0.4%,
-			25% 0.2%,
-			60% 0.5%,
-			99.6% 0.3%,
-			99.7% 45%,
-			99.5% 99.7%,
-			50% 99.5%,
-			0.3% 99.7%,
-			0.4% 55%
-		);
-		scrollbar-width: thin;
-		scrollbar-color: rgba(103, 64, 34, 0.35) transparent;
+	.reading-content {
+		padding: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 6vw, 5.2rem) 1.8rem;
 	}
 	.paperclip {
 		position: absolute;
-		top: -0.4rem;
+		top: -0.45rem;
 		left: 2.4rem;
-		z-index: 6;
-		color: #6e5945;
-		filter: drop-shadow(0 0.18rem 0.12rem rgba(61, 40, 24, 0.3));
+		z-index: 2;
+		color: #837563;
 		transform: rotate(9deg);
-	}
-	.close-sheet {
-		position: absolute;
-		top: 1.35rem;
-		right: 1.45rem;
-		z-index: 7;
-		display: grid;
-		width: 2.35rem;
-		height: 2.35rem;
-		place-items: center;
-		border: 1px solid rgba(74, 49, 30, 0.22);
-		border-radius: 50%;
-		color: rgba(62, 48, 37, 0.64);
-		background: rgba(225, 187, 125, 0.62);
-		backdrop-filter: blur(4px);
-	}
-	.close-sheet:hover,
-	.close-sheet:focus-visible {
-		color: #843c31;
-		border-color: rgba(132, 60, 49, 0.4);
-	}
-	.close-sheet:focus-visible,
-	.sheet-navigation a:focus-visible {
-		outline: 2px solid rgba(132, 60, 49, 0.55);
-		outline-offset: 3px;
 	}
 	.sheet-navigation {
 		display: flex;
-		width: 100%;
-		max-width: 37rem;
+		max-width: 42rem;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin: auto auto 0;
-		padding-top: 1rem;
-		border-top: 1px solid rgba(75, 51, 32, 0.22);
+		margin: 1.5rem auto 0;
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--book-rule);
 		font-family: var(--font-serif);
-		font-size: 0.74rem;
-		letter-spacing: 0.08em;
-		color: rgba(76, 52, 35, 0.74);
+		font-size: 0.8rem;
+		color: var(--book-muted);
 	}
 	.sheet-navigation a,
 	.sheet-navigation div {
@@ -453,96 +195,39 @@
 		align-items: center;
 		gap: 0.5rem;
 	}
+	.sheet-navigation a {
+		min-height: 2.75rem;
+	}
 	.sheet-navigation div {
 		gap: 1.25rem;
 	}
-	.sheet-navigation a:hover {
+	:is(.reading-header, .sheet-navigation) a:hover {
 		color: #843c31;
 	}
-	@keyframes backdrop-arrive {
-		from {
-			opacity: 0;
-		}
-		to {
-			opacity: 1;
-		}
-	}
-	@keyframes backdrop-leave {
-		to {
-			opacity: 0;
-		}
-	}
-	@keyframes paper-unfold {
-		from {
-			opacity: 0;
-			transform: translateY(1.2rem) scale(0.94);
-		}
-		to {
-			opacity: 1;
-			transform: none;
-		}
-	}
-	@keyframes paper-from-card {
-		from {
-			opacity: 0.25;
-			transform: translate(var(--open-x), var(--open-y))
-				scale(var(--open-scale-x), var(--open-scale-y)) rotate(-1.5deg);
-		}
-		to {
-			opacity: 1;
-			transform: none;
-		}
-	}
-	@keyframes paper-to-card {
-		to {
-			opacity: 0.12;
-			transform: translate(var(--open-x), var(--open-y))
-				scale(var(--open-scale-x), var(--open-scale-y)) rotate(-1.5deg);
-		}
-	}
-	@keyframes paper-to-spine {
-		to {
-			opacity: 0;
-			transform: translateY(0.8rem) scale(0.76);
-		}
+	:is(.reading-header, .sheet-navigation) a:focus-visible {
+		outline: 2px solid #9b6552;
+		outline-offset: 3px;
 	}
 	@media (max-width: 767px) {
-		.kraft-stage {
-			padding: 4.35rem 0.45rem 0.55rem;
+		.moment-reading-page {
+			padding: 0.5rem 0.6rem 2rem;
 		}
-		.kraft-sheet {
-			width: 100%;
-			height: calc(100dvh - 5rem);
-			min-height: 0;
-			max-height: calc(100dvh - 5rem);
-			filter: drop-shadow(0 0.8rem 1.2rem rgba(26, 15, 9, 0.3));
+		.reading-header {
+			margin-bottom: 1rem;
+			padding-inline: 0.65rem;
 		}
-		.kraft-scroll {
-			height: 100%;
-			min-height: 0;
-			max-height: none;
-			padding: 4.3rem 1.45rem 2.7rem;
+		.reading-content {
+			padding: 2.4rem 1.2rem 1.25rem;
 		}
 		.paperclip {
-			left: 1.35rem;
-		}
-		.close-sheet {
-			top: 1rem;
-			right: 1rem;
+			left: 1.4rem;
 		}
 		.sheet-navigation {
-			align-items: center;
-			gap: 0.45rem;
+			gap: 0.5rem;
+			font-size: 0.74rem;
 		}
 		.sheet-navigation div {
-			gap: 0.55rem;
-		}
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.detail-backdrop,
-		.kraft-sheet,
-		.kraft-sheet.from-card {
-			animation: none;
+			gap: 0.75rem;
 		}
 	}
 </style>

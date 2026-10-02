@@ -14,16 +14,16 @@
 		moment: MomentDetail;
 		preview?: boolean;
 		dateStr: string;
-		onActiveAnchorChange: (anchor: string | null) => void;
-		onContentRootChange: (node: HTMLElement | null) => void;
+		onActiveAnchorChange?: (anchor: string | null) => void;
+		onContentRootChange?: (node: HTMLElement | null) => void;
 	}
 
 	let {
 		moment,
 		preview = false,
 		dateStr,
-		onActiveAnchorChange,
-		onContentRootChange
+		onActiveAnchorChange = () => {},
+		onContentRootChange = () => {}
 	}: Props = $props();
 	const showUpdated = $derived(isDifferentDay(moment.createdAt, moment.contentUpdatedAt));
 	const monthLabel = $derived(
@@ -44,11 +44,7 @@
 	);
 </script>
 
-<div
-	class="moment-detail-paper moment-vt"
-	class:short-with-photo={!!moment.cover && moment.content.length < 240}
-	style:view-transition-name={`moment-${moment.id}`}
->
+<div class="moment-detail-paper moment-vt" style:view-transition-name={`moment-${moment.id}`}>
 	<header class="article-header">
 		<div class="article-topline">
 			<div class="article-date" aria-label={dateStr}>
@@ -92,7 +88,12 @@
 		<div class="article-summary"><DetailAiSummary summary={moment.aiSummary} /></div>
 	{/if}
 
-	<div class:has-photo={!!moment.cover} class="article-body">
+	<div class="article-body">
+		{#if moment.cover}
+			<figure class="article-photo">
+				<img src={moment.cover} alt={moment.title || '手记照片'} loading="lazy" />
+			</figure>
+		{/if}
 		<div class="article-content">
 			<DetailMarkdownContent
 				content={moment.content}
@@ -102,11 +103,6 @@
 				{onActiveAnchorChange}
 			/>
 		</div>
-		{#if moment.cover}
-			<figure class="article-photo">
-				<img src={moment.cover} alt={moment.title || '手记照片'} loading="lazy" />
-			</figure>
-		{/if}
 	</div>
 
 	{#if moment.topics?.length}
@@ -137,7 +133,7 @@
 				commentAreaId={moment.commentAreaId}
 				commentsCount={moment.metrics?.comments ?? 0}
 				fediverseObjectUrl={moment.activityPubObjectId}
-				containerClass="mt-16 pt-10 border-t"
+				containerClass="mt-8 pt-6 border-t"
 				fallbackText="正在展开评论……"
 				fallbackSize="w-6 h-6"
 				fallbackContainerClass="flex justify-center py-20"
@@ -148,14 +144,11 @@
 <style>
 	.moment-detail-paper {
 		position: relative;
-		flex: 1 0 auto;
-		max-width: 37rem;
+		flex: 0 0 auto;
+		max-width: 42rem;
 		width: 100%;
 		margin-inline: auto;
 		color: var(--book-ink);
-	}
-	.short-with-photo {
-		min-height: 25rem;
 	}
 
 	.article-header {
@@ -171,22 +164,22 @@
 
 	.article-date {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
+		align-items: baseline;
+		gap: 0.45rem;
 		line-height: 1;
 		color: var(--book-ink);
 	}
 	.article-date span,
 	.article-date small {
 		font-family: var(--font-mono);
-		font-size: 0.72rem;
-		letter-spacing: 0.18em;
+		font-size: 0.68rem;
+		letter-spacing: 0.1em;
 		color: var(--book-faint);
 	}
 	.article-date strong {
-		margin: 0.12rem 0 0.22rem;
+		margin: 0;
 		font-family: var(--font-serif);
-		font-size: clamp(2.6rem, 4vw, 3.4rem);
+		font-size: 1.65rem;
 		font-weight: 400;
 		line-height: 0.95;
 	}
@@ -197,7 +190,7 @@
 		gap: 0.45rem;
 		padding-top: 0.3rem;
 		font-family: var(--font-mono);
-		font-size: 0.67rem;
+		font-size: 0.72rem;
 		letter-spacing: 0.08em;
 		color: var(--book-muted);
 	}
@@ -221,7 +214,7 @@
 		max-width: 55rem;
 		margin-top: clamp(0.8rem, 1.8vw, 1.35rem);
 		font-family: var(--font-serif);
-		font-size: clamp(1.8rem, 2.8vw, 2.55rem);
+		font-size: clamp(1.6rem, 2.7vw, 2.15rem);
 		font-weight: 600;
 		line-height: 1.32;
 		letter-spacing: 0.045em;
@@ -274,26 +267,19 @@
 	}
 
 	.article-body {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr);
-		gap: 1rem;
-		margin-top: 1rem;
-	}
-	.article-body.has-photo {
-		grid-template-columns: minmax(0, 1fr) clamp(9rem, 22%, 13rem);
-		align-items: end;
-		gap: clamp(1rem, 3vw, 1.8rem);
+		display: flow-root;
+		margin-top: 1.6rem;
+		padding: 0.5rem 0.4rem 0.75rem 0;
 	}
 	.article-content {
 		min-width: 0;
-		max-width: 54rem;
-		margin: 0 auto;
+		width: 100%;
 	}
 
 	.article-content :global(.markdown-preview) {
 		color: var(--book-ink) !important;
 		font-size: clamp(0.94rem, 1.2vw, 1.04rem);
-		line-height: 1.72;
+		line-height: 1.9;
 	}
 	.article-content :global(.markdown-preview p) {
 		margin-bottom: 0.7rem;
@@ -301,20 +287,29 @@
 	.article-content :global(.markdown-preview p:last-child) {
 		margin-bottom: 0;
 	}
-	.article-photo {
-		width: 100%;
-		max-width: 13rem;
-		margin: 0 0 0 auto;
-		padding: 0.4rem 0.4rem 1.2rem;
-		background: #ead7b7;
-		box-shadow: 0 0.55rem 1.1rem rgba(63, 42, 25, 0.25);
+	.article-photo,
+	.article-content :global(.md-figure) {
+		float: right;
+		width: min(48%, 19rem);
+		margin: 0.25rem 0.6rem 1.25rem 1.5rem;
+		padding: 0.45rem 0.45rem 0.9rem;
+		border: 1px solid rgba(97, 82, 62, 0.1);
+		background: #fffdf8;
+		box-shadow: 0.2rem 0.45rem 0.9rem rgba(63, 42, 25, 0.14);
 		transform: rotate(4deg);
 	}
 	.article-photo img {
 		display: block;
 		width: 100%;
-		aspect-ratio: 1 / 1;
-		object-fit: cover;
+		height: auto;
+	}
+	.article-content :global(.md-figure .md-caption) {
+		font-size: 0.72rem;
+		line-height: 1.6;
+		text-align: left;
+	}
+	.article-content :global(.markdown-preview :where(pre, table)) {
+		clear: both;
 	}
 
 	.article-content :global(.markdown-preview :where(p, li, strong, em, h1, h2, h3, h4, h5, h6)) {
@@ -338,16 +333,20 @@
 	}
 
 	.article-actions {
-		max-width: 54rem;
-		margin: 0 auto;
+		width: 100%;
+		margin-top: 1.25rem;
 	}
 
 	.article-actions :global(> div) {
+		margin-top: 0;
+		border-bottom: 0;
+		padding-block: 0.75rem;
 		border-color: var(--book-rule) !important;
 	}
 
 	.article-actions :global(button),
 	.article-actions :global(a) {
+		min-height: 2.75rem;
 		color: var(--book-muted) !important;
 	}
 
@@ -361,7 +360,7 @@
 		width: fit-content;
 		align-items: center;
 		gap: 0.45rem;
-		margin: 1.2rem 0;
+		margin: 0.5rem 0 0;
 		color: rgba(117, 50, 42, 0.63);
 		transform: rotate(-3deg);
 	}
@@ -369,7 +368,7 @@
 	.article-seal span,
 	.article-seal small {
 		font-family: var(--font-mono);
-		font-size: 0.48rem;
+		font-size: 0.62rem;
 		letter-spacing: 0.1em;
 	}
 
@@ -383,26 +382,23 @@
 	}
 
 	@media (max-width: 767px) {
-		.short-with-photo .article-photo {
-			position: static;
-		}
 		.article-topline {
-			padding-right: 2.8rem;
+			gap: 0.75rem;
 		}
 
 		.article-header h1 {
-			font-size: clamp(2rem, 10.5vw, 3.15rem);
+			font-size: clamp(1.5rem, 6vw, 1.9rem);
 		}
 
-		.article-content {
-			margin-top: 1rem;
+		.article-body {
+			margin-top: 1.25rem;
 		}
-		.article-body.has-photo {
-			grid-template-columns: minmax(0, 1fr);
-		}
-		.article-photo {
-			width: min(13rem, 48%);
-			margin-top: 0.2rem;
+		.article-photo,
+		.article-content :global(.md-figure) {
+			width: 46%;
+			margin: 0.25rem 0.4rem 0.8rem 0.9rem;
+			padding: 0.3rem 0.3rem 0.65rem;
+			transform: rotate(3deg);
 		}
 	}
 </style>

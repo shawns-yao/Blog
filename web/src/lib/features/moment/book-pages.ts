@@ -20,7 +20,6 @@ export type MomentBookSpread = {
 
 export type MomentBookVisit = {
 	momentId: number;
-	spread: MomentBookSpread;
 	spreadIndex: number;
 	returnPath: string;
 	at: number;

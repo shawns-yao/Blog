@@ -38,5 +38,5 @@
 	});
 </script>
 
-<MomentDetail moment={$momentStore ?? data.moment} underlayMoments={data.underlayMoments} />
+<MomentDetail moment={$momentStore ?? data.moment} />
 <ContentViewTracker contentType="moment" contentId={$momentIdStore ?? data.moment.id} />

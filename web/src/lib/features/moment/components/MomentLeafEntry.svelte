@@ -8,13 +8,11 @@
 	let {
 		moment,
 		preview = false,
-		openContext,
-		onOpen
+		openContext
 	}: {
 		moment: MomentSummary;
 		preview?: boolean;
 		openContext?: Omit<MomentBookVisit, 'momentId' | 'at'>;
-		onOpen?: (moment: MomentSummary, href: string, link: HTMLAnchorElement) => void;
 	} = $props();
 	const href = $derived(
 		preview
@@ -26,35 +24,25 @@
 	function handleOpen(event: MouseEvent) {
 		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
 			return;
-		const link = event.currentTarget as HTMLAnchorElement;
-		const card = link.closest<HTMLElement>('.leaf-entry');
-		if (!card) return;
-		const rect = card.getBoundingClientRect();
+		if (!openContext) return;
 		try {
 			sessionStorage.setItem(
 				'moment:open-origin',
 				JSON.stringify({
-					x: rect.left,
-					y: rect.top,
-					width: rect.width,
-					height: rect.height,
 					at: Date.now(),
-					...(openContext ? { ...openContext, momentId: moment.id } : {})
+					...openContext,
+					momentId: moment.id
 				})
 			);
 		} catch {
 			// Continue opening the note when browser storage is unavailable.
-		}
-		if (onOpen) {
-			event.preventDefault();
-			onOpen(moment, href, link);
 		}
 	}
 </script>
 
 <article class="leaf-entry">
 	<span class="margin-dot" aria-hidden="true"></span>
-	<a class="entry-link" {href} onclick={handleOpen}>
+	<a class="entry-link" {href} onclick={handleOpen} data-sveltekit-preload-data="hover">
 		<div class="entry-copy">
 			<div class="entry-heading">
 				<time datetime={moment.createdAt}>{time || '片刻'}</time>
@@ -84,14 +72,10 @@
 		position: relative;
 		min-height: 0;
 		border-bottom: 1px solid var(--book-rule);
-		transition:
-			transform 190ms ease,
-			background-color 190ms ease,
-			box-shadow 190ms ease;
 	}
 	.margin-dot {
 		position: absolute;
-		top: 50%;
+		top: 1.65rem;
 		left: -0.8rem;
 		width: 0.3rem;
 		height: 0.3rem;
@@ -106,8 +90,8 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		gap: 0.8rem;
-		min-height: 100%;
-		padding: 0.9rem 0.35rem 0.8rem 0.25rem;
+		min-height: 4.5rem;
+		padding: 0.85rem 0.35rem 0.75rem 0.25rem;
 	}
 	.entry-copy {
 		min-width: 0;
@@ -126,16 +110,17 @@
 	}
 	h3 {
 		overflow: hidden;
-		width: fit-content;
 		max-width: 100%;
 		padding-bottom: 0.12rem;
 		font-family: var(--font-serif);
-		font-size: clamp(0.92rem, 1.25vw, 1.12rem);
-		font-weight: 600;
-		line-height: 1.45;
+		font-size: clamp(1rem, 1.25vw, 1.16rem);
+		font-weight: 500;
+		line-height: 1.65;
 		letter-spacing: 0.035em;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
 		background: linear-gradient(rgba(104, 78, 58, 0.45), rgba(104, 78, 58, 0.45)) left bottom / 0
 			1px no-repeat;
 		transition: background-size 240ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -159,7 +144,7 @@
 		gap: 0.8rem;
 		margin: 0.45rem 0 0 3.25rem;
 		font-family: var(--font-serif);
-		font-size: 0.58rem;
+		font-size: 0.65rem;
 		letter-spacing: 0.05em;
 		color: var(--book-faint);
 	}
@@ -194,9 +179,6 @@
 	.leaf-entry:hover,
 	.leaf-entry:focus-within {
 		z-index: 2;
-		background: rgba(255, 250, 232, 0.2);
-		box-shadow: 0 0.45rem 1rem rgba(69, 45, 27, 0.08);
-		transform: translateY(-2px);
 	}
 	.leaf-entry:hover h3,
 	.leaf-entry:focus-within h3 {

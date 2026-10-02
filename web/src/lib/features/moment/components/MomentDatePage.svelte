@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { MomentBookVisit, MomentDateLeaf } from '$lib/features/moment/book-pages';
-	import type { MomentSummary } from '$lib/features/moment/types';
 	import { formatLeafPageLabel } from '$lib/features/moment/book-pages';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
-	import { ArrowLeft, ArrowRight, Search, X } from 'lucide-svelte';
+	import { ArrowLeft, ArrowRight, Search, X, Feather } from 'lucide-svelte';
 	import MomentLeafEntry from './MomentLeafEntry.svelte';
 	import SeasonalPageMark from './SeasonalPageMark.svelte';
 
@@ -15,7 +14,6 @@
 		preview?: boolean;
 		showBlankNote?: boolean;
 		openContext?: Omit<MomentBookVisit, 'momentId' | 'at'>;
-		onOpen?: (moment: MomentSummary, href: string, link: HTMLAnchorElement) => void;
 		kicker?: string;
 		canTurn?: boolean;
 		turnLabel?: string;
@@ -31,7 +29,6 @@
 		preview = false,
 		showBlankNote = true,
 		openContext,
-		onOpen,
 		kicker,
 		canTurn = false,
 		turnLabel = '',
@@ -85,11 +82,10 @@
 					{moment}
 					{preview}
 					{openContext}
-					{onOpen}
 				/>{/each}
 		{:else if showBlankNote}
 			<div class="blank-note">
-				<span aria-hidden="true">✦</span>
+				<span aria-hidden="true"><Feather size={20} strokeWidth={1.2} /></span>
 				<p>今天写到这里，<br />下一页留给明天。</p>
 			</div>
 		{/if}
@@ -118,7 +114,7 @@
 		position: relative;
 		z-index: 1;
 		display: flex;
-		min-height: 6.25rem;
+		min-height: 5.25rem;
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 1.5rem;
@@ -197,18 +193,19 @@
 		display: grid;
 		min-height: 0;
 		flex: 1;
-		grid-template-rows: repeat(4, minmax(0, 1fr));
+		grid-auto-rows: min-content;
+		align-content: start;
 		padding-top: 0.35rem;
 	}
 	.blank-note {
-		grid-row: 2 / span 2;
-		align-self: center;
+		margin-top: clamp(3rem, 12vh, 8rem);
 		justify-self: center;
 		text-align: center;
 		color: var(--book-faint);
 	}
 	.blank-note span {
-		display: block;
+		display: flex;
+		justify-content: center;
 		margin-bottom: 0.75rem;
 		font-size: 1rem;
 		color: var(--book-accent);

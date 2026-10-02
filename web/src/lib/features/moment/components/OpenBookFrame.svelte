@@ -24,16 +24,16 @@
 			/>
 		</linearGradient>
 		<linearGradient id="moment-left-page" x1="0" y1="0" x2="1" y2="0">
-			<stop offset="0" stop-color="#d5c197" /><stop offset="0.055" stop-color="#eadaba" /><stop
+			<stop offset="0" stop-color="#e2d4bc" /><stop offset="0.055" stop-color="var(--paper)" /><stop
 				offset="0.88"
-				stop-color="#eee0c2"
-			/><stop offset="1" stop-color="#bca27a" />
+				stop-color="var(--paper)"
+			/><stop offset="1" stop-color="var(--paper-deep)" />
 		</linearGradient>
 		<linearGradient id="moment-right-page" x1="0" y1="0" x2="1" y2="0">
-			<stop offset="0" stop-color="#c4ad86" /><stop offset="0.12" stop-color="#eadabd" /><stop
-				offset="0.94"
-				stop-color="#efe3c9"
-			/><stop offset="1" stop-color="#c8ae82" />
+			<stop offset="0" stop-color="var(--paper-deep)" /><stop
+				offset="0.12"
+				stop-color="var(--paper)"
+			/><stop offset="0.94" stop-color="var(--paper)" /><stop offset="1" stop-color="#e2d4bc" />
 		</linearGradient>
 		<linearGradient id="moment-spine" x1="0" y1="0" x2="1" y2="0">
 			<stop offset="0" stop-color="#58402d" stop-opacity="0" /><stop
