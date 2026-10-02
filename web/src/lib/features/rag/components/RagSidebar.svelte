@@ -81,7 +81,10 @@
 			class="fixed inset-0 z-(--z-index-rag-overlay) bg-ink-950/20 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 duration-150 motion-reduce:animate-none dark:bg-ink-950/50"
 		/>
 		<Dialog.Content
-			class="fixed inset-y-0 right-0 z-(--z-index-rag-panel) flex h-dvh w-full max-w-rag flex-col border-l border-ink-200 bg-linear-to-b from-ink-100 via-ink-50 to-white text-ink-900 shadow-deep outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right duration-150 motion-reduce:animate-none dark:border-ink-700 dark:from-ink-900 dark:via-ink-900 dark:to-ink-950 dark:text-ink-100"
+			class="fixed inset-y-0 right-0 z-(--z-index-rag-panel) flex h-dvh w-full max-w-rag {turns.length >
+			0
+				? 'lg:max-w-[800px]'
+				: ''} flex-col border-l border-ink-200 bg-linear-to-b from-ink-100 via-ink-50 to-white text-ink-900 shadow-deep outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-right data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right duration-150 motion-reduce:animate-none dark:border-ink-700 dark:from-ink-900 dark:via-ink-900 dark:to-ink-950 dark:text-ink-100"
 			onCloseAutoFocus={(event) => {
 				if (uiState.isSearchOpen) event.preventDefault();
 			}}

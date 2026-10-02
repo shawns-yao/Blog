@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { base } from '$app/paths';
 	import { LoaderCircle } from 'lucide-svelte';
 	import { scrollToElementById } from '$lib/shared/dom/scroll-to-element';
 	import type { RagTurn } from '../types';
 	import RagAvatar from './RagAvatar.svelte';
+	import RagAnswerReading from './RagAnswerReading.svelte';
 
 	let { turns } = $props<{ turns: RagTurn[] }>();
 	$effect(() => {
@@ -19,7 +19,7 @@
 </script>
 
 <div role="log" aria-label="问答记录" aria-live="polite" aria-relevant="additions text">
-	<ol class="space-y-6">
+	<ol class="mx-auto max-w-[720px] space-y-8">
 		{#each turns as turn (turn.id)}
 			<li class="space-y-4">
 				<div class="flex justify-end" data-message-role="user">
@@ -32,62 +32,38 @@
 						</div>
 					</div>
 				</div>
-				<div class="flex items-start gap-3" data-message-role="assistant">
-					<RagAvatar class="size-8 shrink-0" />
-					<div class="min-w-0 flex-1">
-						<p class="mb-1.5 text-xs text-ink-600 dark:text-ink-400">书灵</p>
-						<div class="border-l border-jade-600/40 pl-3 dark:border-jade-400/40">
-							{#if !turn.answer}
-								<p
-									class="flex items-center gap-2 text-sm leading-7 text-ink-600 dark:text-ink-300"
-									role="status"
-								>
-									<LoaderCircle
-										class="size-4 shrink-0 animate-spin motion-reduce:animate-none"
-										aria-hidden="true"
-									/>正在整理回答…
-								</p>
-							{:else if turn.answer.status === 'answered'}
-								<p class="whitespace-pre-wrap break-words text-sm leading-7">
-									{turn.answer.answer}
-								</p>
-								{#if turn.answer.citations.length > 0}
-									<div class="mt-4 border-t border-ink-200 pt-3 dark:border-ink-700">
-										<h2 class="mb-2 font-serif text-xs text-ink-600 dark:text-ink-300">原文依据</h2>
-										<ol class="space-y-3">
-											{#each turn.answer.citations as citation (citation.chunkId)}
-												<li>
-													<a
-														href={`${base}${citation.url}`}
-														class="block break-words text-xs leading-6 text-jade-800 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:text-jade-200 dark:focus-visible:outline-jade-400"
-														>[{citation.number}] {citation.title}</a
-													>
-													<details class="mt-1 text-xs leading-6 text-ink-600 dark:text-ink-300">
-														<summary
-															class="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-jade-700 dark:focus-visible:outline-jade-400"
-															>查看原文片段</summary
-														>
-														{#if citation.contextHeader}<p class="mt-2 break-words">
-																{citation.contextHeader}
-															</p>{/if}
-														<p class="mt-2 whitespace-pre-wrap break-words">{citation.content}</p>
-													</details>
-												</li>
-											{/each}
-										</ol>
-									</div>
+				{#if turn.answer?.status === 'answered'}
+					<div data-message-role="assistant">
+						<RagAnswerReading answer={turn.answer} turnId={turn.id} />
+					</div>
+				{:else}
+					<div class="flex items-start gap-3" data-message-role="assistant">
+						<RagAvatar class="size-8 shrink-0" />
+						<div class="min-w-0 flex-1">
+							<p class="mb-1.5 text-xs text-ink-600 dark:text-ink-400">书灵</p>
+							<div class="border-l border-jade-600/40 pl-3 dark:border-jade-400/40">
+								{#if !turn.answer}
+									<p
+										class="flex items-center gap-2 text-sm leading-7 text-ink-600 dark:text-ink-300"
+										role="status"
+									>
+										<LoaderCircle
+											class="size-4 shrink-0 animate-spin motion-reduce:animate-none"
+											aria-hidden="true"
+										/>正在知识的海洋中遨游
+									</p>
+								{:else}
+									<p
+										role={turn.answer.status === 'temporarily_unavailable' ? 'alert' : 'status'}
+										class="whitespace-pre-wrap break-words text-sm leading-7 text-ink-700 dark:text-ink-200"
+									>
+										{turn.answer.reason}
+									</p>
 								{/if}
-							{:else}
-								<p
-									role={turn.answer.status === 'temporarily_unavailable' ? 'alert' : 'status'}
-									class="whitespace-pre-wrap break-words text-sm leading-7 text-ink-700 dark:text-ink-200"
-								>
-									{turn.answer.reason}
-								</p>
-							{/if}
+							</div>
 						</div>
 					</div>
-				</div>
+				{/if}
 			</li>
 		{/each}
 	</ol>
