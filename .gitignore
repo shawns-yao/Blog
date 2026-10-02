@@ -30,3 +30,13 @@ exports/
 
 .claude/
 .codex
+
+# Local snapshots and generated verification artifacts (see DATA-DOC.md)
+/Data/raw/
+/Data/snapshots/
+/Image/source/
+/Image/draft/
+/Image/figures/
+/Temp/
+/server/Temp/
+/.superpowers/

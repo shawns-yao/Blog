@@ -9,9 +9,9 @@ const [action, sourceArgument] = process.argv.slice(2);
 assert(['prepare', 'schema', 'import', 'status', 'wait', 'verify', 'smoke'].includes(action), '使用 prepare、schema、import、status、wait、verify 或 smoke');
 const target = testTarget('bagu-obsidian', true);
 const batch = 'bagu-obsidian_20260930_v1';
-const rawDir = resolve('Data/raw', batch);
-const manifestPath = resolve('Data/manifest', `${batch}.json`);
-const reportPath = resolve('Data/manifest', `${batch}_result.json`);
+const rawDir = resolve('Data/snapshots', batch);
+const manifestPath = join(rawDir, `${batch}.json`);
+const reportPath = join(rawDir, `${batch}_result.json`);
 const folders = ['01-Java', '02-Spring框架', '03-MySQL', '04-Redis', '05-消息队列与搜索', '06-计算机基础', '07-AI与Agent', '08-RAG与MCP'];
 const hash = value => createHash('sha256').update(value).digest('hex');
 const quote = value => "'" + String(value).replaceAll("'", "''") + "'";
@@ -122,14 +122,14 @@ if (action === 'prepare') {
   assert.equal(sql("SELECT to_json(value) FROM sys_config WHERE config_key='test.rag.dataset';"), 'bagu-obsidian', '只能写入已确认的独立八股数据库');
   if (action === 'schema') {
     const schema = schemaSnapshot();
-    await save(resolve('Data/manifest', `${batch}_schema.json`), schema);
+    await save(join(rawDir, `${batch}_schema.json`), schema);
     console.log(JSON.stringify(schema, null, 2));
   } else {
     const manifest = await readJSON(manifestPath);
     assert.equal(manifest.documents.length, 429);
     if (action === 'import') {
       const input = await Promise.all(manifest.documents.map(async doc => {
-        const bytes = await readFile(resolve(doc.rawPath));
+        const bytes = await readFile(join(rawDir, 'documents', doc.sourcePath));
         assert.equal(hash(bytes), doc.sha256, '冻结原文指纹不能变化');
         return { ...doc, content: bytes.toString('utf8') };
       }));
