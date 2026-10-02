@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -262,7 +263,8 @@ func registerMediaDelivery(app *fiber.App, deps Dependencies) {
 		)
 	}
 	serve := func(c *fiber.Ctx) error {
-		delivery, err := mediaSvc.ResolveDelivery(c.UserContext(), "/"+c.Params("*"))
+		width, _ := strconv.Atoi(c.Query("width"))
+		delivery, err := mediaSvc.ResolveImageDelivery(c.UserContext(), "/"+c.Params("*"), width)
 		if err != nil {
 			return fiber.ErrNotFound
 		}

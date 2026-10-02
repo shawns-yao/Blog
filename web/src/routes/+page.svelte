@@ -31,8 +31,8 @@
 
 	const portraitSceneSrc = (scene: HomeScene) =>
 		scene.startHour < 6 || scene.startHour >= 20
-			? '/home-scenes/portrait-night_20261001.jpg'
-			: '/home-scenes/portrait-day_20261001.jpg';
+			? '/home-scenes/portrait-night_20261001.webp'
+			: '/home-scenes/portrait-day_20261001.webp';
 
 	const resolveSceneIndex = (hour: number) => {
 		for (let index = HOME_SCENES.length - 1; index >= 0; index -= 1) {

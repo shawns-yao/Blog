@@ -136,6 +136,15 @@ func (s *Service) processMediaJob(ctx context.Context, job mediaJob) {
 	if err := s.ensureRemoteFile(ctx, thumbStoredPath, thumbDiskPath); err != nil {
 		log.Printf("[media-worker] mirror thumbnail failed path=%s: %v", thumbStoredPath, err)
 	}
+	for _, width := range responsiveWidths {
+		variantPath := imageVariantStoredPath(job.storedPath, width)
+		if variantPath == thumbStoredPath || !fileExists(s.diskPathFromStored(variantPath)) {
+			continue
+		}
+		if err := s.ensureRemoteFile(ctx, variantPath, s.diskPathFromStored(variantPath)); err != nil {
+			log.Printf("[media-worker] mirror image variant failed: %v", err)
+		}
+	}
 }
 
 func (s *Service) ensureRemoteFile(ctx context.Context, storedPath string, diskPath string) error {

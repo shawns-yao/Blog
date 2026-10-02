@@ -4,6 +4,7 @@
 	import { imageExtInfoCtx, type ImageExtInfoItem } from '$lib/shared/markdown/image-ext-info';
 	import { bindImageInteractions } from '$lib/shared/dom/image-interactions';
 	import ImagePreview from './ImagePreview.svelte';
+	import { responsiveImage } from '$lib/shared/media/responsive-image';
 
 	const {
 		src = '',
@@ -44,9 +45,15 @@
 
 	let imageInfo = $derived(() => {
 		const info = $extInfoStore;
-		if (!imgSrc || !info) return null;
-		return info.map.get(imgSrc) ?? null;
+		if (!info) return null;
+		return info.map.get(safeSrc) ?? info.map.get(imgSrc) ?? null;
 	});
+	let failedSrc = $state('');
+	const imageSource = $derived(
+		failedSrc === safeSrc
+			? { src: safeSrc, srcset: undefined }
+			: responsiveImage(safeSrc, imageInfo()?.width)
+	);
 
 	const applyPlaceholder = (info?: ImageExtInfoItem | null) => {
 		if (!imgEl || !info) return;
@@ -65,7 +72,7 @@
 
 	const openZoom = () => {
 		if (!imgEl) return;
-		zoomSrc = imgEl.currentSrc || imgEl.src || '';
+		zoomSrc = safeSrc;
 		zoomAlt = imgEl.alt || alt || '';
 		if (!zoomSrc) return;
 		// Capture thumbnail rect for FLIP animation
@@ -122,13 +129,18 @@
 		<img
 			bind:this={imgEl}
 			class={`md-img block w-full cursor-zoom-in rounded-sm transition-[filter,transform,opacity] duration-[400ms] ease-in-out ${className}`.trim()}
-			src={safeSrc}
+			src={imageSource.src}
+			srcset={imageSource.srcset}
+			sizes={imageSource.srcset ? 'auto, (max-width: 768px) calc(100vw - 32px), 800px' : undefined}
+			width={imageInfo()?.width}
+			height={imageInfo()?.height}
 			{alt}
 			{loading}
 			{decoding}
 			title={title || undefined}
 			data-loaded="false"
 			use:imageLazy={{ src: safeSrc, blur: imageInfo()?.blur }}
+			onerror={() => (failedSrc = safeSrc)}
 		/>
 	{:else}
 		<span

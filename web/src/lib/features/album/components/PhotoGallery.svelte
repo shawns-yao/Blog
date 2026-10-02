@@ -8,12 +8,14 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import type { PhotoItem } from '$lib/features/album/types';
+	import { responsiveImage } from '$lib/shared/media/responsive-image';
 
 	let {
 		photos,
 		albumSlug = '',
 		hiddenPhotoId = null
 	}: { photos: PhotoItem[]; albumSlug?: string; hiddenPhotoId?: number | null } = $props();
+	const failedPhotoSources = new SvelteSet<string>();
 
 	/**
 	 * photoLazy action:
@@ -77,7 +79,13 @@
 	}
 
 	function photoSrc(photo: PhotoItem): string {
-		return photo.thumbnailUrl || photo.url;
+		return photoSource(photo).src;
+	}
+
+	function photoSource(photo: PhotoItem) {
+		if (failedPhotoSources.has(photo.url)) return { src: photo.url, srcset: undefined };
+		const image = responsiveImage(photo.url, photo.exif?.imageWidth, 320);
+		return image.srcset ? image : { src: photo.thumbnailUrl || photo.url, srcset: undefined };
 	}
 
 	function capturePhotoTransition(event: MouseEvent, photo: PhotoItem) {
@@ -107,7 +115,7 @@
 					top: rect.top,
 					width: rect.width
 				},
-				src: photoSrc(photo)
+				src: image.currentSrc || image.src
 			})
 		);
 	}
@@ -174,6 +182,8 @@
 							<div class="photo-thumb-sheen absolute inset-0 z-[1]"></div>
 							<img
 								src={photoSrc(photo)}
+								srcset={photoSource(photo).srcset}
+								sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
 								alt={photo.caption || photo.description || ''}
 								class="photo-thumb-img relative z-10 w-full object-cover"
 								style={aspectStyle(photo.exif)}
@@ -181,6 +191,7 @@
 								fetchpriority={index < 8 ? 'high' : 'auto'}
 								decoding="async"
 								use:photoLazy
+								onerror={() => failedPhotoSources.add(photo.url)}
 							/>
 						</div>
 						{#if photo.caption || deviceStr(photo.exif)}

@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"image"
 	_ "image/gif"
-	"image/jpeg"
 	_ "image/png"
 	"io"
 	"io/fs"
@@ -38,6 +37,7 @@ type Service struct {
 	remote     remoteStorage
 	queue      *mediaJobQueue
 	workerOnce sync.Once
+	imageMu    sync.Mutex
 }
 
 func NewService(repo media.Repository, uploadDir string, events appEvent.Bus, gates ...*MutationGate) *Service {
@@ -65,9 +65,7 @@ func (s *Service) SetRemoteStorage(storage remoteStorage) {
 	s.remote = storage
 }
 
-const thumbnailMaxWidth = 1200
 const thumbnailDir = "thumbnails"
-const thumbnailQuality = 82
 
 // ImageMeta 图片元信息，上传图片时自动提取。
 type ImageMeta struct {
@@ -346,6 +344,13 @@ func (s *Service) Delete(ctx context.Context, id int64) (*media.UploadFile, erro
 			return nil, err
 		}
 	}
+	if isResponsiveImagePath(file.Path) {
+		for _, width := range responsiveWidths {
+			if err := removeFile(s.diskPathFromStored(imageVariantStoredPath(file.Path, width))); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if s.remote != nil {
 		if err := s.remote.Delete(ctx, file.Path); err != nil {
 			log.Printf("[media] delete remote original failed path=%s: %v", file.Path, err)
@@ -356,6 +361,13 @@ func (s *Service) Delete(ctx context.Context, id int64) (*media.UploadFile, erro
 		if legacyThumbStoredPath != thumbStoredPath {
 			if err := s.remote.Delete(ctx, legacyThumbStoredPath); err != nil {
 				log.Printf("[media] delete legacy remote thumbnail failed path=%s: %v", legacyThumbStoredPath, err)
+			}
+		}
+		if isResponsiveImagePath(file.Path) {
+			for _, width := range responsiveWidths {
+				if err := s.remote.Delete(ctx, imageVariantStoredPath(file.Path, width)); err != nil {
+					log.Printf("[media] delete remote image variant failed: %v", err)
+				}
 			}
 		}
 	}
@@ -429,50 +441,11 @@ func (s *Service) processImage(diskPath string, storedPath string, dir string) (
 	if dir != "pictures" {
 		return "", nil
 	}
-
-	f, err := os.Open(diskPath)
+	meta, err := s.ensureImageVariants(diskPath, storedPath)
 	if err != nil {
-		log.Printf("[image] open failed for %s: %v", diskPath, err)
-		return "", nil
+		log.Printf("[image] variants failed: %v", err)
 	}
-	defer f.Close()
-
-	src, _, err := image.Decode(f)
-	if err != nil {
-		log.Printf("[image] decode failed for %s: %v", diskPath, err)
-		return "", nil
-	}
-
-	bounds := src.Bounds()
-	meta = &ImageMeta{
-		Width:         bounds.Dx(),
-		Height:        bounds.Dy(),
-		DominantColor: calcDominantColor(src),
-	}
-
-	// Generate thumbnail
-	thumbStoredPath := thumbnailStoredPath(storedPath)
-	thumbDiskPath := s.diskPathFromStored(thumbStoredPath)
-
-	if !fileExists(thumbDiskPath) {
-		thumb := imaging.Resize(src, thumbnailMaxWidth, 0, imaging.Lanczos)
-		if err := os.MkdirAll(filepath.Dir(thumbDiskPath), 0o755); err != nil {
-			log.Printf("[thumbnail] mkdir failed: %v", err)
-			return "", meta
-		}
-		out, err := os.Create(thumbDiskPath)
-		if err != nil {
-			log.Printf("[thumbnail] create failed: %v", err)
-			return "", meta
-		}
-		defer out.Close()
-		if err := jpeg.Encode(out, thumb, &jpeg.Options{Quality: thumbnailQuality}); err != nil {
-			log.Printf("[thumbnail] encode failed: %v", err)
-			return "", meta
-		}
-	}
-
-	return "/uploads" + thumbStoredPath, meta
+	return s.ThumbnailURLFor("/uploads" + storedPath), meta
 }
 
 func (s *Service) inspectImage(diskPath string) *ImageMeta {
@@ -529,6 +502,10 @@ func (s *Service) ThumbnailURLFor(publicURL string) string {
 		return ""
 	}
 	storedPath := strings.TrimPrefix(publicURL, prefix) // /pictures/2026-...
+	variantPath := imageVariantStoredPath(storedPath, 1280)
+	if fileExists(s.diskPathFromStored(variantPath)) {
+		return prefix + variantPath
+	}
 	thumbStoredPath := thumbnailStoredPath(storedPath)
 	thumbDiskPath := s.diskPathFromStored(thumbStoredPath)
 	if fileExists(thumbDiskPath) {

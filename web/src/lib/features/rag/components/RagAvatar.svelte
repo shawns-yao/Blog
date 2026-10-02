@@ -8,7 +8,7 @@
 
 <span class={`${className} inline-block`} class:animated aria-hidden="true">
 	<img
-		src={`${base}/images/rag-shuling-avatar_20260930.png`}
+		src={`${base}/images/rag-shuling-avatar_20260930.webp`}
 		class="size-full object-contain"
 		width="256"
 		height="256"
