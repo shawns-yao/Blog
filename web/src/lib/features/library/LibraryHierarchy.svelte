@@ -23,6 +23,7 @@
 		reading: boolean;
 	} = $props();
 	const children = $derived(columns.filter((item) => root && item.parentId === root.id));
+	const roots = $derived(columns.filter((item) => !item.parentId));
 	const colors = ['#396558', '#4b6079', '#87565b', '#69614d'];
 	const pages = $derived(Math.max(1, Math.ceil(moments.total / moments.size)));
 </script>
@@ -45,6 +46,25 @@
 			<button aria-label="搜索" title="搜索" type="submit"><Search size={18} /></button>
 		</form>
 	</header>
+	<nav
+		aria-label="一级分类"
+		class="mb-8 flex flex-wrap gap-x-5 gap-y-3 border-b border-ink-200 pb-5 text-sm dark:border-ink-700"
+	>
+		<a
+			href={resolvePath('/gallery/')}
+			aria-current={!root ? 'page' : undefined}
+			class="rounded-default px-1 py-2 text-ink-600 hover:text-jade-700 focus-visible:outline-2 focus-visible:outline-jade-600 aria-[current=page]:text-jade-700 dark:text-ink-300 dark:aria-[current=page]:text-jade-400"
+			>全部</a
+		>
+		{#each roots as category (category.id)}
+			<a
+				href={resolvePath(libraryPath({ column: category.id }))}
+				aria-current={root?.id === category.id ? 'page' : undefined}
+				class="rounded-default px-1 py-2 text-ink-600 hover:text-jade-700 focus-visible:outline-2 focus-visible:outline-jade-600 aria-[current=page]:text-jade-700 dark:text-ink-300 dark:aria-[current=page]:text-jade-400"
+				>{category.name}</a
+			>
+		{/each}
+	</nav>
 	{#if root}
 		<nav
 			class="secondary-shelf"

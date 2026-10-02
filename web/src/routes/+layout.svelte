@@ -1,11 +1,10 @@
 <script lang="ts">
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import MobileNavBar from '$lib/ui/layout/sidebar/MobileNavBar.svelte';
 	import RouteContent from '$lib/ui/layout/RouteContent.svelte';
 	import ShelfNav from '$lib/ui/layout/shelf/ShelfNav.svelte';
-	import LibraryNav from '$lib/features/library/LibraryNav.svelte';
-	import { SHELF_BOOKS, type NavItem } from '$lib/shared/nav/nav-items';
+	import PageReturnHeader from '$lib/ui/layout/PageReturnHeader.svelte';
+	import { SHELF_BOOKS } from '$lib/shared/nav/nav-items';
 	import { initTheme, startThemeSync, themeManager } from '$lib/shared/theme/theme.svelte.js';
 	import { onMount } from 'svelte';
 	import { consoleLogInfo } from '$lib/features/console-info/index';
@@ -83,19 +82,13 @@
 		| typeof import('$lib/features/global-notification/components/GlobalNotificationClient.svelte').default
 		| null
 	>(null);
+	const routePath = $derived(page.url.pathname.replace(/\/+$/, '') || '/');
+	const isHomeRoute = $derived(routePath === '/');
 	const isMomentBookRoute = $derived(
-		page.url.pathname === '/moments' ||
-			page.url.pathname.startsWith('/moments/') ||
-			page.url.pathname === '/internal/preview/moment'
+		routePath === '/moments' ||
+			routePath.startsWith('/moments/') ||
+			routePath === '/internal/preview/moment'
 	);
-	const isGalleryRoute = $derived(page.url.pathname.replace(/\/$/, '') === '/gallery');
-
-	// 移动端底部栏复用书架数据（转成 NavItem 形态）
-	const mobileNavItems: NavItem[] = SHELF_BOOKS.map((book) => ({
-		name: book.name,
-		url: book.url,
-		icon: book.icon
-	}));
 
 	websiteInfoCtx.mountModelData(() => data.websiteInfo ?? null);
 
@@ -379,18 +372,10 @@
 	</script>
 </svelte:head>
 
-{#if isGalleryRoute}
-	<LibraryNav activePath="/gallery" />
-{:else if !isMomentBookRoute}
-	<header
-		class="desktop-shelf-header hidden md:flex"
-		class:home-shelf-header={page.url.pathname === '/'}
-	>
+{#if isHomeRoute}
+	<header class="desktop-shelf-header home-shelf-header hidden md:flex">
 		<ShelfNav books={SHELF_BOOKS} />
 	</header>
-{/if}
-{#if !isMomentBookRoute && page.url.pathname !== '/'}
-	<MobileNavBar menuTree={mobileNavItems} />
 {/if}
 <!-- noise background -->
 {#if !isMomentBookRoute}
@@ -403,19 +388,17 @@
 			<DetailHeroBg src={$detailHeroBgSrc} />
 		{/if}
 		<SiteHealthBanner />
+		{#if !isHomeRoute && !isMomentBookRoute}
+			<PageReturnHeader showReadingMotto={routePath === '/about'} />
+		{/if}
 		<main
 			class="page-wrapper mx-auto {isMomentBookRoute
 				? 'max-w-none px-0 py-0'
 				: page.url.pathname.startsWith('/timeline')
 					? 'max-w-none px-0 py-0'
-					: page.url.pathname === '/'
+					: isHomeRoute
 						? 'max-w-none px-0 py-0'
-						: 'max-w-300 px-4 sm:px-6 lg:px-8 py-10 md:py-16'} {isMomentBookRoute ||
-			page.url.pathname === '/'
-				? ''
-				: isGalleryRoute
-					? 'md:pt-4'
-					: 'md:pt-52'}"
+						: 'max-w-300 px-4 sm:px-6 lg:px-8 py-8 md:py-10'}"
 		>
 			<RouteContent>
 				{@render children()}
