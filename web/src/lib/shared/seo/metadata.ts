@@ -76,10 +76,8 @@ const normalizePathname = (pathname: string): string => {
 	return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
 };
 
-const getPageValue = (
-	routeData: UnknownRecord,
-	key: 'post' | 'moment'
-): UnknownRecord | null => asRecord(routeData[key]);
+const getPageValue = (routeData: UnknownRecord, key: 'post' | 'moment'): UnknownRecord | null =>
+	asRecord(routeData[key]);
 
 const getPaginationPage = (routeData: UnknownRecord): number | null => {
 	const pagination = asRecord(routeData.pagination);
@@ -200,6 +198,13 @@ const resolvePageMeta = (pathname: string, search: string, routeData: UnknownRec
 		return {
 			pageTitle: '友情链接',
 			description: '志同道合者的数字家园，感谢在这个广袤网络中的相遇。'
+		};
+	}
+
+	if (pathname === '/about') {
+		return {
+			pageTitle: '关于',
+			description: 'Librarium 的馆主档案。在技术与阅读之间，收集更好的自己。'
 		};
 	}
 
