@@ -53,7 +53,7 @@ RUN CGO_ENABLED=0 GOOS=linux \
 
 FROM alpine:3.21 AS runtime
 
-RUN apk add --no-cache ca-certificates tzdata su-exec postgresql17-client \
+RUN apk add --no-cache ca-certificates tzdata su-exec postgresql17-client ffmpeg \
   && addgroup -g 10001 -S app \
   && adduser -u 10001 -S app -G app
 

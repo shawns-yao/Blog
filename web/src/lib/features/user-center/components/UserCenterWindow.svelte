@@ -11,6 +11,7 @@
 	} from '$lib/features/auth/oauth-flow';
 	import { userStore } from '$lib/shared/stores/userStore';
 	import { getToken, removeToken } from '$lib/shared/token';
+	import { clearMusicSession } from '$lib/features/music/api';
 	import {
 		getUserProfile,
 		listOAuthBindings,
@@ -132,6 +133,7 @@
 
 	const signOut = async () => {
 		if (browser && !window.confirm('确认退出登录吗？')) return;
+		await clearMusicSession().catch(() => {});
 		removeToken();
 		userStore.clear();
 		windowStore.close();
@@ -145,6 +147,7 @@
 			userStore.setUser(profile);
 		}
 		if (profileQuery.isError) {
+			void clearMusicSession().catch(() => {});
 			removeToken();
 			userStore.clear();
 			windowStore.close();

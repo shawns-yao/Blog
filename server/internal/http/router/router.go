@@ -101,6 +101,7 @@ func Register(app *fiber.App, deps Dependencies) {
 		deps.RAG = apprag.NewService(persistence.NewRAGRepository(deps.DB), sysCfgSvc, deps.Config.RAG)
 	}
 	registerRAGRoutes(v2, deps)
+	registerMusicRoutes(v2, deps)
 	deps.SysConfig = sysCfgSvc
 	wsManager := ws.NewManager(ws.Config{
 		CacheSize:       3,

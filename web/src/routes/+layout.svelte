@@ -84,6 +84,7 @@
 	>(null);
 	const routePath = $derived(page.url.pathname.replace(/\/+$/, '') || '/');
 	const isHomeRoute = $derived(routePath === '/');
+	const isMusicRoute = $derived(routePath === '/music' || routePath.startsWith('/music/'));
 	const isMomentBookRoute = $derived(
 		routePath === '/moments' ||
 			routePath.startsWith('/moments/') ||
@@ -378,7 +379,7 @@
 	</header>
 {/if}
 <!-- noise background -->
-{#if !isMomentBookRoute}
+{#if !isMomentBookRoute && !isMusicRoute}
 	<div class="bg-noise" aria-hidden="true"></div>
 {/if}
 
@@ -388,11 +389,11 @@
 			<DetailHeroBg src={$detailHeroBgSrc} />
 		{/if}
 		<SiteHealthBanner />
-		{#if !isHomeRoute && !isMomentBookRoute}
+		{#if !isHomeRoute && !isMomentBookRoute && !isMusicRoute}
 			<PageReturnHeader showReadingMotto={routePath === '/about'} />
 		{/if}
 		<main
-			class="page-wrapper mx-auto {isMomentBookRoute
+			class="page-wrapper mx-auto {isMomentBookRoute || isMusicRoute
 				? 'max-w-none px-0 py-0'
 				: page.url.pathname.startsWith('/timeline')
 					? 'max-w-none px-0 py-0'
@@ -422,7 +423,7 @@
 {/if}
 
 <SearchModal />
-<RagSidebar />
+{#if !isMusicRoute}<RagSidebar />{/if}
 <FloatingWindow>
 	<!-- Login branch: always mounted (hidden when inactive) to preserve QueryRoot/AuthClient state -->
 	<div hidden={windowStore.kind !== 'login'}>

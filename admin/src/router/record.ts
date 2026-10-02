@@ -461,6 +461,14 @@ export const routeRecordRaw: MenuMixedOptions[] = [
     component: 'rag/index',
   },
   {
+    path: 'music',
+    name: 'musicManagement',
+    icon: 'iconify ph--music-notes',
+    label: '音乐管理',
+    meta: { componentName: 'MusicManagement', showTab: true },
+    component: 'music/index',
+  },
+  {
     path: 'email',
     name: 'emailManagement',
     icon: 'iconify ph--envelope',

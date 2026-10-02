@@ -30,6 +30,7 @@ import Smile from 'lucide-svelte/icons/smile';
 import Wind from 'lucide-svelte/icons/wind';
 import Search from 'lucide-svelte/icons/search';
 import Link from 'lucide-svelte/icons/link';
+import Music2 from 'lucide-svelte/icons/music-2';
 
 export type LucideIconComponent = Component<{
 	size?: number;
@@ -69,7 +70,8 @@ const lucideIcons = {
 	smile: Smile,
 	wind: Wind,
 	search: Search,
-	link: Link
+	link: Link,
+	music: Music2
 } as const;
 
 export type LucideIconKey = keyof typeof lucideIcons;
