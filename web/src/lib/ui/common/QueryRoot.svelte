@@ -21,16 +21,14 @@
 	let ready = $state(false);
 
 	onMount(async () => {
-		const [{ QueryClientProvider }, { getOrCreateQueryClient }] = await Promise.all([
+		const [{ QueryClientProvider }, { getOrCreateQueryClient }, loaded] = await Promise.all([
 			import('@tanstack/svelte-query'),
-			import('$lib/shared/clients/query-client')
+			import('$lib/shared/clients/query-client'),
+			loader?.()
 		]);
 		client = await getOrCreateQueryClient(options);
 		Provider = QueryClientProvider;
-		if (loader) {
-			const loaded = await loader();
-			Loaded = loaded.default;
-		}
+		Loaded = loaded?.default ?? null;
 		ready = true;
 	});
 </script>

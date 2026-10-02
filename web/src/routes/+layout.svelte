@@ -79,6 +79,10 @@
 
 	let { children, data } = $props();
 	let showRouteLoading = $state(false);
+	let GlobalNotificationClient = $state<
+		| typeof import('$lib/features/global-notification/components/GlobalNotificationClient.svelte').default
+		| null
+	>(null);
 	const isMomentBookRoute = $derived(
 		page.url.pathname === '/moments' ||
 			page.url.pathname.startsWith('/moments/') ||
@@ -223,6 +227,12 @@
 	}
 
 	onMount(() => {
+		let cancelled = false;
+		void import('$lib/features/global-notification/components/GlobalNotificationClient.svelte').then(
+			(module) => {
+				if (!cancelled) GlobalNotificationClient = module.default;
+			}
+		);
 		const handleWindowError = (event: ErrorEvent) => {
 			const message = event.message || 'Unhandled client error';
 			const detail =
@@ -265,6 +275,7 @@
 		}
 
 		return () => {
+			cancelled = true;
 			window.removeEventListener('error', handleWindowError);
 			window.removeEventListener('unhandledrejection', handleUnhandledRejection);
 			presenceStore.stop();
@@ -462,14 +473,9 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <Toaster />
-{#snippet globalNotificationFallback()}
-	<div></div>
-{/snippet}
-<QueryRoot
-	loader={() =>
-		import('$lib/features/global-notification/components/GlobalNotificationClient.svelte')}
-	fallback={globalNotificationFallback}
-/>
+{#if GlobalNotificationClient}
+	<GlobalNotificationClient />
+{/if}
 {#snippet authFallback()}
 	<div></div>
 {/snippet}
