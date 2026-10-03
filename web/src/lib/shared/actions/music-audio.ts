@@ -10,6 +10,7 @@ export interface AudioState {
 interface AudioOptions {
 	src: string;
 	key?: number;
+	autoplay?: boolean;
 	onstate: (state: AudioState) => void;
 	onend: () => void;
 }
@@ -72,7 +73,7 @@ export function musicAudio(node: HTMLAudioElement, initial: AudioOptions) {
 		else node.removeAttribute('src');
 		node.load();
 		publish();
-		if (source)
+		if (source && next.autoplay !== false)
 			void node.play().catch(() => {
 				if (!disposed && current === generation) {
 					loading = false;

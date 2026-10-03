@@ -1,5 +1,6 @@
 export type MusicView = 'search' | 'playlists' | 'charts' | 'favorites' | 'settings';
 export type MusicDensity = 'comfortable' | 'compact';
+export type MusicPlaybackMode = 'sequence' | 'single' | 'repeat' | 'shuffle';
 
 export interface MusicSong {
 	id: string;
