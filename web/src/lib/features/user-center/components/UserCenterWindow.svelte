@@ -22,6 +22,7 @@
 	import { toast } from 'svelte-sonner';
 	import { windowStore } from '$lib/shared/stores/windowStore.svelte';
 	import { ExternalLink, Unlink, Link as LinkIcon, LogOut, Check } from 'lucide-svelte';
+	let { embedded = false } = $props<{ embedded?: boolean }>();
 
 	let profileForm = $state({
 		nickname: ''
@@ -32,7 +33,7 @@
 	const isLogin = $derived($userStore.isLogin && !!$userStore.userInfo);
 
 	const profileQuery = createQuery(() => ({
-		queryKey: ['user-center', 'profile'],
+		queryKey: ['user-center', meStore?.id ?? 0, 'profile'],
 		enabled: browser && !!getToken(),
 		queryFn: () => getUserProfile(),
 		retry: false,
@@ -40,7 +41,7 @@
 	}));
 
 	const bindingQuery = createQuery(() => ({
-		queryKey: ['user-center', 'oauth-bindings'],
+		queryKey: ['user-center', meStore?.id ?? 0, 'oauth-bindings'],
 		enabled: isLogin,
 		queryFn: () => listOAuthBindings(),
 		retry: false
@@ -136,21 +137,21 @@
 		await clearMusicSession().catch(() => {});
 		removeToken();
 		userStore.clear();
-		windowStore.close();
-		await goto(resolvePath('/'), { replaceState: true });
+		if (!embedded) windowStore.close();
+		await goto(resolvePath(embedded ? '/music' : '/'), { replaceState: true });
 		toast.success('已退出登录');
 	};
 
 	$effect(() => {
 		const profile = profileQuery.data;
-		if (profile) {
+		if (profile && profile.id === meStore?.id) {
 			userStore.setUser(profile);
 		}
 		if (profileQuery.isError) {
 			void clearMusicSession().catch(() => {});
 			removeToken();
 			userStore.clear();
-			windowStore.close();
+			if (!embedded) windowStore.close();
 		}
 	});
 
@@ -163,7 +164,7 @@
 	});
 </script>
 
-<div class="space-y-6">
+<div class="space-y-6" class:music-account={embedded}>
 	{#if !isLogin}
 		<div class="text-center py-8 text-ink-500">
 			<p>未登录状态无法访问用户中心</p>
@@ -172,6 +173,12 @@
 		<!-- Profile Section -->
 		<section class="space-y-3">
 			<h3 class="text-xs font-bold text-ink-400 uppercase tracking-wider">个人资料</h3>
+			{#if embedded}
+				<div class="block space-y-1.5">
+					<span class="text-xs text-ink-500 font-medium">账号</span>
+					<p class="text-sm">{meStore?.username}</p>
+				</div>
+			{/if}
 			<div class="block space-y-1.5">
 				<span class="text-xs text-ink-500 font-medium"> 邮箱 </span>
 				<p class="text-sm text-ink-700 dark:text-ink-200">{meStore?.email || '未设置邮箱'}</p>
@@ -186,7 +193,7 @@
 					/>
 				</label>
 				<button
-					class="h-[34px] px-3 rounded-default bg-jade-600 text-white text-xs font-medium hover:bg-jade-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+					class="profile-save h-[34px] px-3 rounded-default bg-jade-600 text-white text-xs font-medium hover:bg-jade-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
 					onclick={saveProfile}
 					disabled={updateProfileMutation.isPending || profileForm.nickname === meStore?.nickname}
 				>
@@ -228,7 +235,7 @@
 					{#each providerQuery.data ?? [] as provider (provider.key)}
 						{@const isBound = boundProviderSet.has(provider.key)}
 						<div
-							class="flex items-center justify-between rounded-default border p-2.5 transition-colors
+							class="provider-row flex items-center justify-between rounded-default border p-2.5 transition-colors
 							{isBound
 								? 'border-jade-200 bg-jade-50/30 dark:border-jade-800/50 dark:bg-jade-900/10'
 								: 'border-ink-200 bg-white dark:border-ink-700 dark:bg-ink-800/40'}"
@@ -243,7 +250,7 @@
 							{#if isBound}
 								<div class="flex items-center gap-2">
 									<span
-										class="text-[10px] bg-jade-100 text-jade-700 dark:bg-jade-900/50 dark:text-jade-400 px-1.5 py-0.5 rounded-default font-medium"
+										class="binding-status text-[10px] bg-jade-100 text-jade-700 dark:bg-jade-900/50 dark:text-jade-400 px-1.5 py-0.5 rounded-default font-medium"
 									>
 										已绑定
 									</span>
@@ -259,7 +266,7 @@
 								</div>
 							{:else}
 								<button
-									class="flex items-center gap-1 text-xs text-jade-600 hover:text-jade-700 transition-colors px-2 py-1 rounded-default hover:bg-jade-50 dark:hover:bg-jade-900/20 font-medium"
+									class="binding-action flex items-center gap-1 text-xs text-jade-600 hover:text-jade-700 transition-colors px-2 py-1 rounded-default hover:bg-jade-50 dark:hover:bg-jade-900/20 font-medium"
 									onclick={() => startBindOAuth(provider)}
 									disabled={bindingLoadingProvider === provider.key}
 								>
@@ -289,3 +296,53 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.music-account {
+		color: var(--music-ink);
+	}
+	.music-account h3 {
+		font-size: 15px;
+		font-weight: 500;
+		letter-spacing: normal;
+		color: var(--music-ink);
+	}
+	.music-account p,
+	.music-account .provider-row div {
+		color: var(--music-ink);
+	}
+	.music-account input {
+		min-height: 44px;
+		border-color: var(--music-border);
+		background: #fff;
+		color: var(--music-ink);
+	}
+	.music-account input:focus {
+		border-color: var(--music-accent);
+		box-shadow: 0 0 0 1px var(--music-accent);
+	}
+	.music-account button {
+		min-height: 44px;
+	}
+	.music-account .profile-save {
+		background: var(--music-accent-strong);
+		color: #fff;
+	}
+	.music-account .provider-row {
+		border-color: var(--music-border);
+		background: #fff;
+	}
+	.music-account .binding-action,
+	.music-account a {
+		color: var(--music-accent-strong);
+	}
+	.music-account .binding-status {
+		color: var(--music-accent-strong);
+		background: var(--music-accent-soft);
+	}
+	.music-account button:focus-visible,
+	.music-account a:focus-visible {
+		outline: 2px solid var(--music-accent);
+		outline-offset: 3px;
+	}
+</style>

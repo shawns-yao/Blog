@@ -70,6 +70,7 @@
 		</div>{/if}
 	{#key viewer}
 		{#if view === 'settings'}<MusicSettings
+				loggedIn={!!viewer}
 				bind:density={playbackState.density}
 				bind:showCovers={playbackState.showCovers}
 				bind:volume={playbackState.volume}

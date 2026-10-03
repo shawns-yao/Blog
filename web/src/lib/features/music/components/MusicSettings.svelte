@@ -1,14 +1,21 @@
 <script lang="ts">
 	import Button from '$lib/ui/primitives/button/Button.svelte';
+	import UserCenterWindow from '$lib/features/user-center/components/UserCenterWindow.svelte';
 	import type { MusicDensity } from '../types';
 	let {
+		loggedIn,
 		density = $bindable('comfortable'),
 		showCovers = $bindable(true),
 		volume = $bindable(1)
-	} = $props<{ density: MusicDensity; showCovers: boolean; volume: number }>();
+	} = $props<{ loggedIn: boolean; density: MusicDensity; showCovers: boolean; volume: number }>();
 </script>
 
 <section class="music-settings" aria-label="音乐设置">
+	{#if loggedIn}
+		<div class="account-settings" role="region" aria-label="账号信息">
+			<UserCenterWindow embedded />
+		</div>
+	{/if}
 	<fieldset>
 		<legend>歌曲列表</legend>
 		<div class="setting-row">
@@ -54,6 +61,11 @@
 <style>
 	.music-settings {
 		max-width: 680px;
+	}
+	.account-settings {
+		padding-bottom: 28px;
+		margin-bottom: 28px;
+		border-bottom: 1px solid var(--music-border);
 	}
 	fieldset {
 		border: 0;
