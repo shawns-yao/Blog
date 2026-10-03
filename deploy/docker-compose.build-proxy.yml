@@ -1,0 +1,9 @@
+# Optional Linux renderer build proxy; enable explicitly with -f.
+services:
+  renderer:
+    build:
+      network: host
+      args:
+        HTTP_PROXY: "${BUILD_HTTP_PROXY:?BUILD_HTTP_PROXY is required}"
+        HTTPS_PROXY: "${BUILD_HTTP_PROXY:?BUILD_HTTP_PROXY is required}"
+        NO_PROXY: "localhost,127.0.0.1,::1"
