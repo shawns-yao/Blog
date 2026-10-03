@@ -74,6 +74,7 @@
 
 <div
 	class="music-dock"
+	class:home-player={page.url.pathname === '/'}
 	hidden={!onMusicPage && !playbackState.queue.length}
 >
 	<MusicPlayer
@@ -149,7 +150,37 @@
 	.music-dock :global(input[type='range']) {
 		accent-color: var(--music-accent);
 	}
-	.music-dock :global(.player-favorite) {
+	.home-player {
+		--music-ink: #fff;
+		--music-muted: #f5f5f4;
+	}
+	.home-player :global(.music-player) {
+		border-top: 0;
+		background: transparent;
+		text-shadow: 0 1px 3px rgb(0 0 0 / 65%);
+	}
+	.home-player :global(.music-icon) {
+		background: transparent !important;
+		color: #fff !important;
+	}
+	.home-player :global(.music-icon:hover) {
+		background: rgb(255 255 255 / 14%) !important;
+	}
+	.home-player :global(.player-mode[data-active='true']) {
+		background: transparent !important;
+		color: var(--music-accent) !important;
+	}
+	.home-player :global(.player-cover) {
+		background: rgb(255 255 255 / 14%);
+		color: #fff;
+	}
+	.home-player :global(.player-note) {
+		border-top: 0;
+		background: rgb(28 25 23 / 85%);
+		color: #fff;
+	}
+	.music-dock :global(.player-favorite),
+	.home-player :global(.player-favorite) {
 		color: var(--music-accent) !important;
 	}
 </style>

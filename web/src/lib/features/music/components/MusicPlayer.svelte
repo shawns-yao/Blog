@@ -174,8 +174,8 @@
 				aria-label={playback.paused ? '播放' : '暂停'}
 				disabled={!song}
 				onclick={toggle}
-				>{#if playback.paused}<Play size={20} fill="currentColor" />{:else}<Pause
-						size={20}
+				>{#if playback.paused}<Play size={24} fill="currentColor" />{:else}<Pause
+						size={24}
 						fill="currentColor"
 					/>{/if}</Button
 			><Button
@@ -329,9 +329,19 @@
 		justify-content: center;
 		gap: 19px;
 	}
-	:global(.music-play) {
+	.music-player :global(.music-icon) {
 		width: 44px;
 		height: 44px;
+		min-width: 44px;
+		padding: 0;
+		flex-shrink: 0;
+	}
+	.music-player :global(svg) {
+		flex-shrink: 0;
+	}
+	:global(.music-play) {
+		width: 56px;
+		height: 56px;
 		padding: 0;
 		border-radius: 50%;
 	}
@@ -343,7 +353,7 @@
 	}
 	:global(.player-queue) {
 		width: auto;
-		min-width: 44px;
+		min-width: 58px;
 		gap: 8px;
 		padding: 6px;
 	}
@@ -410,7 +420,7 @@
 			margin-bottom: 8px;
 		}
 		.player-transport {
-			gap: 23px;
+			gap: 18px;
 		}
 	}
 </style>

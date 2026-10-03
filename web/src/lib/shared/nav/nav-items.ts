@@ -19,8 +19,7 @@ export const NAV_ITEMS: NavItem[] = [
 	{ name: '首页', url: '/', icon: 'house' },
 	{ name: '手记', url: '/moments', icon: 'pen-tool' },
 	{ name: '图书馆', url: '/gallery', icon: 'book-open' },
-	{ name: '音乐', url: '/music', icon: 'music' },
-	{ name: '搜索', url: '/search', icon: 'search' },
+	{ name: '音乐室', url: '/music', icon: 'music' },
 	{ name: '友链', url: '/friends', icon: 'link' },
 	{ name: '关于', url: '/about', icon: 'user' }
 ];
@@ -85,24 +84,14 @@ export const SHELF_BOOKS: ShelfBook[] = [
 		width: 48
 	},
 	{
-		name: '搜索',
-		url: '/search',
-		icon: 'search',
+		name: '音乐室',
+		url: '/music',
+		icon: 'music',
 		color: '#9a7442',
 		edge: '#6c4f2e',
 		tilt: 10,
 		height: 130,
 		width: 51
-	},
-	{
-		name: '音乐',
-		url: '/music',
-		icon: 'music',
-		color: '#796343',
-		edge: '#54432d',
-		tilt: -4,
-		height: 122,
-		width: 46
 	},
 	{
 		name: '友链',
