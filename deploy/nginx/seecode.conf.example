@@ -1,0 +1,43 @@
+# Install in the outer Nginx http context after configuring DNS and certificates.
+# The certificate must cover both names. Set deploy/.env NGINX_PORT=8088.
+# The upstream is the project's managed Nginx, not the renderer or Navidrome.
+map $http_upgrade $seecode_connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+server {
+    listen 80;
+    server_name seecode.top music.seecode.top;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name seecode.top music.seecode.top;
+
+    ssl_certificate /etc/nginx/certs/seecode.fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/seecode.key;
+    client_max_body_size 200M;
+
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $seecode_connection_upgrade;
+    proxy_buffering off;
+    proxy_read_timeout 3600s;
+
+    location = / {
+        if ($host = music.seecode.top) {
+            return 302 /music/;
+        }
+        proxy_pass http://127.0.0.1:8088;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8088;
+    }
+}

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
 	import Search from 'lucide-svelte/icons/search';
 	import ListMusic from 'lucide-svelte/icons/list-music';
 	import House from 'lucide-svelte/icons/house';
@@ -25,6 +26,7 @@
 		{ id: 'favorites', label: '我的收藏', icon: Heart },
 		{ id: 'settings', label: '设置', icon: Settings2 }
 	] as const;
+	const separateMusicSite = $derived(page.url.hostname === 'music.seecode.top');
 </script>
 
 <div class="music-shell">
@@ -51,7 +53,12 @@
 	<div class="music-workspace">
 		<header class="music-header">
 			<h1>{title}</h1>
-			<a href="/" class="music-back"><ArrowLeft size={16} /><span>返回博客</span></a>
+			<a
+				href={separateMusicSite ? 'https://seecode.top/' : '/'}
+				target={separateMusicSite ? '_blank' : undefined}
+				rel={separateMusicSite ? 'noopener' : undefined}
+				class="music-back"><ArrowLeft size={16} /><span>返回博客</span></a
+			>
 		</header>
 		<div class="music-content">{@render children()}</div>
 	</div>

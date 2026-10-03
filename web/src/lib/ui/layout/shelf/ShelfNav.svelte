@@ -48,9 +48,16 @@
 		<div class="shelf-books">
 			{#each books as book, index (book.url)}
 				{@const active = isActive(book.url)}
-				{@const href = /^(https?:|\/\/)/i.test(book.url) ? book.url : resolveHref(book.url)}
+				{@const separateMusicSite = book.url === '/music' && page.url.hostname === 'seecode.top'}
+				{@const href = separateMusicSite
+					? 'https://music.seecode.top/'
+					: /^(https?:|\/\/)/i.test(book.url)
+						? book.url
+						: resolveHref(book.url)}
 				<a
 					{href}
+					target={separateMusicSite ? '_blank' : undefined}
+					rel={separateMusicSite ? 'noopener' : undefined}
 					aria-label={book.name}
 					aria-current={active ? 'page' : undefined}
 					data-sveltekit-preload-data="hover"
