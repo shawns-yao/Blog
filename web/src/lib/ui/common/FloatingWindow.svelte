@@ -23,6 +23,10 @@
 	const windowStyle = $derived.by(() => {
 		if (isMobile) return '';
 		const styles = [`left: ${windowStore.position.x}px`, `top: ${windowStore.position.y}px`];
+		if (windowStore.kind === 'login' && !windowStore.isExpanded) {
+			styles.push('width: 480px', 'height: auto');
+			return styles.join('; ');
+		}
 		if (
 			typeof window !== 'undefined' &&
 			!windowStore.isExpanded &&
@@ -137,6 +141,7 @@
 			? 'inset-x-0 bottom-0 w-full rounded-t-default border-t border-ink-200/50 dark:border-ink-700/50 shadow-2xl noise-strong'
 			: 'w-[90vw] rounded-default border border-ink-200/50 dark:border-ink-700/50 shadow-float dark:shadow-glass md:min-w-[450px] md:max-w-[92vw] md:resize'}"
 		class:floating-window--hidden={!isVisible && !isMobile}
+		class:login-window={windowStore.kind === 'login'}
 		class:floating-window--enter={isVisible}
 		class:floating-window--enter-mobile={isVisible && isMobile}
 		class:floating-window--enter-desktop={isVisible && !isMobile}
@@ -184,12 +189,14 @@
 				{#if !isMobile}
 					<button
 						onclick={() => windowStore.minimize()}
+						aria-label="最小化窗口"
 						class="p-1 rounded-full hover:bg-ink-200/50 dark:hover:bg-ink-800/50 text-ink-400 transition-colors"
 					>
 						<Minus size={12} />
 					</button>
 					<button
 						onclick={() => windowStore.close()}
+						aria-label="关闭窗口"
 						class="p-1 rounded-full hover:bg-cinnabar-500 hover:text-white text-ink-400 transition-all"
 					>
 						<X size={12} />
@@ -226,6 +233,41 @@
 
 <style lang="postcss">
 	@reference "$routes/layout.css";
+	.login-window {
+		background: #fff !important;
+		color: #292524;
+		color-scheme: light;
+		border-color: #ece8e5 !important;
+		backdrop-filter: none;
+	}
+	.login-window::after {
+		display: none;
+	}
+	.login-window .window-header {
+		background: #faf9f8 !important;
+		border-color: #ece8e5 !important;
+		color: #78716c;
+		min-height: 42px;
+	}
+	.login-window .window-header :global(button) {
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		color: #78716c;
+	}
+	.login-window .window-header :global(button:hover) {
+		background: #fff1f2;
+		color: #e11d48;
+	}
+	.login-window .floating-window__content {
+		padding: 30px 36px 36px;
+		max-height: calc(100dvh - 110px);
+	}
+	@media (max-width: 640px) {
+		.login-window .floating-window__content {
+			padding: 24px 22px calc(28px + env(safe-area-inset-bottom, 0px));
+		}
+	}
 
 	.floating-window--hidden {
 		display: none !important;

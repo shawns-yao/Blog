@@ -30,6 +30,8 @@
 	import AuthField from './AuthField.svelte';
 	import AuthOAuthList from './AuthOAuthList.svelte';
 	import AuthTurnstile from './AuthTurnstile.svelte';
+	import UserRound from 'lucide-svelte/icons/user-round';
+	import LockKeyhole from 'lucide-svelte/icons/lock-keyhole';
 
 	const initialModel: AuthApproachState = {
 		turnstile: {
@@ -247,11 +249,10 @@
 	});
 </script>
 
-<div>
-	<p class="text-xs font-mono text-ink-500">欢迎回来</p>
-	<h2 class="mt-1 text-2xl font-serif text-ink-900 dark:text-ink-100">
-		登录到 {$websiteName}
-	</h2>
+<div class="auth-card">
+	<h2>登录</h2>
+	<p class="auth-subtitle">SIGN IN</p>
+	<p class="auth-site">{$websiteName}</p>
 
 	<div class="mt-6 space-y-5">
 		<AuthOAuthList
@@ -298,7 +299,15 @@
 					}
 				}}
 			>
-				<AuthField label="用户名 / 邮箱" name="credential" autocomplete="username" required />
+				<AuthField
+					label="账号"
+					name="credential"
+					placeholder="请输入账号或邮箱"
+					autocomplete="username"
+					required
+				>
+					{#snippet icon()}<UserRound size={20} />{/snippet}
+				</AuthField>
 
 				<AuthField
 					label="密码"
@@ -306,7 +315,10 @@
 					type="password"
 					autocomplete="current-password"
 					required
-				/>
+					placeholder="请输入密码"
+				>
+					{#snippet icon()}<LockKeyhole size={20} />{/snippet}
+				</AuthField>
 
 				<AuthTurnstile
 					onToken={handleTurnstileToken}
@@ -317,13 +329,13 @@
 				<input type="hidden" name="turnstileToken" value={turnstileToken} />
 
 				{#if $authModel?.login.error}
-					<p class="text-sm text-cinnabar-600 dark:text-cinnabar-400">
+					<p class="auth-error" role="alert">
 						{$authModel.login.error}
 					</p>
 				{/if}
 
 				<Button
-					class="w-full rounded-default bg-jade-600 text-white hover:bg-jade-700"
+					class="auth-submit w-full"
 					type="submit"
 					loading={$authModel?.login.loading ?? false}
 					disabled={!canSubmit}
@@ -337,4 +349,45 @@
 
 <style lang="postcss">
 	@reference "$routes/layout.css";
+	.auth-card {
+		color: #292524;
+		color-scheme: light;
+		@apply font-sans;
+	}
+	h2 {
+		font-size: 26px;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+	}
+	.auth-subtitle {
+		margin-top: 4px;
+		font-size: 12px;
+		letter-spacing: 0.16em;
+		color: #a8a29e;
+	}
+	.auth-site {
+		margin-top: 12px;
+		font-size: 13px;
+		color: #78716c;
+	}
+	.auth-error {
+		font-size: 13px;
+		color: #be123c;
+	}
+	.auth-card :global(.auth-submit) {
+		min-height: 46px;
+		background: #f43f5e !important;
+		color: #fff !important;
+		border-radius: 6px;
+	}
+	.auth-card :global(.auth-submit:hover) {
+		background: #e11d48 !important;
+	}
+	.auth-card :global(button:focus-visible) {
+		outline: 2px solid #f43f5e;
+		outline-offset: 3px;
+	}
+	.auth-card :global(svg) {
+		flex-shrink: 0;
+	}
 </style>

@@ -24,7 +24,6 @@ var (
 	ErrLastOAuthBinding      = errors.New("cannot unbind last oauth binding for non-admin user")
 	ErrUserDisabled          = errors.New("user disabled")
 	ErrPasswordTooWeak       = errors.New("password must be at least 8 characters")
-	ErrAdminOnly             = errors.New("login is restricted to admin users")
 	ErrInvalidOAuthIdentity  = errors.New("oauth provider identity is invalid")
 )
 
@@ -156,9 +155,6 @@ func (s *Service) Login(ctx context.Context, cmd LoginCmd) (*LoginResult, error)
 	}
 	if !user.IsActive {
 		return nil, ErrUserDisabled
-	}
-	if !user.IsAdmin {
-		return nil, ErrAdminOnly
 	}
 	token, claims, err := s.manager.Generate(user.ID, user.IsAdmin)
 	if err != nil {
