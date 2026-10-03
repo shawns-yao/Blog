@@ -22,7 +22,7 @@ export async function getMusicCatalog(
 ) {
 	if (!publicAccess) await getApi()('/music/session', { method: 'POST', signal });
 	return getApi()<MusicCatalog>(`${publicAccess ? '/public' : ''}/music/catalog`, {
-		query: { query, offset, limit: 30 },
+		query: { query, offset, limit: MUSIC_PAGE_SIZE },
 		signal
 	});
 }

@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import Search from 'lucide-svelte/icons/search';
 	import ListMusic from 'lucide-svelte/icons/list-music';
-	import ChartNoAxesColumn from 'lucide-svelte/icons/chart-no-axes-column';
+	import House from 'lucide-svelte/icons/house';
 	import Heart from 'lucide-svelte/icons/heart';
 	import Settings2 from 'lucide-svelte/icons/settings-2';
 	import Music2 from 'lucide-svelte/icons/music-2';
@@ -10,19 +10,18 @@
 	import UserRound from 'lucide-svelte/icons/user-round';
 	import type { MusicView } from '../types';
 
-	let { view, title, loggedIn, selectView, openAccount, children, player } = $props<{
+	let { view, title, loggedIn, selectView, openAccount, children } = $props<{
 		view: MusicView;
 		title: string;
 		loggedIn: boolean;
 		selectView: (view: MusicView) => void;
 		openAccount: () => void;
 		children: Snippet;
-		player: Snippet;
 	}>();
 	const navigation = [
+		{ id: 'home', label: '首页', icon: House },
 		{ id: 'search', label: '搜索', icon: Search },
-		{ id: 'playlists', label: '歌单', icon: ListMusic },
-		{ id: 'charts', label: '排行榜', icon: ChartNoAxesColumn },
+		{ id: 'playlists', label: '我的歌单', icon: ListMusic },
 		{ id: 'favorites', label: '我的收藏', icon: Heart },
 		{ id: 'settings', label: '设置', icon: Settings2 }
 	] as const;
@@ -56,7 +55,6 @@
 		</header>
 		<div class="music-content">{@render children()}</div>
 	</div>
-	{@render player()}
 </div>
 
 <style lang="postcss">

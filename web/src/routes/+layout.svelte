@@ -7,6 +7,8 @@
 	import { SHELF_BOOKS } from '$lib/shared/nav/nav-items';
 	import { initTheme, startThemeSync, themeManager } from '$lib/shared/theme/theme.svelte.js';
 	import { onMount } from 'svelte';
+	import { createMusicContext } from '$lib/features/music/context.svelte';
+	import { saveMusicPreferences, saveMusicQueue } from '$lib/features/music/persistence';
 	import { consoleLogInfo } from '$lib/features/console-info/index';
 	import Toaster from '$lib/ui/primitives/toaster/Toaster.svelte';
 	import QueryRoot from '$lib/ui/common/QueryRoot.svelte';
@@ -78,6 +80,8 @@
 
 	let { children, data } = $props();
 	let showRouteLoading = $state(false);
+	const music = createMusicContext();
+	let musicEnabled = $state(false);
 	let GlobalNotificationClient = $state<
 		| typeof import('$lib/features/global-notification/components/GlobalNotificationClient.svelte').default
 		| null
@@ -85,6 +89,25 @@
 	const routePath = $derived(page.url.pathname.replace(/\/+$/, '') || '/');
 	const isHomeRoute = $derived(routePath === '/');
 	const isMusicRoute = $derived(routePath === '/music' || routePath.startsWith('/music/'));
+	const showMusicPlayer = $derived(musicEnabled && (isMusicRoute || music.state.queue.length > 0));
+	$effect(() => {
+		if (!music.state.authReady || !music.state.initialized) return;
+		music.setViewer($userStore.isLogin ? ($userStore.userInfo?.id ?? 0) : 0);
+		if (isMusicRoute || music.state.queue.length) musicEnabled = true;
+	});
+	$effect(() => {
+		if (!music.state.initialized || !musicEnabled) return;
+		saveMusicPreferences({
+			volume: music.state.volume,
+			density: music.state.density,
+			showCovers: music.state.showCovers,
+			mode: music.state.mode
+		});
+	});
+	$effect(() => {
+		if (!music.state.authReady || !music.state.initialized || music.state.viewer < 0) return;
+		saveMusicQueue(music.state.viewer, music.state.queue, music.state.queueIndex);
+	});
 	const isMomentBookRoute = $derived(
 		routePath === '/moments' ||
 			routePath.startsWith('/moments/') ||
@@ -222,6 +245,7 @@
 
 	onMount(() => {
 		let cancelled = false;
+		music.initialize();
 		void import('$lib/features/global-notification/components/GlobalNotificationClient.svelte').then(
 			(module) => {
 				if (!cancelled) GlobalNotificationClient = module.default;
@@ -265,11 +289,17 @@
 				})
 				.catch(() => {
 					/* token invalid or expired, ignore */
+				})
+				.finally(() => {
+					if (!cancelled) music.state.authReady = true;
 				});
+		} else {
+			music.state.authReady = true;
 		}
 
 		return () => {
 			cancelled = true;
+			music.destroy();
 			window.removeEventListener('error', handleWindowError);
 			window.removeEventListener('unhandledrejection', handleUnhandledRejection);
 			presenceStore.stop();
@@ -383,7 +413,7 @@
 	<div class="bg-noise" aria-hidden="true"></div>
 {/if}
 
-<div class="relative">
+<div class="relative" class:with-music-player={showMusicPlayer && !isMusicRoute}>
 	<div class="relative overflow-x-clip">
 		{#if $detailHeroBgSrc}
 			<DetailHeroBg src={$detailHeroBgSrc} />
@@ -423,6 +453,9 @@
 {/if}
 
 <SearchModal />
+{#if musicEnabled}
+	<QueryRoot loader={() => import('$lib/features/music/components/GlobalMusicPlayer.svelte')} />
+{/if}
 {#if !isMusicRoute}<RagSidebar />{/if}
 <FloatingWindow>
 	<!-- Login branch: always mounted (hidden when inactive) to preserve QueryRoot/AuthClient state -->
@@ -466,6 +499,14 @@
 
 <style lang="postcss">
 	@reference "./layout.css";
+	.with-music-player {
+		padding-bottom: 116px;
+	}
+	@media (max-width: 640px) {
+		.with-music-player {
+			padding-bottom: calc(176px + env(safe-area-inset-bottom, 0px));
+		}
+	}
 
 	.desktop-shelf-header {
 		position: fixed;

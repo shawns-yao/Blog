@@ -1,4 +1,4 @@
-export type MusicView = 'search' | 'playlists' | 'charts' | 'favorites' | 'settings';
+export type MusicView = 'home' | 'search' | 'playlists' | 'favorites' | 'settings';
 export type MusicDensity = 'comfortable' | 'compact';
 export type MusicPlaybackMode = 'sequence' | 'single' | 'repeat' | 'shuffle';
 

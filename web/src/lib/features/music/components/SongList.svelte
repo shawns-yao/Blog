@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Play from 'lucide-svelte/icons/play';
 	import Music2 from 'lucide-svelte/icons/music-2';
@@ -13,7 +14,10 @@
 		enqueue,
 		density = 'comfortable',
 		showCovers = true,
-		startIndex = 0
+		startIndex = 0,
+		actions,
+		statusLabel = (song: MusicSong) =>
+			song.unavailable ? '歌曲已失效' : song.public ? '公开试听' : '需授权播放'
 	} = $props<{
 		songs: MusicSong[];
 		publicAccess?: boolean;
@@ -23,6 +27,8 @@
 		density?: MusicDensity;
 		showCovers?: boolean;
 		startIndex?: number;
+		actions?: Snippet<[MusicSong]>;
+		statusLabel?: (song: MusicSong) => string;
 	}>();
 </script>
 
@@ -55,21 +61,21 @@
 									><Play size={17} fill="currentColor" /></span
 								></span
 							>{/if}<span class="song-label"
-							><span class="song-title">{song.title}</span><span class="mobile-artist"
-								>{song.artist || '未知艺术家'}</span
-							></span
+							><span class="song-title">{song.title}</span><span class="metadata"
+								>{statusLabel(song)}</span
+							><span class="mobile-artist">{song.artist || '未知艺术家'}</span></span
 						></button
 					></td
 				><td class="artist-column"><span class="metadata">{song.artist || '未知艺术家'}</span></td
 				><td class="album-column"><span class="metadata">{song.album || '未归属专辑'}</span></td><td
 					class="duration">{formatMusicTime(song.duration)}</td
 				><td class="action-column"
-					><Button
-						variant="icon"
-						class="music-icon"
-						aria-label={`将 ${song.title} 加入队列`}
-						onclick={() => enqueue(song)}><Plus size={17} /></Button
-					></td
+					>{#if actions}{@render actions(song)}{:else}<Button
+							variant="icon"
+							class="music-icon"
+							aria-label={`将 ${song.title} 加入队列`}
+							onclick={() => enqueue(song)}><Plus size={17} /></Button
+						>{/if}</td
 				></tr
 			>{/each}</tbody
 	>

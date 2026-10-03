@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import Music2 from 'lucide-svelte/icons/music-2';
 	import Play from 'lucide-svelte/icons/play';
 	import Pause from 'lucide-svelte/icons/pause';
@@ -7,6 +8,11 @@
 	import Volume2 from 'lucide-svelte/icons/volume-2';
 	import ListMusic from 'lucide-svelte/icons/list-music';
 	import Captions from 'lucide-svelte/icons/captions';
+	import Repeat from 'lucide-svelte/icons/repeat';
+	import Repeat1 from 'lucide-svelte/icons/repeat-1';
+	import Shuffle from 'lucide-svelte/icons/shuffle';
+	import ArrowRight from 'lucide-svelte/icons/arrow-right';
+	import Heart from 'lucide-svelte/icons/heart';
 	import MusicStage from './MusicStage.svelte';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import {
@@ -17,7 +23,8 @@
 		type AudioState
 	} from '$lib/shared/actions/music-audio';
 	import { formatMusicTime, musicCoverURL, musicStreamURL } from '../api';
-	import type { MusicSong } from '../types';
+	import type { MusicPlaybackMode, MusicSong } from '../types';
+	import { musicModeLabels } from '../persistence';
 
 	let {
 		song,
@@ -31,8 +38,19 @@
 		volume = $bindable(1),
 		queueCount,
 		queueOpen,
-		toggleQueue
-	} = $props<{
+		toggleQueue,
+		sourceReady,
+		autoplay,
+		beforePlay,
+		onEnded,
+		mode,
+		cycleMode,
+		isFavorite,
+		favoritePending,
+		favoriteError,
+		toggleFavorite,
+		notice = ''
+	}: {
 		playRequest: number;
 		publicAccess?: boolean;
 		viewer: number;
@@ -45,7 +63,18 @@
 		queueCount: number;
 		queueOpen: boolean;
 		toggleQueue: () => void;
-	}>();
+		sourceReady: boolean;
+		autoplay: boolean;
+		beforePlay: () => Promise<boolean>;
+		onEnded: () => void;
+		mode: MusicPlaybackMode;
+		cycleMode: () => void;
+		isFavorite: boolean;
+		favoritePending: boolean;
+		favoriteError: boolean;
+		toggleFavorite: () => void;
+		notice?: string;
+	} = $props();
 	let audio = $state<HTMLAudioElement>();
 	let expanded = $state(false);
 	let playback = $state<AudioState>({
@@ -62,6 +91,10 @@
 	});
 	async function toggle() {
 		try {
+			if (playback.paused) {
+				if (!(await beforePlay())) return;
+				await tick();
+			}
 			await toggleMusicAudio(audio);
 			playback.error = '';
 		} catch {
@@ -74,12 +107,11 @@
 	bind:this={audio}
 	preload="metadata"
 	use:musicAudio={{
-		src: song ? musicStreamURL(song.id, publicAccess) : '',
+		src: song && sourceReady ? musicStreamURL(song.id, publicAccess) : '',
 		key: playRequest,
+		autoplay,
 		onstate: (value) => (playback = value),
-		onend: () => {
-			if (canNext) next();
-		}
+		onend: onEnded
 	}}
 ></audio>
 <section class="music-player" aria-label="音乐播放器">
@@ -118,6 +150,18 @@
 		<div class="player-transport">
 			<Button
 				variant="icon"
+				class="music-icon player-mode"
+				data-active={mode !== 'sequence'}
+				aria-label={`播放模式：${musicModeLabels[mode]}，点击切换`}
+				title={musicModeLabels[mode]}
+				onclick={cycleMode}
+				>{#if mode === 'single'}<Repeat1 size={18} />
+				{:else if mode === 'repeat'}<Repeat size={18} />
+				{:else if mode === 'shuffle'}<Shuffle size={18} />
+				{:else}<ArrowRight size={18} />{/if}</Button
+			>
+			<Button
+				variant="icon"
 				class="music-icon"
 				aria-label="上一首"
 				disabled={!canPrevious}
@@ -140,6 +184,20 @@
 				aria-label="下一首"
 				disabled={!canNext}
 				onclick={next}><SkipForward size={18} /></Button
+			>
+			<Button
+				variant="icon"
+				class="music-icon player-favorite"
+				aria-label={favoriteError
+					? '重新加载收藏状态'
+					: isFavorite
+						? '取消收藏当前歌曲'
+						: '收藏当前歌曲'}
+				aria-pressed={isFavorite}
+				aria-busy={favoritePending}
+				disabled={!song || favoritePending}
+				onclick={toggleFavorite}
+				><Heart size={21} fill={isFavorite ? 'currentColor' : 'none'} /></Button
 			>
 		</div>
 	</div>
@@ -169,7 +227,8 @@
 	</div>
 	{#if playback.error}<p class="player-note error" role="alert">
 			{playback.error}
-		</p>{:else if playback.loading}<p class="player-note" role="status">正在缓冲…</p>{/if}
+		</p>{:else if notice}<p class="player-note" role="status">{notice}</p>
+	{:else if playback.loading}<p class="player-note" role="status">正在缓冲…</p>{/if}
 </section>
 
 <MusicStage
