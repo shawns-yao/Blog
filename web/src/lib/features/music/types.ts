@@ -11,6 +11,8 @@ export interface MusicSong {
 	duration: number;
 	track: number;
 	year: number;
+	public: boolean;
+	unavailable?: boolean;
 }
 
 export interface MusicAlbum {
@@ -44,6 +46,29 @@ export interface MusicLyrics {
 	synced: boolean;
 	offset: number;
 	line: { start?: number; value: string }[];
+}
+
+export interface MusicSongPage {
+	songs: MusicSong[];
+	hasMore: boolean;
+}
+
+export interface MusicPlaylist {
+	id: number;
+	name: string;
+	songCount: number;
+	updatedAt: string;
+}
+
+export interface MusicTrackProps {
+	viewer: number;
+	privateAccess: boolean;
+	currentId?: string;
+	density: MusicDensity;
+	showCovers: boolean;
+	play: (song: MusicSong, songs: MusicSong[]) => void;
+	enqueue: (song: MusicSong) => void;
+	login: () => void;
 }
 
 export interface MusicLyricsResult {

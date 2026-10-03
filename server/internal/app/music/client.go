@@ -15,6 +15,9 @@ import (
 
 type subsonicResponse struct {
 	Status string `json:"status"`
+	Error  struct {
+		Code int `json:"code"`
+	} `json:"error"`
 	Search struct {
 		Songs  []Song  `json:"song"`
 		Albums []Album `json:"album"`
@@ -82,7 +85,13 @@ func (s *Service) call(ctx context.Context, endpoint string, values url.Values) 
 	var envelope struct {
 		Response subsonicResponse `json:"subsonic-response"`
 	}
-	if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 8*1024*1024)).Decode(&envelope) != nil || envelope.Response.Status != "ok" {
+	if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 8*1024*1024)).Decode(&envelope) != nil {
+		return subsonicResponse{}, ErrUpstream
+	}
+	if envelope.Response.Status != "ok" {
+		if endpoint == "getSong" && envelope.Response.Error.Code == 70 {
+			return subsonicResponse{}, ErrSongNotFound
+		}
 		return subsonicResponse{}, ErrUpstream
 	}
 	return envelope.Response, nil

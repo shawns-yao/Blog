@@ -2,6 +2,7 @@ package music
 
 import "errors"
 
+var ErrSongNotFound = errors.New("歌曲已不在曲库中")
 var ErrUnavailable = errors.New("音乐服务未启用或配置不完整")
 var ErrUpstream = errors.New("音乐服务暂时无法访问，请稍后重试")
 var ErrNotPublic = errors.New("音乐未公开")
@@ -13,16 +14,17 @@ type InputError struct{ Message string }
 func (e *InputError) Error() string { return e.Message }
 
 type Song struct {
-	ID       string  `json:"id"`
-	Title    string  `json:"title"`
-	Artist   string  `json:"artist"`
-	Album    string  `json:"album"`
-	AlbumID  string  `json:"albumId"`
-	CoverArt string  `json:"coverArt,omitempty"`
-	Duration float64 `json:"duration"`
-	Track    int     `json:"track"`
-	Year     int     `json:"year"`
-	Public   bool    `json:"public"`
+	ID          string  `json:"id"`
+	Title       string  `json:"title"`
+	Artist      string  `json:"artist"`
+	Album       string  `json:"album"`
+	AlbumID     string  `json:"albumId"`
+	CoverArt    string  `json:"coverArt,omitempty"`
+	Duration    float64 `json:"duration"`
+	Track       int     `json:"track"`
+	Year        int     `json:"year"`
+	Public      bool    `json:"public"`
+	Unavailable bool    `json:"unavailable,omitempty"`
 }
 
 type Album struct {
