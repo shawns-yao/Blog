@@ -48,7 +48,7 @@ func NewRAGChatClient(baseURL, apiKey, headersJSON, extraBodyJSON, sessionHeader
 	}
 	result := &RAGChatClient{baseURL: baseURL, apiKey: apiKey, headers: make(http.Header), extraBody: extra, sessionHeader: sessionHeader,
 		client: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
-	result.headers.Set("User-Agent", "grtblog-rag/1.0")
+	result.headers.Set("User-Agent", "shawns-blog-rag/1.0")
 	for name, value := range headers {
 		if strings.EqualFold(name, "Authorization") || strings.EqualFold(name, "Content-Type") ||
 			strings.EqualFold(name, "Host") || strings.EqualFold(name, sessionHeader) {

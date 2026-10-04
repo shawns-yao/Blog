@@ -1,4 +1,5 @@
 import { Resvg } from '@resvg/resvg-js';
+import { brand } from '$lib/shared/brand/brand';
 
 const MAX_TITLE_LENGTH = 60;
 const MAX_SUBTITLE_LENGTH = 120;
@@ -301,12 +302,12 @@ export async function renderOgImage(
 	fetcher: typeof fetch,
 	requestUrl: URL
 ): Promise<ArrayBuffer> {
-	const title = clipText(normalizeText(input.title || 'shawn-blog'), MAX_TITLE_LENGTH);
+	const title = clipText(normalizeText(input.title || brand.name), MAX_TITLE_LENGTH);
 	const subtitle = clipText(
 		normalizeText(input.subtitle || 'A personal blog about software and life.'),
 		MAX_SUBTITLE_LENGTH
 	);
-	const site = clipText(normalizeText(input.site || 'shawn-blog'), MAX_SITE_LENGTH);
+	const site = clipText(normalizeText(input.site || brand.name), MAX_SITE_LENGTH);
 	const tag = clipText(normalizeText(input.tag || 'PREVIEW'), MAX_TAG_LENGTH);
 	const theme: ThemeMode = input.theme === 'dark' ? 'dark' : 'light';
 

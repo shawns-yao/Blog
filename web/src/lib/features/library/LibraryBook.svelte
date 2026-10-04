@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { MomentSummary } from '$lib/features/moment/types';
 	import { resolvePath } from '$lib/shared/utils/resolve-path';
+	import { brand } from '$lib/shared/brand/brand';
 	import { libraryPath } from './paths';
 	import { BookOpen } from 'lucide-svelte';
 
@@ -25,7 +26,7 @@
 		{:else}
 			<span class="cover-title">{article.title || '未命名文章'}</span>
 			<BookOpen size={26} strokeWidth={1} aria-hidden="true" />
-			<span class="author">{article.authorName || 'shawn-blog'}</span>
+			<span class="author">{article.authorName || brand.author}</span>
 		{/if}
 	</div>
 	{#if !onShelf}

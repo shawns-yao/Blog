@@ -3,9 +3,12 @@ import { ref } from 'vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 const ADMIN_PANEL_TITLE = '管理后台'
-const DEFAULT_SITE_NAME = 'shawn-blog'
+const DEFAULT_SITE_NAME = 'shawns-blog'
+const configuredSiteName = (import.meta.env.VITE_APP_NAME || DEFAULT_SITE_NAME).trim()
 const FALLBACK_SITE_NAME =
-  (import.meta.env.VITE_APP_NAME || DEFAULT_SITE_NAME).trim() || DEFAULT_SITE_NAME
+  !configuredSiteName || /^(?:shawn-blog(?: Admin)?|grtblog(?:-v\d+)?)$/i.test(configuredSiteName)
+    ? DEFAULT_SITE_NAME
+    : configuredSiteName
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api/v2').replace(/\/$/, '')
 
 interface WebsiteInfoItem {
@@ -61,7 +64,9 @@ function resolveMetaTitle(route: RouteLocationNormalizedLoaded): string {
 
 function normalizeSiteName(siteName: string | null | undefined) {
   const text = toText(siteName)
-  return text || FALLBACK_SITE_NAME
+  return !text || /^(?:blog|shawn(?:-blog)?|grtblog(?:-v\d+)?)$/i.test(text)
+    ? FALLBACK_SITE_NAME
+    : text
 }
 
 function extractField(data: unknown, key: string): string | null {

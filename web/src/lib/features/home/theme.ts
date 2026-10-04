@@ -245,7 +245,7 @@ const parseInspirationNowItems = (value: unknown): HomeInspirationNowItem[] | un
 		items.push({
 			id,
 			label,
-			value: /^grtblog(?:-v\d+)?$/i.test(val) ? brand.name : val,
+			value: /^(?:shawn-blog|grtblog(?:-v\d+)?)$/i.test(val) ? brand.name : val,
 			icon: parseInspirationIcon(item.icon)
 		});
 	}

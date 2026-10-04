@@ -36,7 +36,7 @@ const defaultFooterConfig: FooterThemeConfig = {
 			]
 		}
 	],
-	brandName: `${brand.author}'s Blog.`,
+	brandName: brand.name,
 	brandTagline: '总之岁月漫长，然而值得等待',
 	presenceConnectedText: '正在有 {count} 位小伙伴看着我的网站呐',
 	presenceLoadingText: '正在同步在线状态...'

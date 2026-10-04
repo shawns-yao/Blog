@@ -286,7 +286,7 @@ MULTI_HOP 的明确分句优先作为独立子查询，避免改写把相邻步�
 
 Gemini 中转原生 `/gemini/v1beta/...:generateContent` 路由在两次协议核验中返回 HTTP 500；同一密钥和模型经 `/v1/chat/completions` 成功，因此当前采用实际验证可用的 OpenAI 兼容路由。不能据此宣称原生路由已经恢复。模型别名与返回模型名称可能不同，详见独立协议记录。
 
-Go 请求使用自身 `User-Agent: grtblog-rag/1.0` 与当前会话 UUID 的 `x-opencode-session`，不冒用参考项目身份。已查阅本机 `deepseek-harness` 的请求头合并、应用身份和 pi-ai 会话传递实现，并以 [Go 官方要求](https://opencode.ai/docs/go/#where-can-i-use-it)补齐会话头。日常 `RAG_ENABLED=true`，Go 与官方通道仍保留原有配置；新增 GPT、Grok、Gemini 密钥只写入被 Git 忽略的本地环境文件。一次请求成功不等同于长期可用性。
+Go 请求使用自身 `User-Agent: shawns-blog-rag/1.0` 与当前会话 UUID 的 `x-opencode-session`，不冒用参考项目身份。已查阅本机 `deepseek-harness` 的请求头合并、应用身份和 pi-ai 会话传递实现，并以 [Go 官方要求](https://opencode.ai/docs/go/#where-can-i-use-it)补齐会话头。日常 `RAG_ENABLED=true`，Go 与官方通道仍保留原有配置；新增 GPT、Grok、Gemini 密钥只写入被 Git 忽略的本地环境文件。一次请求成功不等同于长期可用性。
 
 原有向量基线为 `BAAI/bge-m3` 的原生 1024 维。用户改为选择 hybgzs 的 `Qwen/Qwen3-Embedding-8B` 优先，tumuer 的同名模型兜底；索引和查询都显式传 `dimensions=4096`。tumuer 未指定维度时实际返回 768，不能直接与 hybgzs 原生 4096 维混用。六组相同输入核验的归一化向量最低余弦相似度为 0.99986087；16 条较长输入最低为 0.99987389，均通过本轮兼容性筛查，但不证明所有输入、量化方式和未来供应商版本完全一致。
 

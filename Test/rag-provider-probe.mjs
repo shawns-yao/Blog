@@ -15,7 +15,7 @@ async function probe(name, model, path, key, body, inspect, native = false) {
   try {
     const response = await fetch(`https://ai.hybgzs.com${path}`, {
       method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(35000),
-      headers: { 'Content-Type': 'application/json', 'User-Agent': 'grtblog-rag/1.0',
+      headers: { 'Content-Type': 'application/json', 'User-Agent': 'shawns-blog-rag/1.0',
         ...(native ? { 'x-goog-api-key': key } : { Authorization: `Bearer ${key}` }) },
       body: JSON.stringify(body)
     });

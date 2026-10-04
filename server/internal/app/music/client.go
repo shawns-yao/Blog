@@ -51,7 +51,7 @@ func (s *Service) requestWithRange(ctx context.Context, endpoint string, values 
 	values.Set("s", saltString)
 	values.Set("t", hex.EncodeToString(token[:]))
 	values.Set("v", "1.16.1")
-	values.Set("c", "grtblog")
+	values.Set("c", "shawns-blog")
 	values.Set("f", "json")
 	target := *s.baseURL
 	target.Path = strings.TrimRight(target.Path, "/") + "/rest/" + endpoint

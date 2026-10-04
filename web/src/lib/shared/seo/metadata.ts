@@ -1,4 +1,5 @@
 import type { WebsiteInfoMap } from '$lib/features/website-info/types';
+import { brand } from '$lib/shared/brand/brand';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -38,9 +39,8 @@ type PageMeta = {
 	ogType?: string;
 };
 
-const DEFAULT_SITE_NAME = 'shawn-blog';
-const DEFAULT_DESCRIPTION =
-	'shawn-blog - A personal blog about programming, technology, and software development.';
+const DEFAULT_SITE_NAME = brand.name;
+const DEFAULT_DESCRIPTION = `${brand.name} - A personal blog about programming, technology, and software development.`;
 const DEFAULT_KEYWORDS =
 	'blog, programming, technology, software development, web development, coding';
 const GENERATED_OG_IMAGE_WIDTH = 1200;

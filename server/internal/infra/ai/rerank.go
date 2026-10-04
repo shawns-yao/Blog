@@ -58,7 +58,7 @@ func (r *Reranker) Rerank(ctx context.Context, query string, candidates []domain
 	}
 	request.Header.Set("Authorization", "Bearer "+r.apiKey)
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", "grtblog-rag/1.0")
+	request.Header.Set("User-Agent", "shawns-blog-rag/1.0")
 	response, err := r.client.Do(request)
 	if err != nil {
 		return nil, unavailable(ErrRerankUnavailable, "network_error")

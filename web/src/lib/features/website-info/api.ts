@@ -6,7 +6,7 @@ export async function fetchWebsiteInfo(fetcher?: typeof fetch): Promise<WebsiteI
 	const api = getApi(fetcher);
 	const info = await api<WebsiteInfoMap>('/public/website-info');
 	for (const key of ['website_name', 'home_title', 'og_site_name', 'og_title'] as const) {
-		if (!info[key] || /^(?:blog|shawn|grtblog(?:-v\d+)?)$/i.test(info[key].trim())) {
+		if (!info[key] || /^(?:blog|shawn(?:-blog)?|grtblog(?:-v\d+)?)$/i.test(info[key].trim())) {
 			info[key] = brand.name;
 		}
 	}

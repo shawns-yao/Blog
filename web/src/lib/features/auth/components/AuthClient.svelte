@@ -6,6 +6,7 @@
 	import { authModalStore } from '$lib/shared/stores/authModalStore';
 	import { windowStore } from '$lib/shared/stores/windowStore.svelte';
 	import { websiteInfoCtx } from '$lib/features/website-info/context.js';
+	import { brand } from '$lib/shared/brand/brand';
 	import Button from '$lib/ui/primitives/button/Button.svelte';
 	import {
 		authorizeOAuthProvider,
@@ -57,7 +58,7 @@
 
 	let turnstileToken = $state('');
 
-	const websiteName = websiteInfoCtx.selectModelData((data) => data?.website_name || 'shawn-blog');
+	const websiteName = websiteInfoCtx.selectModelData((data) => data?.website_name || brand.name);
 
 	const hasOAuthProviders = $derived.by(() => ($authModel?.oauth.providers ?? []).length > 0);
 	const showPasswordLogin = $derived.by(() => $authModel?.showPasswordLogin ?? false);
