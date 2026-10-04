@@ -9,11 +9,13 @@ import pkg from './package.json'
 
 // https://vite.dev/config/
 export default defineConfig((env) => {
-  const envVars = loadEnv(env.mode, process.cwd(), '')
+  const envDir = fileURLToPath(new URL('..', import.meta.url))
+  const envVars = loadEnv(env.mode, envDir, '')
   const apiProxyTarget = envVars.VITE_API_PROXY_TARGET || 'http://localhost:8080'
   const appBase = envVars.VITE_APP_BASE || '/'
 
   return {
+    envDir,
     base: appBase,
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),

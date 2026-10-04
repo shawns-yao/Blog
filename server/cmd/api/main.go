@@ -7,8 +7,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
-
 	"github.com/shawns-yao/shawn-blog/server/internal/buildinfo"
 	"github.com/shawns-yao/shawn-blog/server/internal/config"
 	"github.com/shawns-yao/shawn-blog/server/internal/database"
@@ -24,11 +22,11 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, falling back to system env vars")
+	if err := config.LoadRootEnv(); err != nil {
+		log.Println("Root environment configuration could not be loaded; using process variables")
 	}
 
-	// 现在 config.Load() 才能读到 .env 里的值
+	// 环境文件加载完成后读取运行配置。
 	cfg := config.Load()
 
 	log.Println(startupBanner(cfg))

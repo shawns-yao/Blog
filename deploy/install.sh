@@ -588,6 +588,20 @@ fi
 # ---------------------------------------------------------------------------
 # Variables
 # ---------------------------------------------------------------------------
+# Source installs keep configuration in the repository root. Standalone
+# installs use the current directory as their project root.
+if [[ -f server/go.mod ]]; then
+  cd deploy
+fi
+ENV_FILE=".env"
+if [[ -f ../server/go.mod ]]; then
+  ENV_FILE="../.env"
+  if [[ ! -f "$ENV_FILE" ]] && [[ -f .env ]]; then
+    mv -- .env "$ENV_FILE"
+  fi
+fi
+export PROJECT_ENV_FILE="${PWD}/${ENV_FILE}"
+
 INSTALL_MODE="fresh"       # fresh | upgrade
 COMPOSE_CMD=""
 APP_VERSION="${APP_VERSION:-}"
@@ -656,7 +670,7 @@ ok "$(__ DOCKER_OK)"
 # =========================================================================
 section "$(__ STEP2)"
 
-if [[ -f "docker-compose.yml" ]] && [[ -f ".env" ]]; then
+if [[ -f "docker-compose.yml" ]] && [[ -f "$ENV_FILE" ]]; then
   warn "$(__ EXISTING_FOUND)"
   choose "$(__ EXISTING_MENU)" \
     "$(__ EXISTING_UPGRADE)" \
@@ -670,8 +684,8 @@ if [[ -f "docker-compose.yml" ]] && [[ -f ".env" ]]; then
       ;;
     2)
       INSTALL_MODE="fresh"
-      BACKUP_FILE=".env.backup.$(date +%Y%m%d%H%M%S)"
-      cp .env "$BACKUP_FILE"
+      BACKUP_FILE="${ENV_FILE}.backup.$(date +%Y%m%d%H%M%S)"
+      cp -- "$ENV_FILE" "$BACKUP_FILE"
       info "$(__ ENV_BACKED_UP) ${BACKUP_FILE}"
       ;;
     3)
@@ -828,10 +842,10 @@ section "$(__ STEP7)"
 if [[ "$INSTALL_MODE" == "upgrade" ]]; then
   # Read only the values needed below. Sourcing the whole file would also
   # overwrite the version, image source, and update channel selected above.
-  if [[ -f ".env" ]]; then
-    POSTGRES_PASSWORD="$(read_env_value .env POSTGRES_PASSWORD || printf '%s' "$POSTGRES_PASSWORD")"
-    AUTH_SECRET="$(read_env_value .env AUTH_SECRET || printf '%s' "$AUTH_SECRET")"
-    NGINX_PORT="$(read_env_value .env NGINX_PORT || printf '%s' "$NGINX_PORT")"
+  if [[ -f "$ENV_FILE" ]]; then
+    POSTGRES_PASSWORD="$(read_env_value "$ENV_FILE" POSTGRES_PASSWORD || printf '%s' "$POSTGRES_PASSWORD")"
+    AUTH_SECRET="$(read_env_value "$ENV_FILE" AUTH_SECRET || printf '%s' "$AUTH_SECRET")"
+    NGINX_PORT="$(read_env_value "$ENV_FILE" NGINX_PORT || printf '%s' "$NGINX_PORT")"
   fi
   info "$(__ KEEP_CREDS)"
 else
@@ -927,40 +941,40 @@ if [[ "$INSTALL_MODE" == "upgrade" ]]; then
   info "$(__ UPGRADE_ENV)"
 
   # Use sed to update specific keys in-place
-  if grep -q '^APP_VERSION=' .env; then
-    sed -i.bak "s|^APP_VERSION=.*|APP_VERSION=${APP_VERSION}|" .env
+  if grep -q '^APP_VERSION=' "$ENV_FILE"; then
+    sed -i.bak "s|^APP_VERSION=.*|APP_VERSION=${APP_VERSION}|" "$ENV_FILE"
   else
-    printf '\nAPP_VERSION=%s\n' "$APP_VERSION" >> .env
+    printf '\nAPP_VERSION=%s\n' "$APP_VERSION" >> "$ENV_FILE"
   fi
 
-  if grep -q '^IMAGE_REPO_PREFIX=' .env; then
-    sed -i.bak "s|^IMAGE_REPO_PREFIX=.*|IMAGE_REPO_PREFIX=${IMAGE_REPO_PREFIX}|" .env
+  if grep -q '^IMAGE_REPO_PREFIX=' "$ENV_FILE"; then
+    sed -i.bak "s|^IMAGE_REPO_PREFIX=.*|IMAGE_REPO_PREFIX=${IMAGE_REPO_PREFIX}|" "$ENV_FILE"
   else
-    printf '\nIMAGE_REPO_PREFIX=%s\n' "$IMAGE_REPO_PREFIX" >> .env
+    printf '\nIMAGE_REPO_PREFIX=%s\n' "$IMAGE_REPO_PREFIX" >> "$ENV_FILE"
   fi
 
-  if grep -q '^APP_UPDATE_CHANNEL=' .env; then
-    sed -i.bak "s|^APP_UPDATE_CHANNEL=.*|APP_UPDATE_CHANNEL=${APP_UPDATE_CHANNEL}|" .env
+  if grep -q '^APP_UPDATE_CHANNEL=' "$ENV_FILE"; then
+    sed -i.bak "s|^APP_UPDATE_CHANNEL=.*|APP_UPDATE_CHANNEL=${APP_UPDATE_CHANNEL}|" "$ENV_FILE"
   else
-    printf '\nAPP_UPDATE_CHANNEL=%s\n' "$APP_UPDATE_CHANNEL" >> .env
+    printf '\nAPP_UPDATE_CHANNEL=%s\n' "$APP_UPDATE_CHANNEL" >> "$ENV_FILE"
   fi
 
   # Preserve an explicitly configured release repository.
-  if ! grep -q '^APP_UPDATE_CHECK_REPO=' .env; then
-    printf '\nAPP_UPDATE_CHECK_REPO=%s\n' "$DEFAULT_UPDATE_CHECK_REPO" >> .env
+  if ! grep -q '^APP_UPDATE_CHECK_REPO=' "$ENV_FILE"; then
+    printf '\nAPP_UPDATE_CHECK_REPO=%s\n' "$DEFAULT_UPDATE_CHECK_REPO" >> "$ENV_FILE"
   fi
 
-  if grep -q '^DOCKER_MIRROR=' .env; then
-    sed -i.bak "s|^DOCKER_MIRROR=.*|DOCKER_MIRROR=${DOCKER_MIRROR}|" .env
+  if grep -q '^DOCKER_MIRROR=' "$ENV_FILE"; then
+    sed -i.bak "s|^DOCKER_MIRROR=.*|DOCKER_MIRROR=${DOCKER_MIRROR}|" "$ENV_FILE"
   else
-    printf '\nDOCKER_MIRROR=%s\n' "$DOCKER_MIRROR" >> .env
+    printf '\nDOCKER_MIRROR=%s\n' "$DOCKER_MIRROR" >> "$ENV_FILE"
   fi
 
-  rm -f .env.bak
+  rm -f -- "${ENV_FILE}.bak"
   ok "$(__ ENV_UPDATED)"
 else
   # Fresh install: write complete .env
-  cat > .env <<EOF
+  cat > "$ENV_FILE" <<EOF
 APP_VERSION=${APP_VERSION}
 IMAGE_REPO_PREFIX=${IMAGE_REPO_PREFIX}
 DOCKER_MIRROR=${DOCKER_MIRROR}
@@ -992,7 +1006,10 @@ fi
 
 # =========================================================================
 # Step 10: Pull & Start
+# All Compose interpolation uses the same root environment file.
 # =========================================================================
+chmod 600 "$ENV_FILE"
+COMPOSE_CMD="${COMPOSE_CMD} --env-file ${ENV_FILE}"
 section "$(__ STEP10)"
 
 info "$(__ PULLING)"

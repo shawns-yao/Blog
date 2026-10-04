@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { parseEnv } from 'node:util';
 
 // Supplier protocol checks are prerequisites, not real-project acceptance scores.
-const env = parseEnv(await readFile('server/.env', 'utf8'));
+const env = parseEnv(await readFile('.env.rag', 'utf8'));
 function value(key, seen = new Set()) {
   assert(!seen.has(key), '环境变量引用不能循环');
   const next = new Set(seen); next.add(key);

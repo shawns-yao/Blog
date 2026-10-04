@@ -1,0 +1,8 @@
+# Optional production RAG configuration; enable explicitly with -f.
+services:
+  server:
+    env_file:
+      - ../.env.rag
+    environment:
+      RAG_ENABLED: "true"
+      RAG_CHAT_GPT_ENABLED: "false"

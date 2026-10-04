@@ -9,14 +9,14 @@ const [action, dataset] = process.argv.slice(2);
 assert(['start', 'stop', 'status'].includes(action), '使用 start、stop 或 status');
 const target = testTarget(dataset, true);
 const root = resolve('.');
-const serverEnv = await readFile(resolve(root, 'server/.env'), 'utf8');
+const serverEnv = await readFile(resolve(root, '.env.rag'), 'utf8');
 const gptLine = serverEnv.split(/\r?\n/).find(line => /^RAG_CHAT_GPT_BASE_URL\s*=/.test(line));
 const gptURL = new URL(gptLine ? gptLine.slice(gptLine.indexOf('=') + 1).trim().replace(/^(["'])(.*)\1$/, '$2')
   : 'http://127.0.0.1:8317/v1');
 if (['127.0.0.1', 'localhost', '[::1]'].includes(gptURL.hostname)) gptURL.hostname = 'host.docker.internal';
 const composeEnv = { ...process.env, RAG_TEST_PROJECT: target.project, RAG_TEST_PORT: String(target.port),
   RAG_TEST_GPT_BASE_URL: gptURL.toString().replace(/\/$/, '') };
-const composeArgs = ['--env-file', 'deploy/.env', '-f', 'deploy/docker-compose.rag-test.yml', '-p', target.project];
+const composeArgs = ['--env-file', '.env', '-f', 'deploy/docker-compose.rag-test.yml', '-p', target.project];
 const options = process.argv.slice(4);
 const models = options.find(value => value.startsWith('--models='))?.split('=')[1] ?? 'configured';
 assert(['configured', 'qwen'].includes(models), '模型配置只能使用 configured 或 qwen');

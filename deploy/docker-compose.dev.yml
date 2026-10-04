@@ -15,7 +15,7 @@
 #      需先删除它们再启动本文件，否则会因 container_name 冲突而失败：
 #        docker rm -f shawn-blog-postgres shawn-blog-redis shawn-blog-server-dev
 #      数据保存在命名卷 shawn-blog_postgres_data / shawn-blog_redis_data 中，删除容器不会丢数据。
-#   3. 变量取自同目录的 deploy/.env（该文件已被根 .gitignore 忽略，不会提交）。
+#   3. 环境文件统一位于项目根目录；从根目录运行并传入 --env-file .env。
 
 name: "${DEV_PROJECT_NAME:-shawn-blog-dev}"
 
@@ -56,6 +56,10 @@ services:
   server:
     image: golang:1.25-alpine
     container_name: shawn-blog-server-dev
+    env_file:
+      - ../.env
+      - path: ../.env.rag
+        required: false
     working_dir: /src
     command: ["sh", "-c", "go mod download && exec go run ./cmd/api"]
     ports:

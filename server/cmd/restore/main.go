@@ -5,14 +5,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/joho/godotenv"
-
 	backupapp "github.com/shawns-yao/shawn-blog/server/internal/app/backup"
 	"github.com/shawns-yao/shawn-blog/server/internal/config"
 )
 
 func main() {
-	_ = godotenv.Load()
+	if err := config.LoadRootEnv(); err != nil {
+		log.Println("Root environment configuration could not be loaded; using process variables")
+	}
 	cfg := config.Load()
 	timeout := cfg.Backup.CommandTimeout
 	if timeout <= 0 {

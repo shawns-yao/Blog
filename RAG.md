@@ -264,7 +264,9 @@ MULTI_HOP 的明确分句优先作为独立子查询，避免改写把相邻步�
 
 已按用户选择将 `C:\Document\Desktop\GitHub\RAG\WeKnora` 的相关代码裁剪合并到博客，而非调用独立 WeKnora 服务。参考版本为 `a46a3c5996785fd7d3713a650e21d02ed7517710`；保留了[MIT 许可证及来源路径](server/licenses/WeKnora-MIT.txt)。本次补充 `tiktoken-go/tokenizer` 作为统一参考计数器，其余继续复用现有 Go 服务与依赖，没有引入参考项目的租户、知识库管理或完整 Agent 平台。
 
-问答、向量和重排序模型统一使用服务端 `.env`，模板见 [Config/rag.env.example](Config/rag.env.example)。当前保存的排列如下，理解与回答阶段均按后台保存的顺序尝试启用且配置有效的通道。
+问答、向量和重排序模型统一使用根目录 `.env.rag`，模板见 [.env.rag.example](.env.rag.example)。当前保存的排列如下，理解与回答阶段均按后台保存的顺序尝试启用且配置有效的通道。
+
+服务器使用私有 `.env.rag` 和可选 `deploy/docker-compose.rag.yml` 注入公网模型配置，并暂停个人电脑上的 GPT 通道。配置准备、更新与服务器验收见 [RAG 生产部署](deploy/RAG.md)；本地密钥与评测结果不随公开源码发布。
 
 | 优先级            | 通道          | 模型                                   | 协议                              |
 | ----------------- | ------------- | -------------------------------------- | --------------------------------- |
@@ -278,7 +280,7 @@ MULTI_HOP 的明确分句优先作为独立子查询，避免改写把相邻步�
 
 顺序保存在现有 `sys_config` 的非敏感 JSON 配置 `rag.chatPriority`，只包含 `gpt/grok/gemini/opencode_go` 四个通道标识，不包含地址、密钥或正文。首次未保存时使用上表顺序；每次请求读取配置，保存后的新请求立即使用新顺序，已开始的请求继续使用其配置快照。官方兜底由服务端最后追加。此配置属于持久化运行配置，不是派生索引或临时测试数据；不新增表、迁移或索引重建任务。
 
-用户提供的 GPT 本机入口为 `http://127.0.0.1:8317/v1`。当前 Go 后端在 Docker 中运行，本地 `.env` 使用 `http://host.docker.internal:8317/v1` 访问同一宿主机服务；改为宿主机运行后应使用 `127.0.0.1`。GPT 的额外请求体默认包含 `reasoning_effort=medium`，不携带 Go 会话头。
+用户提供的 GPT 本机入口为 `http://127.0.0.1:8317/v1`。当前 Go 后端在 Docker 中运行，本地 `.env.rag` 使用 `http://host.docker.internal:8317/v1` 访问同一宿主机服务；改为宿主机运行后应使用 `127.0.0.1`。GPT 的额外请求体默认包含 `reasoning_effort=medium`，不携带 Go 会话头。
 
 聊天通道支持 `RAG_CHAT_*_ENABLED`，默认 `true`。设置为 `false` 后，问题理解、改写、一般交流与知识回答均跳过该通道，不移除地址、模型或密钥，也不从四通道排序列表中删除它。当前日常环境设置 `RAG_CHAT_GROK_ENABLED=false`，GPT 与 Gemini 启用；恢复 Grok 时将开关改为 `true` 并重启后端。这属于本地运行配置，优先级仍保存于既有 `sys_config`，不新增表、迁移或索引重建。
 
@@ -313,7 +315,7 @@ Qwen 官方模型卡说明 8B 支持 32–4096 的输出维度；这是模型规
 | `RAG_HISTORY_MAX_ROUNDS` / `RAG_HISTORY_MAX_CHARACTERS` | 模型历史窗口，默认 5 轮／20000 字符，不限制页面展示记录                             |
 | `HYBGZS_QWEN_API_KEY` / `TUMUER_RAG_API_KEY`            | 本地供应商密钥，主备配置通过变量引用复用，不进入 Git |
 
-聊天地址填写实际 API 根路径，例如 Go 地址以 `/v1` 结尾，DeepSeek 官方地址为 `https://api.deepseek.com`；代码追加 `/chat/completions`。JSON 配置在 `.env` 中作为一行对象填写，`EXTRA_BODY_JSON` 不能覆盖模型、消息或流式开关。模板为选定的 DeepSeek 模型关闭 thinking；更换供应商时按其协议调整，不默认向所有 OpenAI 兼容模型发送此扩展字段。`.env` 由现有启动入口加载，修改后需要重启服务。实际密钥不进入 Git、返回体或错误日志。
+聊天地址填写实际 API 根路径，例如 Go 地址以 `/v1` 结尾，DeepSeek 官方地址为 `https://api.deepseek.com`；代码追加 `/chat/completions`。JSON 配置在 `.env.rag` 中作为一行对象填写，`EXTRA_BODY_JSON` 不能覆盖模型、消息或流式开关。模板为选定的 DeepSeek 模型关闭 thinking；更换供应商时按其协议调整，不默认向所有 OpenAI 兼容模型发送此扩展字段。`.env` 由现有启动入口加载，修改后需要重启服务。实际密钥不进入 Git、返回体或错误日志。
 
 后台新增独立 `/rag` 菜单，包含三个页签。密钥及供应商地址不在后台返回，模型“已配置”表示通道已启用且本地参数完整，不表示供应商连接已通过；暂停通道不计入可用配置，凭据仍保留。
 
@@ -372,7 +374,7 @@ GET  /api/v2/admin/rag/metrics     近七个 UTC 日的运行聚合
 
 | 范围         | 修改或新增文件                                                                                                                                                                                                                                                    |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 环境配置     | `server/internal/config/config.go`、`server/internal/config/rag.go`、`Config/rag.env.example`；本机忽略文件 `server/.env`                                                                                                                                         |
+| 环境配置     | `server/internal/config/config.go`、`server/internal/config/rag.go`、`.env.rag.example`；本机忽略文件 `.env.rag`                                                                                                                                         |
 | 业务与实体   | `server/internal/app/rag/{admin,settings,service,tuning,worker,query_understand,retrieval,context,topk,chat_priority}.go`、`server/internal/domain/rag/{admin,entity,repository}.go`                                                                                   |
 | 模型与分块   | `server/internal/infra/ai/{embedding,rag_chat,rerank}.go`、`server/internal/infra/rag/{chunker,chunk_context,tokens,bm25,fusion}.go`                                                                                                                               |
 | 持久化与入口 | `server/internal/infra/persistence/{rag_repository,rag_admin_repository}.go`、`server/internal/http/handler/rag_handler.go`、`server/internal/http/router/{rag_routes,router}.go`、`server/internal/server/server.go`                                             |

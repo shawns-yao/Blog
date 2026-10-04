@@ -38,7 +38,8 @@ services:
     working_dir: /src
     command: ["sh", "-c", "go mod download && exec go run ./cmd/api"]
     env_file:
-      - ../server/.env
+      - ../.env
+      - ../.env.rag
     environment:
       APP_NAME: "${RAG_TEST_PROJECT}"
       APP_ENV: test
@@ -54,6 +55,7 @@ services:
       RAG_EVALUATION_TRACE_DIR: /evaluation
       RAG_CHAT_GPT_BASE_URL: "${RAG_TEST_GPT_BASE_URL:?GPT URL is required}"
       APP_UPDATE_CHECK_ENABLED: "false"
+      MUSIC_ENABLED: "false"
       HTMLSNAPSHOT_BASE_URL: "http://127.0.0.1:1"
       MEDIA_R2_ENDPOINT: ""
       MEDIA_R2_ACCESS_KEY_ID: ""

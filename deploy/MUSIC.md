@@ -28,7 +28,7 @@
 
 ### 首页 ICP 备案展示
 
-在服务器 `deploy/.env` 中配置备案编号和点击地址，Compose 将这两项传给前台 `renderer`：
+在服务器项目根目录的 `.env` 中配置备案编号和点击地址，Compose 将这两项传给前台 `renderer`：
 
 ```dotenv
 SITE_ICP_NUMBER=冀ICP备2026004228号-2
@@ -38,7 +38,7 @@ SITE_ICP_URL=https://beian.miit.gov.cn/
 首页底部显示备案编号，点击在新标签页打开备案网站；未配置编号时不显示。编号通过服务端布局读取运行时环境，只向页面返回这两项公开信息，不需要数据库迁移。此次首次加入展示逻辑，需要更新代码并重建 `renderer` 镜像。以后修改备案编号或链接，重新创建前台容器即可；已有首页静态快照还需按站点刷新流程更新。
 
 ```sh
-docker compose -f docker-compose.yml -f docker-compose.music.yml \
+docker compose --env-file ../.env -f docker-compose.yml -f docker-compose.music.yml \
   up -d --no-deps --no-build --force-recreate renderer
 ```
 
@@ -68,7 +68,7 @@ deploy/storage/navidrome/       # Navidrome 自身数据和转码缓存
 
 在服务器项目的 `deploy` 目录执行以下步骤。所有命令都需要由运维人员明确执行；本文不会自动运行命令。
 
-1. 按现有部署方式准备基础 `.env`、数据库和 HTTPS 反向代理。将 `music.env.example` 的设置合并到本地 `.env`，暂时保留 `MUSIC_ENABLED=false`。真实用户名、密码不得提交到 Git。
+1. 在项目根目录准备 `.env`、数据库和 HTTPS 反向代理，模板为根目录 `.env.example`，暂时保留 `MUSIC_ENABLED=false`。已有服务器配置按 [环境配置](../ENV.md) 移动并保留原值。真实用户名、密码不得提交到 Git；下列命令仍从 `deploy` 目录执行。
 2. 创建目录并设置容器用户权限：
 
    ```sh
@@ -79,7 +79,7 @@ deploy/storage/navidrome/       # Navidrome 自身数据和转码缓存
 3. 启动 Navidrome：
 
    ```sh
-   docker compose -f docker-compose.yml -f docker-compose.music.yml up -d navidrome
+   docker compose --env-file ../.env -f docker-compose.yml -f docker-compose.music.yml up -d navidrome
    ```
 
 4. 从自己的电脑建立 SSH 隧道，访问 `http://127.0.0.1:4533` 完成 Navidrome 的首次管理员初始化：
@@ -90,11 +90,11 @@ deploy/storage/navidrome/       # Navidrome 自身数据和转码缓存
 
    创建供 Go 使用的独立集成账号，授予曲库读取、转码和扫描权限。`startScan` 需要管理员权限，因此当前集成账号须为 Navidrome 管理员；前台用户仅经 Go 访问这里实现的接口。不要填写个人音乐客户端账号，不开启公开分享。Navidrome 端口只绑定服务器回环地址。
 
-5. 在本地 `.env` 设置 `MUSIC_NAVIDROME_USER`、`MUSIC_NAVIDROME_PASSWORD`、`MUSIC_ALLOWED_USER_IDS`，再设置 `MUSIC_ENABLED=true`。
+5. 在项目根目录 `.env` 设置 `MUSIC_NAVIDROME_USER`、`MUSIC_NAVIDROME_PASSWORD`、`MUSIC_ALLOWED_USER_IDS`，再设置 `MUSIC_ENABLED=true`。
 6. 构建并部署应用：
 
    ```sh
-   docker compose -f docker-compose.yml -f docker-compose.music.yml up -d --build
+   docker compose --env-file ../.env -f docker-compose.yml -f docker-compose.music.yml up -d --build
    ```
 
    该命令沿用现有部署入口，其中包含博客数据库迁移；生产执行前按现有备份及迁移流程检查。新增 `0079_add_music_library.sql` 创建 `music_favorite`、`music_playlist`、`music_playlist_song`，不修改原始音乐与公开名单。未执行迁移时，个人功能会明确报错，不使用浏览器存储兜底。应用回退优先保留三张新表；执行迁移 Down 会删除个人收藏与歌单，必须先备份并另行确认，不能作为默认回退操作。
@@ -116,7 +116,7 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
 在 Linux 服务器构建前后台时，额外加载可选代理配置。该配置同时覆盖 `server` 和 `renderer`，使 npm、Go 模块和系统软件包下载经过代理。`network: host` 仅用于构建，使构建容器能访问 SSH 回环转发；代理通过构建参数传入，没有写入运行镜像的 `ENV`。
 
 ```sh
-BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose \
+BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose --env-file ../.env \
   -f docker-compose.yml -f docker-compose.music.yml \
   -f docker-compose.build-proxy.yml build server renderer
 ```
@@ -126,7 +126,7 @@ BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose \
 运行阶段安装字体依赖时，若官方 Alpine 软件源下载失败，可通过 `ALPINE_MIRROR` 切换为同版本镜像源。这个参数只替换 `/etc/apk/repositories` 中的镜像根地址，保留基础镜像原有的 Alpine 版本分支；定义位于前端构建及生产依赖安装之后，以便复用已完成的构建缓存。
 
 ```sh
-BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose \
+BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose --env-file ../.env \
   -f docker-compose.yml -f docker-compose.music.yml \
   -f docker-compose.build-proxy.yml build \
   --build-arg ALPINE_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/alpine renderer

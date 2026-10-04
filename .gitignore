@@ -16,8 +16,8 @@ docs
 !server/docs/swagger.json
 .env
 .env.*
-!admin/.env.example
-!deploy/.env.example
+!/.env.example
+!/.env.rag.example
 
 # Logs
 logs/

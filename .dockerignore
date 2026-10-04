@@ -9,7 +9,9 @@ admin/dist
 web/build
 
 deploy/storage
-deploy/.env
+**/.env
+**/.env.*
+!**/.env.example
 
 docs
 *.md

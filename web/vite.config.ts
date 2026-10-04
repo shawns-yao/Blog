@@ -15,6 +15,7 @@ const dirname =
 const analyze = process.env.ANALYZE === '1';
 
 export default defineConfig({
+	envDir: path.resolve(dirname, '..'),
 	define: {
 		__APP_VERSION__: JSON.stringify(process.env.APP_VERSION || pkg.version),
 		__BUILD_COMMIT__: JSON.stringify(process.env.BUILD_COMMIT || 'dev')

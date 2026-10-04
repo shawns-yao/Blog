@@ -1,5 +1,5 @@
 # Install in the outer Nginx http context after configuring DNS and certificates.
-# The certificate must cover both names. Set deploy/.env NGINX_PORT=8088.
+# The certificate must cover both names. Set project-root .env NGINX_PORT=8088.
 # The upstream is the project's managed Nginx, not the renderer or Navidrome.
 map $http_upgrade $seecode_connection_upgrade {
     default upgrade;

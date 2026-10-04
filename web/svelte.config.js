@@ -8,6 +8,7 @@ const config = {
 	// for more information about preprocessors
 	preprocess: [vitePreprocess(), mdsvex()],
 	kit: {
+		env: { dir: '..' },
 		adapter: adapter(),
 		alias: {
 			$shared: '../shared',
