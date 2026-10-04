@@ -21,7 +21,7 @@
 	import type { OAuthProvider } from '$lib/features/auth/types';
 	import { toast } from 'svelte-sonner';
 	import { windowStore } from '$lib/shared/stores/windowStore.svelte';
-	import { ExternalLink, Unlink, Link as LinkIcon, LogOut, Check } from 'lucide-svelte';
+	import { Unlink, Link as LinkIcon, LogOut, Check } from 'lucide-svelte';
 	let { embedded = false } = $props<{ embedded?: boolean }>();
 
 	let profileForm = $state({
@@ -205,18 +205,6 @@
 					保存
 				</button>
 			</div>
-			{#if meStore?.isAdmin}
-				<div class="pt-1">
-					<a
-						href={resolvePath('/admin')}
-						target="_blank"
-						class="inline-flex items-center gap-1.5 text-xs text-jade-600 hover:text-jade-700 dark:text-jade-400 dark:hover:text-jade-300 transition-colors"
-					>
-						<ExternalLink size={12} />
-						前往后台管理系统修改更多信息
-					</a>
-				</div>
-			{/if}
 		</section>
 
 		<!-- Binding Section -->
@@ -332,16 +320,14 @@
 		border-color: var(--music-border);
 		background: #fff;
 	}
-	.music-account .binding-action,
-	.music-account a {
+	.music-account .binding-action {
 		color: var(--music-accent-strong);
 	}
 	.music-account .binding-status {
 		color: var(--music-accent-strong);
 		background: var(--music-accent-soft);
 	}
-	.music-account button:focus-visible,
-	.music-account a:focus-visible {
+	.music-account button:focus-visible {
 		outline: 2px solid var(--music-accent);
 		outline-offset: 3px;
 	}
