@@ -24,6 +24,8 @@ type Service struct {
 	publicationPath string
 	publicationErr  error
 	assetRoot       string
+	workerMu        sync.Mutex
+	processing      bool
 }
 
 func NewService(cfg config.MusicConfig) *Service {
@@ -35,6 +37,12 @@ func NewService(cfg config.MusicConfig) *Service {
 	}
 	if cfg.MaxBitRate < 64 || cfg.MaxBitRate > 320 {
 		cfg.MaxBitRate = 192
+	}
+	if cfg.ProbeBinary == "" {
+		cfg.ProbeBinary = "ffprobe"
+	}
+	if cfg.TranscodeBinary == "" {
+		cfg.TranscodeBinary = "ffmpeg"
 	}
 	s := &Service{cfg: cfg, http: newHTTPClient()}
 	base, err := url.Parse(cfg.NavidromeURL)
@@ -49,6 +57,7 @@ func NewService(cfg config.MusicConfig) *Service {
 			s.assetRoot = filepath.Join(filepath.Dir(library), "assets")
 			s.publicationPath = filepath.Join(filepath.Dir(library), "public-catalog.json")
 			s.loadPublications()
+			s.startUploadWorker()
 		}
 	}
 	return s
@@ -57,6 +66,9 @@ func NewService(cfg config.MusicConfig) *Service {
 func (s *Service) Allowed(userID int64, admin bool) bool {
 	if admin {
 		return true
+	}
+	if len(s.cfg.AllowedUserIDs) == 0 {
+		return userID > 0
 	}
 	for _, value := range s.cfg.AllowedUserIDs {
 		if strings.TrimSpace(value) == strconv.FormatInt(userID, 10) {
@@ -80,6 +92,9 @@ func (s *Service) Status(ctx context.Context, detailed bool) Status {
 	}
 	status.Available = true
 	if detailed {
+		s.workerMu.Lock()
+		status.Processing = s.processing
+		s.workerMu.Unlock()
 		scan, err := s.Scan(ctx, false)
 		if err != nil {
 			status.Message = err.Error()

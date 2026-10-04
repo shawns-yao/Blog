@@ -9,6 +9,7 @@ export interface MusicStatus {
   message?: string
   maxUploadBytes: number
   maxBitRate: number
+  processing?: boolean
   scan?: { scanning: boolean; count: number }
 }
 
@@ -19,6 +20,8 @@ export interface MusicUpload {
   artist: string
   size: number
   duplicate: boolean
+  state: 'queued' | 'processing' | 'scanning' | 'ready' | 'failed'
+  error?: string
 }
 
 export interface MusicSong {
@@ -31,6 +34,8 @@ export interface MusicSong {
 }
 
 export const getMusicStatus = () => request<MusicStatus>('/admin/music/status')
+export const getMusicUploads = (ids: string[]) =>
+  request<MusicUpload[]>('/admin/music/uploads', { query: { ids: ids.join(',') } })
 export const setMusicVisibility = (id: string, isPublic: boolean) =>
   request<MusicSong>(`/admin/music/visibility/${encodeURIComponent(id)}`, {
     method: 'PUT',
@@ -49,6 +54,15 @@ export function uploadMusicAsset(id: string, kind: 'cover' | 'lyrics', file: Fil
   return request<{ songId: string; kind: string }>(
     `/admin/music/assets/${encodeURIComponent(id)}/${kind}`,
     { method: 'POST', body },
+  )
+}
+
+export function uploadCompanionLyrics(id: string, file: File, signal: AbortSignal) {
+  const body = new FormData()
+  body.append('file', file)
+  return request<{ uploadId: string; kind: string }>(
+    `/admin/music/uploads/${encodeURIComponent(id)}/lyrics`,
+    { method: 'POST', body, signal, timeout: 60000 },
   )
 }
 

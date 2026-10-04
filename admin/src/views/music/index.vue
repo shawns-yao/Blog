@@ -21,7 +21,8 @@ const status = useQuery({
   queryFn: getMusicStatus,
   retry: false,
   refetchOnWindowFocus: true,
-  refetchInterval: (query) => (query.state.data?.scan?.scanning ? 3000 : false),
+  refetchInterval: (query) =>
+    query.state.data?.scan?.scanning || query.state.data?.processing ? 3000 : false,
 })
 const available = computed(() => !!status.data.value?.available)
 const catalog = useQuery({
@@ -81,7 +82,12 @@ function submitSearch() {
         <template #actions
           ><NButton @click="refresh">刷新</NButton
           ><NButton
-            :disabled="!available || busy || !!status.data.value?.scan?.scanning"
+            :disabled="
+              !available ||
+              busy ||
+              !!status.data.value?.processing ||
+              !!status.data.value?.scan?.scanning
+            "
             :loading="scan.isPending.value"
             @click="scan.mutate()"
             >扫描曲库</NButton
@@ -99,8 +105,15 @@ function submitSearch() {
         role="status"
         class="mt-4 text-sm text-gray-500"
       >
-        {{ status.data.value.scan.scanning ? '正在扫描音乐文件…' : '扫描空闲' }} · 已扫描
-        {{ status.data.value.scan.count }} 个文件 · 播放上限 {{ status.data.value.maxBitRate }} kbps
+        {{
+          status.data.value.processing
+            ? '正在处理上传音乐…'
+            : status.data.value.scan.scanning
+              ? '正在扫描音乐文件…'
+              : '扫描空闲'
+        }}
+        · 已扫描 {{ status.data.value.scan.count }} 个文件 · 播放上限
+        {{ status.data.value.maxBitRate }} kbps
       </p>
       <p
         v-if="status.data.value && !status.data.value.configured"
@@ -113,10 +126,10 @@ function submitSearch() {
       title="批量上传"
       :bordered="false"
       ><MusicUploader
-        :disabled="!available || scan.isPending.value || !!status.data.value?.scan?.scanning"
+        :disabled="!available"
         :max-bytes="status.data.value?.maxUploadBytes || 104857600"
         @busy="(value) => (busy = value)"
-        @completed="scan.mutate()"
+        @completed="refresh"
     /></NCard>
     <NCard
       title="已入库曲库"

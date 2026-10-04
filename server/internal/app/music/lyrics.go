@@ -128,3 +128,60 @@ func (s *Service) PublicLyrics(ctx context.Context, id string) (LyricsResult, er
 	}
 	return s.Lyrics(ctx, id)
 }
+
+// 批量上传的歌词先按音频内容指纹保存，播放文件发布后写成同名 LRC。
+func (s *Service) UploadCompanionLyrics(ctx context.Context, id, filename string, reader io.Reader) error {
+	if !s.configured {
+		return ErrUnavailable
+	}
+	if strings.ToLower(filepath.Ext(filename)) != ".lrc" {
+		return &InputError{"批量关联只支持 UTF-8 LRC 歌词，TXT 可在曲库中补传"}
+	}
+	data, err := io.ReadAll(io.LimitReader(reader, MaxLyricsBytes+1))
+	if err != nil || len(data) == 0 || int64(len(data)) > MaxLyricsBytes {
+		return &InputError{"歌词文件为空或超过 1 MB"}
+	}
+	if _, err := parseLyrics(filename, data); err != nil {
+		return err
+	}
+	job, err := s.UploadStatus(id)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Join(s.musicRoot(), "originals", id)
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return ErrAsset
+	}
+	if err := writeMusicFile(filepath.Join(dir, "lyrics.lrc"), data, 0640); err != nil {
+		return err
+	}
+	output := filepath.Join(s.cfg.LibraryDir, id, uploadPlaybackFilename(job))
+	if _, err := os.Stat(output); errors.Is(err, os.ErrNotExist) {
+		// worker 会在完整音频发布之后读取这份歌词；此时无需等待转码。
+		return nil
+	} else if err != nil {
+		return ErrAsset
+	}
+	if err := s.publishUploadLyrics(job); err != nil {
+		return err
+	}
+	if _, err := s.Scan(ctx, true); err != nil {
+		return errors.New("歌词已保存，扫描暂时失败，请重试歌词关联")
+	}
+	return nil
+}
+
+func (s *Service) publishUploadLyrics(job UploadResult) error {
+	s.uploadMu.Lock()
+	defer s.uploadMu.Unlock()
+	data, err := os.ReadFile(filepath.Join(s.musicRoot(), "originals", job.ID, "lyrics.lrc"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return ErrAsset
+	}
+	filename := uploadPlaybackFilename(job)
+	filename = strings.TrimSuffix(filename, filepath.Ext(filename)) + ".lrc"
+	return writeMusicFile(filepath.Join(s.cfg.LibraryDir, job.ID, filename), data, 0640)
+}

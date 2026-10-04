@@ -10,6 +10,7 @@ services:
       MUSIC_STAGING_DIR: /app/storage/music/staging
       MUSIC_MAX_UPLOAD_BYTES: "${MUSIC_MAX_UPLOAD_BYTES:-104857600}"
       MUSIC_MAX_BIT_RATE: "${MUSIC_MAX_BIT_RATE:-192}"
+      MUSIC_FFMPEG_BINARY: "${MUSIC_FFMPEG_BINARY:-ffmpeg}"
     volumes:
       - ./storage/music:/app/storage/music
     depends_on:
@@ -22,6 +23,8 @@ services:
     environment:
       ND_MUSICFOLDER: /music
       ND_DATAFOLDER: /data
+      ND_TRANSCODINGCACHESIZE: "${MUSIC_TRANSCODING_CACHE_SIZE:-1GB}"
+      ND_LYRICSPRIORITY: ".lrc,.txt,embedded"
       ND_SCANSCHEDULE: "@every 1h"
       ND_ENABLESHARING: "false"
       ND_LOGLEVEL: warn

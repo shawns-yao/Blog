@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -149,7 +150,50 @@ func (h *MusicHandler) Upload(c *fiber.Ctx) error {
 	if err != nil {
 		return musicError(err)
 	}
-	return response.SuccessWithMessage(c, data, "文件已保存，扫描完成后才能出现在曲库")
+	return response.SuccessWithMessage(c, data, "文件已接收，后台正在处理")
+}
+
+func (h *MusicHandler) UploadStatus(c *fiber.Ctx) error {
+	data, err := h.service.UploadStatus(c.Params("id"))
+	if err != nil {
+		return musicError(err)
+	}
+	c.Set("Cache-Control", "no-store")
+	return response.Success(c, data)
+}
+
+func (h *MusicHandler) UploadCompanionLyrics(c *fiber.Ctx) error {
+	file, err := c.FormFile("file")
+	if err != nil || file.Size > music.MaxLyricsBytes {
+		return response.NewBizErrorWithMsg(response.ParamsError, "请选择不超过 1 MB 的 LRC 歌词文件")
+	}
+	reader, err := file.Open()
+	if err != nil {
+		return response.NewBizErrorWithMsg(response.ParamsError, "歌词文件无法读取")
+	}
+	defer reader.Close()
+	if err := h.service.UploadCompanionLyrics(c.UserContext(), c.Params("id"), file.Filename, reader); err != nil {
+		return musicError(err)
+	}
+	c.Set("Cache-Control", "no-store")
+	return response.Success(c, fiber.Map{"uploadId": c.Params("id"), "kind": "lyrics"})
+}
+
+func (h *MusicHandler) UploadStatuses(c *fiber.Ctx) error {
+	ids := strings.Split(c.Query("ids"), ",")
+	if len(ids) > 100 {
+		return response.NewBizErrorWithMsg(response.ParamsError, "一次最多查询100个上传任务")
+	}
+	items := make([]music.UploadResult, 0, len(ids))
+	for _, id := range ids {
+		item, err := h.service.UploadStatus(id)
+		if err != nil {
+			return musicError(err)
+		}
+		items = append(items, item)
+	}
+	c.Set("Cache-Control", "no-store")
+	return response.Success(c, items)
 }
 
 func (h *MusicHandler) Lyrics(c *fiber.Ctx) error       { return h.lyrics(c, false) }
@@ -224,6 +268,9 @@ func (h *MusicHandler) binary(c *fiber.Ctx, cover, public bool) error {
 }
 
 func musicError(err error) error {
+	if errors.Is(err, os.ErrNotExist) {
+		return response.NewBizErrorWithMsg(response.NotFound, "音乐上传任务不存在")
+	}
 	if errors.Is(err, music.ErrNotPublic) {
 		return response.NewBizErrorWithMsg(response.NotFound, "音乐未公开")
 	}

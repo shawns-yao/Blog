@@ -58,33 +58,58 @@ func (s *Service) Upload(ctx context.Context, filename string, input io.Reader) 
 	if err := temp.Close(); err != nil {
 		return UploadResult{}, errors.New("音乐文件写入失败")
 	}
-	metadata, err := s.probe(ctx, temp.Name(), ext)
-	if err != nil {
-		return UploadResult{}, err
-	}
 	id := hex.EncodeToString(hash.Sum(nil))
-	result := UploadResult{ID: id, Filename: filename, Title: metadata["title"], Artist: metadata["artist"], Size: size}
-	if result.Title == "" {
-		result.Title = name
-	}
+	result := UploadResult{ID: id, Filename: filename, Title: name, Size: size, State: "queued"}
 	s.uploadMu.Lock()
 	defer s.uploadMu.Unlock()
-	dir := filepath.Join(s.cfg.LibraryDir, id)
-	if files, err := os.ReadDir(dir); err == nil && len(files) > 0 {
-		result.Filename = files[0].Name()
-		result.Duplicate = true
-		return result, nil
+	retry := false
+	if job, err := s.UploadStatus(id); err == nil {
+		if job.State != "failed" {
+			job.Duplicate = true
+			if job.State != "ready" {
+				s.startUploadWorker()
+			}
+			return job, nil
+		}
+		result = job
+		result.State, result.Error, result.Duplicate = "queued", "", false
+		filename = result.Filename
+		retry = true
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return UploadResult{}, err
 	}
+	if files, err := os.ReadDir(filepath.Join(s.cfg.LibraryDir, id)); !retry && err == nil {
+		for _, file := range files {
+			ext := strings.ToLower(filepath.Ext(file.Name()))
+			if file.IsDir() || (ext != ".mp3" && ext != ".flac" && ext != ".m4a") {
+				continue
+			}
+			result.PlaybackFilename = file.Name()
+			result.State, result.Duplicate = "ready", true
+			if err := s.saveUpload(result); err != nil {
+				return UploadResult{}, err
+			}
+			return result, nil
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return UploadResult{}, err
+	}
+	dir := filepath.Join(s.musicRoot(), "originals", id)
 	if err := os.MkdirAll(dir, 0750); err != nil {
-		return UploadResult{}, errors.New("无法创建音乐目录")
+		return UploadResult{}, errors.New("无法创建原始音乐目录")
 	}
-	// 在同一个文件系统内原子发布，扫描器不会看见上传中的半个文件。
+	// 原文件先保存在扫描目录之外；请求返回后由后台生成播放副本。
 	if err := os.Chmod(temp.Name(), 0640); err != nil {
 		return UploadResult{}, errors.New("无法设置音乐文件权限")
 	}
 	if err := os.Rename(temp.Name(), filepath.Join(dir, filename)); err != nil {
-		return UploadResult{}, errors.New("无法发布音乐文件，请确认临时目录与音乐目录位于同一文件系统")
+		return UploadResult{}, errors.New("无法保存原始音乐文件，请确认音乐目录位于同一文件系统")
 	}
+	if err := s.saveUpload(result); err != nil {
+		return UploadResult{}, err
+	}
+	s.startUploadWorker()
 	return result, nil
 }
 

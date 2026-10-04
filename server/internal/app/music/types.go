@@ -53,17 +53,21 @@ type Status struct {
 	Available      bool        `json:"available"`
 	Message        string      `json:"message,omitempty"`
 	Scan           *ScanStatus `json:"scan,omitempty"`
+	Processing     bool        `json:"processing,omitempty"`
 	MaxUploadBytes int64       `json:"maxUploadBytes"`
 	MaxBitRate     int         `json:"maxBitRate"`
 }
 
 type UploadResult struct {
-	ID        string `json:"id"`
-	Filename  string `json:"filename"`
-	Title     string `json:"title"`
-	Artist    string `json:"artist"`
-	Size      int64  `json:"size"`
-	Duplicate bool   `json:"duplicate"`
+	ID               string `json:"id"`
+	Filename         string `json:"filename"`
+	Title            string `json:"title"`
+	Artist           string `json:"artist"`
+	Size             int64  `json:"size"`
+	Duplicate        bool   `json:"duplicate"`
+	State            string `json:"state"`
+	Error            string `json:"error,omitempty"`
+	PlaybackFilename string `json:"playbackFilename,omitempty"`
 }
 
 type LyricLine struct {
