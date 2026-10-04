@@ -438,6 +438,7 @@
 		{#if page.url.pathname === '/'}
 			<Footer
 				imageBackground={page.url.pathname === '/'}
+				icp={data.icp}
 				onlineCount={presenceStore.online}
 				presenceConnected={presenceStore.isConnected}
 				onOpenPresence={openPresenceWindow}

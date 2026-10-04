@@ -50,6 +50,10 @@ export const load: LayoutServerLoad = async (event) => {
 
 	return {
 		websiteInfo,
-		healthData
+		healthData,
+		icp: {
+			number: (process.env.SITE_ICP_NUMBER ?? '').trim(),
+			url: process.env.SITE_ICP_URL?.trim() || 'https://beian.miit.gov.cn/'
+		}
 	};
 };

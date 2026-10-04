@@ -74,6 +74,8 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       INTERNAL_API_BASE_URL: "http://server:8080/api/v2"
+      SITE_ICP_NUMBER: "${SITE_ICP_NUMBER:-}"
+      SITE_ICP_URL: "${SITE_ICP_URL:-https://beian.miit.gov.cn/}"
     volumes:
       - ./storage/html:/assets
       - ./storage/meta:/app/storage/meta

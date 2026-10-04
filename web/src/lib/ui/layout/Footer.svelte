@@ -5,6 +5,7 @@
 
 	type Props = {
 		imageBackground?: boolean;
+		icp?: { number: string; url: string };
 		onlineCount?: number;
 		presenceConnected?: boolean;
 		onOpenPresence?: () => void;
@@ -12,6 +13,7 @@
 
 	let {
 		imageBackground = false,
+		icp,
 		onlineCount = 0,
 		presenceConnected = false,
 		onOpenPresence = () => {}
@@ -163,6 +165,18 @@
 				</button>
 			</div>
 		</div>
+		{#if icp?.number}
+			<div class="mt-8 border-t border-ink-200/40 pt-4 text-center dark:border-ink-700/40">
+				<a
+					href={icp.url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-flex min-h-11 items-center text-xs text-ink-500 underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-4 dark:text-ink-400"
+				>
+					{icp.number}
+				</a>
+			</div>
+		{/if}
 	</div>
 </footer>
 
