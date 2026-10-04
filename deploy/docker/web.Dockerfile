@@ -46,7 +46,9 @@ COPY --from=builder /app/build /app/build
 
 # Install the bundled OTF/TTF fonts for OG rendering without release downloads.
 COPY --from=og-fonts /usr/share/fonts/og/ /usr/share/fonts/og/
-RUN apk add --no-cache fontconfig && fc-cache -f
+ARG ALPINE_MIRROR=https://dl-cdn.alpinelinux.org/alpine
+RUN sed -i "s#https\?://dl-cdn.alpinelinux.org/alpine#${ALPINE_MIRROR%/}#g" /etc/apk/repositories \
+    && apk add --no-cache fontconfig && fc-cache -f
 
 COPY deploy/docker/renderer-entrypoint.sh /usr/local/bin/renderer-entrypoint.sh
 RUN chmod +x /usr/local/bin/renderer-entrypoint.sh

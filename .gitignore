@@ -12,6 +12,8 @@ Thumbs.db
 .codegraph
 
 docs
+!server/docs/
+!server/docs/swagger.json
 .env
 .env.*
 !admin/.env.example
@@ -40,3 +42,21 @@ exports/
 /Temp/
 /server/Temp/
 /.superpowers/
+
+# Local documents and generated test artifacts
+/Data/
+/Image/
+/Log/
+/server/storage/
+/Test/**/*.json
+/Test/**/*.jsonl
+/Test/**/*.csv
+/Test/**/*.md
+!/Test/**/README.md
+/Test/benchmark/baselines/
+/Test/benchmark/reviews/
+/web/Test/**/*.png
+/web/Test/**/*.jpg
+/web/Test/**/*.webp
+/web/Test/**/*.json
+/web/Test/**/*.md
