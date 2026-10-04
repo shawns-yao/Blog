@@ -42,6 +42,7 @@ exports/
 /Temp/
 /server/Temp/
 /.superpowers/
+/.playwright-mcp/
 
 # Local documents and generated test artifacts
 /Data/
