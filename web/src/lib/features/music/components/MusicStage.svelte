@@ -137,13 +137,13 @@
 						max={duration}
 						step="0.1"
 						value={playback.time}
-						disabled={!playback.duration}
+						disabled={!song || duration <= 0}
 						oninput={(event) => seek(Number(event.currentTarget.value))}
 					/><span>{formatMusicTime(duration)}</span>
 				</div>
 				<div class="stage-controls">
 					<div class="stage-playback-state" role="status">
-						{playback.error || (playback.loading ? '正在缓冲…' : '')}
+						{playback.error || (playback.loading && !playback.paused ? '正在缓冲…' : '')}
 					</div>
 					<div class="stage-transport">
 						<Button
@@ -344,7 +344,8 @@
 		min-width: 0;
 		flex: 1;
 		width: 100%;
-		height: 4px;
+		height: 24px;
+		cursor: pointer;
 		accent-color: #f43f5e;
 	}
 	.stage-controls {

@@ -88,7 +88,9 @@
 			</div>
 		{:else}{#key view}<MusicHome {...trackProps} searchMode={view === 'search'} />{/key}{/if}
 	{/key}
-	<p role="status" aria-live="polite" class="mt-4 min-h-5 text-sm text-rose-700">
-		{playbackState.preparing ? '正在准备播放…' : playbackState.notice}
-	</p>
+	{#if playbackState.preparing || playbackState.notice}
+		<p role="status" aria-live="polite" class="mt-4 text-sm text-rose-700">
+			{playbackState.preparing ? '正在准备播放…' : playbackState.notice}
+		</p>
+	{/if}
 </MusicShell>

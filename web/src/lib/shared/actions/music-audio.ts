@@ -9,6 +9,7 @@ export interface AudioState {
 
 interface AudioOptions {
 	src: string;
+	duration?: number;
 	key?: number;
 	autoplay?: boolean;
 	onstate: (state: AudioState) => void;
@@ -24,23 +25,33 @@ export function musicAudio(node: HTMLAudioElement, initial: AudioOptions) {
 	let disposed = false;
 	let generation = 0;
 	function publish() {
+		if (node.paused || (!node.seeking && node.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA))
+			loading = false;
 		if (!disposed)
 			options.onstate({
 				paused: node.paused,
 				loading,
 				time: node.currentTime,
-				duration: Number.isFinite(node.duration) ? node.duration : 0,
+				duration: Number.isFinite(node.duration) ? node.duration : options.duration || 0,
 				volume: node.volume,
 				error
 			});
 	}
-	const events = ['timeupdate', 'durationchange', 'pause', 'volumechange', 'seeking', 'seeked'];
+	const events = [
+		'loadedmetadata',
+		'timeupdate',
+		'durationchange',
+		'pause',
+		'volumechange',
+		'seeking',
+		'seeked'
+	];
 	const played = () => {
 		error = '';
 		publish();
 	};
 	const waiting = () => {
-		loading = true;
+		loading = !node.paused;
 		publish();
 	};
 	const ready = () => {
@@ -68,7 +79,7 @@ export function musicAudio(node: HTMLAudioElement, initial: AudioOptions) {
 		const current = ++generation;
 		node.pause();
 		error = '';
-		loading = !!source;
+		loading = !!source && next.autoplay !== false;
 		if (source) node.src = source;
 		else node.removeAttribute('src');
 		node.load();
@@ -108,9 +119,15 @@ export async function toggleMusicAudio(node: HTMLAudioElement | undefined) {
 	else node.pause();
 }
 
-export function seekMusicAudio(node: HTMLAudioElement | undefined, seconds: number) {
-	if (node && Number.isFinite(node.duration))
-		node.currentTime = Math.min(Math.max(seconds, 0), node.duration);
+export function seekMusicAudio(
+	node: HTMLAudioElement | undefined,
+	seconds: number,
+	knownDuration = 0
+) {
+	if (!node || !Number.isFinite(seconds) || node.readyState === HTMLMediaElement.HAVE_NOTHING)
+		return;
+	const duration = Number.isFinite(node.duration) ? node.duration : knownDuration;
+	if (duration > 0) node.currentTime = Math.min(Math.max(seconds, 0), duration);
 }
 
 export function setMusicVolume(node: HTMLAudioElement | undefined, volume: number) {

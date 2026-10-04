@@ -28,6 +28,14 @@
 		retry: false
 	}));
 	const isFavorite = $derived(!!current && !!favorite.data?.ids.includes(current.id));
+	$effect(() => {
+		const notice = playbackState.notice;
+		if (!notice || !/^(已收藏|已取消收藏|已加入队列|这首歌曲已在队列中)/.test(notice)) return;
+		const timeout = setTimeout(() => {
+			if (playbackState.notice === notice) playbackState.notice = '';
+		}, 3000);
+		return () => clearTimeout(timeout);
+	});
 	async function toggleFavorite() {
 		if (!current) return;
 		if (!playbackState.viewer) {

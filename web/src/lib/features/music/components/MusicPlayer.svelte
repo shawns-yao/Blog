@@ -85,6 +85,7 @@
 		volume: 1,
 		error: ''
 	});
+	const duration = $derived(playback.duration || song?.duration || 0);
 	$effect(() => setMusicVolume(audio, volume));
 	$effect(() => {
 		if (!song) expanded = false;
@@ -108,6 +109,7 @@
 	preload="metadata"
 	use:musicAudio={{
 		src: song && sourceReady ? musicStreamURL(song.id, publicAccess) : '',
+		duration: song?.duration,
 		key: playRequest,
 		autoplay,
 		onstate: (value) => (playback = value),
@@ -140,12 +142,12 @@
 				aria-label="播放进度"
 				type="range"
 				min="0"
-				max={playback.duration || song?.duration || 0}
+				max={duration}
 				step="0.1"
 				value={playback.time}
-				disabled={!playback.duration}
-				oninput={(event) => seekMusicAudio(audio, Number(event.currentTarget.value))}
-			/><span>{formatMusicTime(playback.duration || song?.duration || 0)}</span>
+				disabled={!song || !sourceReady || duration <= 0}
+				oninput={(event) => seekMusicAudio(audio, Number(event.currentTarget.value), duration)}
+			/><span>{formatMusicTime(duration)}</span>
 		</div>
 		<div class="player-transport">
 			<Button
@@ -166,7 +168,7 @@
 				aria-label="上一首"
 				disabled={!canPrevious}
 				onclick={() => {
-					if (playback.time > 3) seekMusicAudio(audio, 0);
+					if (playback.time > 3) seekMusicAudio(audio, 0, duration);
 					else previous();
 				}}><SkipBack size={18} /></Button
 			><Button
@@ -228,7 +230,9 @@
 	{#if playback.error}<p class="player-note error" role="alert">
 			{playback.error}
 		</p>{:else if notice}<p class="player-note" role="status">{notice}</p>
-	{:else if playback.loading}<p class="player-note" role="status">正在缓冲…</p>{/if}
+	{:else if playback.loading && !playback.paused}<p class="player-note" role="status">
+			正在缓冲…
+		</p>{/if}
 </section>
 
 <MusicStage
@@ -239,7 +243,7 @@
 	{playback}
 	bind:volume
 	{toggle}
-	seek={(seconds) => seekMusicAudio(audio, seconds)}
+	seek={(seconds) => seekMusicAudio(audio, seconds, duration)}
 	{previous}
 	{next}
 	{canPrevious}
@@ -321,7 +325,8 @@
 		min-width: 0;
 		width: 100%;
 		flex: 1;
-		height: 4px;
+		height: 24px;
+		cursor: pointer;
 	}
 	.player-transport {
 		display: flex;
