@@ -22,6 +22,21 @@ func NewAdminUserHandler(svc *adminuser.Service) *AdminUserHandler {
 	return &AdminUserHandler{svc: svc}
 }
 
+func (h *AdminUserHandler) CreateUser(c *fiber.Ctx) error {
+	var req contract.CreateAdminUserReq
+	if err := c.BodyParser(&req); err != nil {
+		return response.NewBizErrorWithCause(response.ParamsError, "请求体解析失败", err)
+	}
+	user, err := h.svc.CreateUser(c.Context(), adminuser.CreateUserCmd{
+		Username: req.Username, Nickname: req.Nickname, Email: req.Email,
+		Password: req.Password, IsAdmin: req.IsAdmin,
+	})
+	if err != nil {
+		return h.mapErr(err)
+	}
+	return response.SuccessWithMessage(c, contract.ToUserResp(*user), "用户已创建")
+}
+
 // ListUsers godoc
 // @Summary 获取本站用户列表（管理端）
 // @Tags AdminUser
@@ -118,7 +133,10 @@ func (h *AdminUserHandler) UpdateUser(c *fiber.Ctx) error {
 }
 
 func (h *AdminUserHandler) mapErr(err error) error {
+	var input *adminuser.InputError
 	switch {
+	case errors.As(err, &input):
+		return response.NewBizErrorWithMsg(response.ParamsError, input.Message)
 	case errors.Is(err, identity.ErrUserNotFound):
 		return response.NewBizErrorWithMsg(response.NotFound, "用户不存在")
 	case errors.Is(err, identity.ErrUserExists):

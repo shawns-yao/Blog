@@ -74,6 +74,7 @@ func registerAdminRoutes(v2 fiber.Router, deps Dependencies, websiteInfoHandler 
 	adminUserSvc := adminuser.NewService(identityRepo)
 	adminUserHandler := handler.NewAdminUserHandler(adminUserSvc)
 	admin.Get("/users", adminUserHandler.ListUsers)
+	admin.Post("/users", adminUserHandler.CreateUser)
 	admin.Put("/users/:id", adminUserHandler.UpdateUser)
 
 	rssAccessSvc := newRSSAccessAnalyticsService(deps)

@@ -32,3 +32,11 @@ export interface UpdateSiteUserPayload {
   isActive: boolean
   isAdmin: boolean
 }
+
+export interface CreateSiteUserPayload {
+  username: string
+  nickname: string
+  email: string
+  password: string
+  isAdmin: boolean
+}

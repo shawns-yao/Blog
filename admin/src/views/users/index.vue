@@ -11,11 +11,11 @@ import {
   NTag,
   useMessage,
 } from 'naive-ui'
-import { computed, h, reactive, ref } from 'vue'
+import { computed, h, reactive, ref, watch } from 'vue'
 
 import { FormModal, ScrollContainer } from '@/components'
 import { useTable } from '@/composables/table/use-table'
-import { listSiteUsers, updateSiteUser } from '@/services/site-users'
+import { createSiteUser, listSiteUsers, updateSiteUser } from '@/services/site-users'
 import { toRefsUserStore } from '@/stores'
 import { formatDate } from '@/utils/format'
 
@@ -50,10 +50,14 @@ const saving = ref(false)
 const editingUserId = ref<number>(0)
 const formModel = reactive({
   username: '',
+  password: '',
   nickname: '',
   email: '',
   isActive: true,
   isAdmin: false,
+})
+watch(editVisible, (visible) => {
+  if (!visible) formModel.password = ''
 })
 
 const isEditingSelf = computed(() => {
@@ -156,6 +160,7 @@ function resetSearch() {
 function openEdit(row: SiteUser) {
   editingUserId.value = row.id
   formModel.username = row.username
+  formModel.password = ''
   formModel.nickname = row.nickname
   formModel.email = row.email
   formModel.isActive = row.isActive
@@ -163,21 +168,44 @@ function openEdit(row: SiteUser) {
   editVisible.value = true
 }
 
+function openCreate() {
+  editingUserId.value = 0
+  Object.assign(formModel, {
+    username: '',
+    password: '',
+    nickname: '',
+    email: '',
+    isActive: true,
+    isAdmin: false,
+  })
+  editVisible.value = true
+}
+
 async function saveEdit() {
-  if (!editingUserId.value) return
   saving.value = true
   try {
-    await updateSiteUser(editingUserId.value, {
-      nickname: formModel.nickname.trim(),
-      email: formModel.email.trim(),
-      isActive: formModel.isActive,
-      isAdmin: formModel.isAdmin,
-    })
-    message.success('用户信息已更新')
+    if (editingUserId.value) {
+      await updateSiteUser(editingUserId.value, {
+        nickname: formModel.nickname.trim(),
+        email: formModel.email.trim(),
+        isActive: formModel.isActive,
+        isAdmin: formModel.isAdmin,
+      })
+    } else {
+      await createSiteUser({
+        username: formModel.username.trim(),
+        password: formModel.password,
+        nickname: formModel.nickname.trim(),
+        email: formModel.email.trim(),
+        isAdmin: formModel.isAdmin,
+      })
+    }
+    message.success(editingUserId.value ? '用户信息已更新' : '用户已创建')
+    formModel.password = ''
     editVisible.value = false
     refresh()
   } catch (error: any) {
-    message.error(error?.message || '更新失败')
+    message.error(error?.message || '保存失败')
   } finally {
     saving.value = false
   }
@@ -190,6 +218,13 @@ async function saveEdit() {
     :scrollbar-props="{ trigger: 'none' }"
   >
     <NCard title="本站用户管理">
+      <template #header-extra>
+        <NButton
+          type="primary"
+          @click="openCreate"
+          >新增用户</NButton
+        >
+      </template>
       <NSpace
         class="mb-4"
         align="center"
@@ -239,14 +274,28 @@ async function saveEdit() {
 
     <FormModal
       v-model:show="editVisible"
-      title="编辑用户"
+      :title="editingUserId ? '编辑用户' : '新增用户'"
       :loading="saving"
       @confirm="saveEdit"
     >
       <NFormItem label="用户名">
         <NInput
-          :value="formModel.username"
-          disabled
+          v-model:value="formModel.username"
+          :disabled="!!editingUserId"
+          :maxlength="45"
+          placeholder="请输入登录账号"
+        />
+      </NFormItem>
+      <NFormItem
+        v-if="!editingUserId"
+        label="密码"
+      >
+        <NInput
+          v-model:value="formModel.password"
+          type="password"
+          show-password-on="click"
+          autocomplete="new-password"
+          placeholder="至少8个字符"
         />
       </NFormItem>
       <NFormItem label="昵称">
@@ -261,7 +310,10 @@ async function saveEdit() {
           placeholder="请输入邮箱（可留空）"
         />
       </NFormItem>
-      <NFormItem label="启用">
+      <NFormItem
+        v-if="editingUserId"
+        label="启用"
+      >
         <NSwitch
           v-model:value="formModel.isActive"
           :disabled="isEditingSelf"

@@ -13,3 +13,11 @@ type UpdateAdminUserReq struct {
 	IsActive bool   `json:"isActive"`
 	IsAdmin  bool   `json:"isAdmin"`
 }
+
+type CreateAdminUserReq struct {
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"isAdmin"`
+}
