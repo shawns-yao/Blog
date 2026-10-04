@@ -26,6 +26,24 @@
 
 音乐子域名的“返回博客”在新标签页打开博客，保留原标签页播放；博客首页书架在新标签页打开音乐子域名。本地入口仍使用站内 `/music/` 导航。跨域或整页刷新会重建文档，不能保留原音频播放；账号数据共用，但当前登录令牌、队列和设置按域名保存，音乐室首次需要单独登录。若使用 OAuth，还需配置音乐域名对应的回调地址。
 
+### 首页 ICP 备案展示
+
+在服务器 `deploy/.env` 中配置备案编号和点击地址，Compose 将这两项传给前台 `renderer`：
+
+```dotenv
+SITE_ICP_NUMBER=冀ICP备2026004228号-2
+SITE_ICP_URL=https://beian.miit.gov.cn/
+```
+
+首页底部显示备案编号，点击在新标签页打开备案网站；未配置编号时不显示。编号通过服务端布局读取运行时环境，只向页面返回这两项公开信息，不需要数据库迁移。此次首次加入展示逻辑，需要更新代码并重建 `renderer` 镜像。以后修改备案编号或链接，重新创建前台容器即可；已有首页静态快照还需按站点刷新流程更新。
+
+```sh
+docker compose -f docker-compose.yml -f docker-compose.music.yml \
+  up -d --no-deps --no-build --force-recreate renderer
+```
+
+2026-10-03 已完成 ICP 展示的定向测试：使用实际生产构建和前台首页 HTTP 入口，配置编号时显示、未配置时隐藏；1280 像素桌面和 390 像素窄屏都没有横向溢出，链接点击区域高 44 像素，键盘焦点边框可见。类型检查零错误，保留既有时钟警告；生产构建、格式和 Compose 配置检查通过。此次仅运行独立前台预览，没有连接后端或数据库；真实手机、备案网站实际打开以及服务器更新版尚未验证。
+
 ## 目录与权限
 
 ```text
@@ -85,7 +103,7 @@ deploy/storage/navidrome/       # Navidrome 自身数据和转码缓存
 
 ## 源码构建与代理
 
-服务器使用当前源码构建镜像。服务端分享卡片所需的 OTF／TTF 已随 `deploy/fonts` 保存，来源、版本和许可证见 [字体说明](fonts/README.md)；`web.Dockerfile` 通过 `og-fonts` 阶段复制本地文件，不再使用两个 GitHub 发布包的远程 `ADD`。前端 npm 依赖和系统软件包仍需网络下载。2026-10-03 定向构建检查已通过字体阶段及镜像内字体读取，完整服务器前端镜像和分享卡片渲染尚未验证。
+服务器使用当前源码构建镜像。服务端分享卡片所需的 OTF／TTF 已随 `deploy/fonts` 保存，来源、版本和许可证见 [字体说明](fonts/README.md)；`web.Dockerfile` 通过 `og-fonts` 阶段复制本地文件，不再使用两个 GitHub 发布包的远程 `ADD`。前端 npm 依赖和系统软件包仍需网络下载。2026-10-03 用户提供的服务器日志已确认原版前台镜像完整构建并导出；新增 ICP 展示后需重建前台，分享卡片实际渲染尚未验证。
 
 使用 Windows 电脑上的 HTTP／SOCKS5 混合代理时，可以建立 SSH 远程端口转发，将服务器回环端口转发到电脑上的代理端口。隧道窗口需保持运行；这不是服务器上的永久代理，也不需要将代理端口开放到公网。
 
@@ -95,15 +113,26 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
   -R 127.0.0.1:10808:127.0.0.1:10808 your-user@your-server
 ```
 
-在 Linux 服务器构建前台时，额外加载可选代理配置。`network: host` 仅用于构建，使构建容器能访问 SSH 回环转发；代理通过构建参数传入，没有写入运行镜像的 `ENV`。
+在 Linux 服务器构建前后台时，额外加载可选代理配置。该配置同时覆盖 `server` 和 `renderer`，使 npm、Go 模块和系统软件包下载经过代理。`network: host` 仅用于构建，使构建容器能访问 SSH 回环转发；代理通过构建参数传入，没有写入运行镜像的 `ENV`。
 
 ```sh
 BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose \
   -f docker-compose.yml -f docker-compose.music.yml \
-  -f docker-compose.build-proxy.yml build renderer
+  -f docker-compose.build-proxy.yml build server renderer
 ```
 
-该配置只代理前台构建容器中的依赖下载，不配置 Docker 守护进程的镜像拉取代理，也不改变应用运行网络。仅支持 SOCKS5 的代理不能直接按上述 HTTP 地址使用；需确认代理同时提供 HTTP 接口。2026-10-03 已验证电脑 10808 的 HTTP 与 SOCKS5 请求成功，并通过 Compose 解析；服务器 SSH 转发与代理构建仍待实际执行。依据：[Docker 构建代理参数](https://docs.docker.com/build/building/variables/#proxy-arguments)。
+该配置只代理构建容器中的依赖下载，不配置 Docker 守护进程的镜像拉取代理，也不改变应用运行网络。仅支持 SOCKS5 的代理不能直接按上述 HTTP 地址使用；需确认代理同时提供 HTTP 接口。2026-10-03 已验证电脑 10808 的 HTTP 与 SOCKS5 请求成功，并通过 Compose 解析；用户提供的服务器输出显示经 SSH 转发访问 npm 返回 `{}`，随后原版前台镜像已完整构建。后端访问 `proxy.golang.org` 直连超时，现已将构建代理扩展到后端，服务器重试仍待验证。依据：[Docker 构建代理参数](https://docs.docker.com/build/building/variables/#proxy-arguments)。
+
+运行阶段安装字体依赖时，若官方 Alpine 软件源下载失败，可通过 `ALPINE_MIRROR` 切换为同版本镜像源。这个参数只替换 `/etc/apk/repositories` 中的镜像根地址，保留基础镜像原有的 Alpine 版本分支；定义位于前端构建及生产依赖安装之后，以便复用已完成的构建缓存。
+
+```sh
+BUILD_HTTP_PROXY=http://127.0.0.1:10808 docker compose \
+  -f docker-compose.yml -f docker-compose.music.yml \
+  -f docker-compose.build-proxy.yml build \
+  --build-arg ALPINE_MIRROR=https://mirrors.tuna.tsinghua.edu.cn/alpine renderer
+```
+
+2026-10-03 已完成字体依赖的定向测试：在当前 `node:22-alpine`（Alpine 3.24.2）基础镜像中执行项目 Dockerfile 的软件源替换及安装指令，直接访问与通过电脑 10808 HTTP 代理两种情况下，六个依赖包均安装成功，`fontconfig` 2.17.1 可运行。电脑经代理访问清华镜像的 v3.24 main／community 索引均返回 200；完整服务器镜像和分享卡片实际渲染仍待验证。软件源配置依据：[清华 Alpine 镜像使用说明](https://mirrors.tuna.tsinghua.edu.cn/help/alpine/)。
 
 ## 参数
 
